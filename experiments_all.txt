@@ -1,0 +1,1861 @@
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/__init__.py =====
+# Public API re-exports for HSS downstream experiments.
+from .exp_config import ExperimentConfig
+from .adapter import ExperimentData, DataAdapter, NumpyDataAdapter
+from .k_analysis import run_k_scan, compute_rel_icl_matrix, sweep_tolerances, select_best_tolerance
+from .stability import run_stability
+from .statistics import run_statistical_tests
+from .label_analysis import run_label_analysis
+from .information import run_information_analysis
+from .prediction import run_prediction_cv
+
+__all__ = [
+    "ExperimentConfig",
+    "ExperimentData",
+    "DataAdapter",
+    "NumpyDataAdapter",
+    "run_k_scan",
+    "compute_rel_icl_matrix",
+    "sweep_tolerances",
+    "select_best_tolerance",
+    "run_stability",
+    "run_statistical_tests",
+    "run_label_analysis",
+    "run_information_analysis",
+    "run_prediction_cv",
+]
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/adapter.py =====
+# DataAdapter protocol and NumpyDataAdapter implementation.
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence
+
+import numpy as np
+
+
+@dataclass(frozen=True)
+class ExperimentData:
+    states: np.ndarray
+    layers: np.ndarray
+    y: Optional[np.ndarray] = None
+    label_key: Optional[str] = None
+    sample_ids: Optional[np.ndarray] = None
+
+    @property
+    def N(self) -> int:
+        return self.states.shape[0]
+
+    @property
+    def L(self) -> int:
+        return self.states.shape[1]
+
+    @property
+    def D(self) -> int:
+        return self.states.shape[2]
+
+    @property
+    def has_labels(self) -> bool:
+        return self.y is not None
+
+    def subset(self, indices: np.ndarray) -> ExperimentData:
+        idx = np.asarray(indices, dtype=np.int64)
+        return ExperimentData(
+            states=self.states[idx],
+            layers=self.layers.copy(),
+            y=self.y[idx] if self.y is not None else None,
+            label_key=self.label_key,
+            sample_ids=idx,
+        )
+
+
+class DataAdapter(ABC):
+
+    @abstractmethod
+    def load(self) -> ExperimentData:
+        ...
+
+    @abstractmethod
+    def model_name(self) -> str:
+        ...
+
+    @abstractmethod
+    def dataset_name(self) -> str:
+        ...
+
+
+class NumpyDataAdapter(DataAdapter):
+
+    def __init__(
+        self,
+        states: np.ndarray,
+        layers: np.ndarray,
+        model: str,
+        dataset: str,
+        y: Optional[np.ndarray] = None,
+        label_key: Optional[str] = None,
+    ):
+        self._states = states
+        self._layers = layers
+        self._model = model
+        self._dataset = dataset
+        self._y = y
+        self._label_key = label_key
+
+    def load(self) -> ExperimentData:
+        return ExperimentData(
+            states=self._states,
+            layers=self._layers,
+            y=self._y,
+            label_key=self._label_key,
+        )
+
+    def model_name(self) -> str:
+        return self._model
+
+    def dataset_name(self) -> str:
+        return self._dataset
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/exp_config.py =====
+# All configuration dataclasses (ExperimentConfig, KSelectionConfig, StabilityConfig, etc.).
+
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/information.py =====
+# H(C), I(C;Y), effective rank, layerwise information.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+
+def _entropy_bits(p: np.ndarray, eps: float = 1e-12) -> float:
+    p = np.asarray(p, dtype=np.float64)
+    p = p[p > 0]
+    if len(p) == 0:
+        return 0.0
+    return float(-np.sum(p * np.log2(p + eps)))
+
+
+@dataclass
+class InformationResult:
+    layer_df: pd.DataFrame
+    layers: np.ndarray
+
+
+def compute_layerwise_information(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    n_global: Optional[int] = None,
+    smoothing: float = 1.0,
+) -> pd.DataFrame:
+    N, L = global_labels.shape
+    if n_global is None:
+        n_global = int(global_labels[global_labels >= 0].max() + 1)
+    G = n_global
+    p1 = float(np.mean(y == 1))
+    p0 = 1.0 - p1
+    HY = _entropy_bits(np.array([p0, p1]))
+
+    rows = []
+    for li in range(L):
+        c = global_labels[:, li].astype(np.int64)
+        m = c >= 0
+        if not np.any(m):
+            rows.append({
+                "layer": int(layers[li]),
+                "H_C": np.nan, "H_C_given_Y": np.nan,
+                "I_CY": np.nan, "H_Y": HY, "H_Y_given_C": np.nan,
+                "n_active": 0, "n_valid": 0,
+            })
+            continue
+
+        c_v = c[m]
+        y_v = y[m].astype(np.int64)
+
+        cnt = np.bincount(c_v, minlength=G).astype(np.float64) + smoothing
+        pC = cnt / cnt.sum()
+        HC = _entropy_bits(pC)
+
+        cnt1 = np.bincount(c_v[y_v == 1], minlength=G).astype(np.float64) + smoothing
+        cnt0 = np.bincount(c_v[y_v == 0], minlength=G).astype(np.float64) + smoothing
+        pC1 = cnt1 / cnt1.sum()
+        pC0 = cnt0 / cnt0.sum()
+        HC_given_Y = p1 * _entropy_bits(pC1) + p0 * _entropy_bits(pC0)
+        I_CY = HC - HC_given_Y
+
+        raw_cnt = np.bincount(c_v, minlength=G).astype(np.float64)
+        raw_cnt1 = np.bincount(c_v[y_v == 1], minlength=G).astype(np.float64)
+        py1_c = (raw_cnt1 + smoothing) / (raw_cnt + 2.0 * smoothing + 1e-12)
+        py0_c = 1.0 - py1_c
+        HY_c = -(py0_c * np.log2(py0_c + 1e-12) + py1_c * np.log2(py1_c + 1e-12))
+        HY_given_C = float(np.sum(pC * HY_c))
+
+        n_active = int(np.sum(raw_cnt > 0))
+
+        rows.append({
+            "layer": int(layers[li]),
+            "H_C": float(HC),
+            "H_C_given_Y": float(HC_given_Y),
+            "I_CY": float(I_CY),
+            "H_Y": float(HY),
+            "H_Y_given_C": float(HY_given_C),
+            "n_active": n_active,
+            "n_valid": int(m.sum()),
+        })
+
+    return pd.DataFrame(rows)
+
+
+def compute_effective_rank(
+    states: np.ndarray,
+    layers: np.ndarray,
+    variance_threshold: float = 0.90,
+    subsample_fractions: Optional[list] = None,
+    n_trials: int = 3,
+    seed: int = 42,
+) -> pd.DataFrame:
+    N, L, D = states.shape
+    if subsample_fractions is None:
+        subsample_fractions = [1.0]
+    rng = np.random.RandomState(seed)
+
+    rows = []
+    for frac in subsample_fractions:
+        n_sub = max(50, int(N * frac))
+        for trial in range(n_trials):
+            if frac < 1.0:
+                idx = rng.choice(N, n_sub, replace=False)
+            else:
+                idx = np.arange(N)
+            for li in range(L):
+                X = states[idx, li, :].astype(np.float64)
+                X_centered = X - X.mean(axis=0)
+                _, sv, _ = np.linalg.svd(X_centered, full_matrices=False)
+                var_explained = sv ** 2
+                total_var = var_explained.sum()
+                if total_var < 1e-12:
+                    eff_rank = 0
+                else:
+                    cumvar = np.cumsum(var_explained) / total_var
+                    eff_rank = int(np.searchsorted(cumvar, variance_threshold) + 1)
+                rows.append({
+                    "layer": int(layers[li]),
+                    "frac": frac,
+                    "trial": trial,
+                    "effective_rank": eff_rank,
+                    "n_samples": len(idx),
+                })
+    return pd.DataFrame(rows)
+
+
+def run_information_analysis(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    states: np.ndarray,
+    cfg,
+    save_dir: Optional[Path] = None,
+) -> InformationResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("information")
+
+    G = int(global_labels[global_labels >= 0].max() + 1) if np.any(global_labels >= 0) else 0
+    info_df = compute_layerwise_information(global_labels, y, layers, G)
+    info_df.to_csv(save_dir / "layerwise_information.csv", index=False)
+
+    eff_rank_df = compute_effective_rank(
+        states, layers,
+        subsample_fractions=[0.3, 0.5, 0.7, 0.9, 1.0],
+        n_trials=3,
+        seed=cfg.seed,
+    )
+    eff_rank_df.to_csv(save_dir / "effective_rank.csv", index=False)
+
+    return InformationResult(layer_df=info_df, layers=layers)
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/k_analysis.py =====
+# K-selection with tolerance sweep: run_k_scan, compute_rel_icl_matrix, sweep_tolerances, select_best_tolerance, run_k_selection.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+
+from hss import (
+    NumpyProvider,
+    ScanConfig,
+    TransformSpec,
+    TransformStepSpec,
+    ClusterSpec,
+    scan,
+    select_icl_parsimonious,
+    select_auto_target_k,
+)
+from .exp_config import ExperimentConfig, KSelectionConfig
+from .adapter import ExperimentData
+
+
+@dataclass
+class KSelectionResult:
+    metrics_df: pd.DataFrame
+    k_maps: Dict[float, Dict[int, int]]
+    best_tolerance: float
+    best_k_map: Dict[int, int]
+    rel_icl_matrix: np.ndarray
+    layers: np.ndarray
+    k_values: np.ndarray
+
+
+def build_scan_config(cfg: ExperimentConfig) -> ScanConfig:
+    steps = [
+        TransformStepSpec(name=s["name"], params={k: v for k, v in s.items() if k != "name"})
+        for s in cfg.transform.steps
+    ]
+    return ScanConfig(
+        k_range=cfg.k_selection.k_range,
+        seed=cfg.seed,
+        stability_repeats=cfg.stability.ari_repeats,
+        eval_sample=5000,
+        icl_mode=cfg.k_selection.icl_mode,
+        transform=TransformSpec(steps=steps),
+        cluster=ClusterSpec(
+            method=cfg.cluster_method,
+            params={"covariance_type": "diag", "reg_covar": 1e-2},
+        ),
+        batch_size=cfg.batch_size,
+        n_jobs=cfg.n_jobs,
+    )
+
+
+def run_k_scan(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+) -> pd.DataFrame:
+    provider = NumpyProvider(data.states, layer_ids=data.layers.tolist())
+    scan_cfg = build_scan_config(cfg)
+    metrics_df = scan(provider, config=scan_cfg)
+    return metrics_df
+
+
+def compute_rel_icl_matrix(
+    metrics_df: pd.DataFrame,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    layers_sorted = np.array(sorted(metrics_df["layer"].unique()), dtype=np.int32)
+    k_sorted = np.array(sorted(metrics_df["k"].unique()), dtype=np.int32)
+    L = len(layers_sorted)
+    K = len(k_sorted)
+    layer_to_i = {int(l): i for i, l in enumerate(layers_sorted)}
+    k_to_j = {int(k): j for j, k in enumerate(k_sorted)}
+
+    icl_mat = np.full((L, K), np.nan, dtype=np.float64)
+    for r in metrics_df.itertuples(index=False):
+        li = layer_to_i.get(int(r.layer))
+        kj = k_to_j.get(int(r.k))
+        if li is not None and kj is not None and np.isfinite(r.icl):
+            icl_mat[li, kj] = float(r.icl)
+
+    rel_mat = np.full_like(icl_mat, np.nan)
+    for i in range(L):
+        row = icl_mat[i]
+        finite = row[np.isfinite(row)]
+        if finite.size == 0:
+            continue
+        m = float(np.nanmin(finite))
+        denom = abs(m) + 1e-12
+        rel_mat[i] = (row - m) / denom
+
+    return rel_mat, layers_sorted, k_sorted
+
+
+def sweep_tolerances(
+    metrics_df: pd.DataFrame,
+    cfg: KSelectionConfig,
+) -> Dict[float, Dict[int, int]]:
+    k_maps = {}
+    for tol in cfg.tolerances:
+        k_map = select_icl_parsimonious(
+            metrics_df,
+            relative_pct=tol,
+            stability_min=cfg.stability_min,
+        )
+        k_maps[tol] = k_map
+    return k_maps
+
+
+def select_best_tolerance(
+    k_maps: Dict[float, Dict[int, int]],
+    target_avg_k: float,
+) -> Tuple[float, Dict[int, int]]:
+    best_tol = 0.02
+    best_gap = float("inf")
+    best_map: Dict[int, int] = {}
+    for tol, km in k_maps.items():
+        if not km:
+            continue
+        avg = float(np.mean(list(km.values())))
+        gap = abs(avg - target_avg_k)
+        if gap < best_gap:
+            best_gap = gap
+            best_tol = tol
+            best_map = km
+    return best_tol, best_map
+
+
+def build_tolerance_summary(
+    k_maps: Dict[float, Dict[int, int]],
+    layers: np.ndarray,
+) -> pd.DataFrame:
+    rows = []
+    for tol, km in sorted(k_maps.items()):
+        if not km:
+            continue
+        ks = list(km.values())
+        rows.append({
+            "tolerance": tol,
+            "avg_k": float(np.mean(ks)),
+            "min_k": int(np.min(ks)),
+            "max_k": int(np.max(ks)),
+            "std_k": float(np.std(ks)),
+            "n_layers": len(km),
+        })
+    return pd.DataFrame(rows)
+
+
+def run_k_selection(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+    save_dir: Optional[Path] = None,
+) -> KSelectionResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("k_selection")
+
+    metrics_df = run_k_scan(data, cfg)
+    metrics_df.to_parquet(save_dir / "scan_metrics.parquet", index=False)
+
+    rel_mat, layers_sorted, k_sorted = compute_rel_icl_matrix(metrics_df)
+    np.save(save_dir / "rel_icl_matrix.npy", rel_mat)
+    np.save(save_dir / "layers.npy", layers_sorted)
+    np.save(save_dir / "k_values.npy", k_sorted)
+
+    k_maps = sweep_tolerances(metrics_df, cfg.k_selection)
+    best_tol, best_k_map = select_best_tolerance(
+        k_maps, cfg.k_selection.target_avg_k or 8.0
+    )
+
+    tol_summary = build_tolerance_summary(k_maps, layers_sorted)
+    tol_summary.to_csv(save_dir / "tolerance_summary.csv", index=False)
+
+    k_map_records = []
+    for tol, km in k_maps.items():
+        for layer, k in km.items():
+            k_map_records.append({"tolerance": tol, "layer": layer, "k": k})
+    pd.DataFrame(k_map_records).to_parquet(save_dir / "k_maps.parquet", index=False)
+
+    return KSelectionResult(
+        metrics_df=metrics_df,
+        k_maps=k_maps,
+        best_tolerance=best_tol,
+        best_k_map=best_k_map,
+        rel_icl_matrix=rel_mat,
+        layers=layers_sorted,
+        k_values=k_sorted,
+    )
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/label_analysis.py =====
+# Discriminativeness, sink states, top clusters, node/flow tables.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+
+
+@dataclass
+class NodeTable:
+    df: pd.DataFrame
+    baseline: float
+
+
+@dataclass
+class FlowTable:
+    df: pd.DataFrame
+    baseline: float
+
+
+@dataclass
+class LabelAnalysisResult:
+    node_table: NodeTable
+    flow_table: FlowTable
+    discriminativeness_matrix: np.ndarray
+    correct_rate_matrix: np.ndarray
+    class_cond_diff: np.ndarray
+    cluster_size_matrix: np.ndarray
+    birth_layers: Dict[int, int]
+    death_layers: Dict[int, int]
+    layers: np.ndarray
+    n_global: int
+    baseline: float
+
+
+def compute_node_table(
+    global_labels: np.ndarray,
+    layers: np.ndarray,
+    y: Optional[np.ndarray] = None,
+) -> NodeTable:
+    N, L = global_labels.shape
+    baseline = float(y.mean()) if y is not None else 0.5
+    rows = []
+    for li in range(L):
+        layer = int(layers[li])
+        c = global_labels[:, li].astype(np.int64)
+        mask = c >= 0
+        if not np.any(mask):
+            continue
+        c_valid = c[mask]
+        y_valid = y[mask] if y is not None else None
+        total = len(c_valid)
+        for cluster in np.unique(c_valid):
+            cmask = c_valid == cluster
+            count = int(cmask.sum())
+            row = {
+                "layer": layer,
+                "cluster": int(cluster),
+                "count": count,
+                "prop": count / total if total > 0 else 0.0,
+            }
+            if y_valid is not None:
+                yc = y_valid[cmask]
+                pos_rate = float(yc.mean()) if len(yc) > 0 else 0.0
+                row.update({
+                    "pos_count": int(yc.sum()),
+                    "pos_rate": pos_rate,
+                    "disc": pos_rate - baseline,
+                })
+            rows.append(row)
+    return NodeTable(df=pd.DataFrame(rows), baseline=baseline)
+
+
+def compute_flow_table(
+    global_labels: np.ndarray,
+    layers: np.ndarray,
+    y: Optional[np.ndarray] = None,
+) -> FlowTable:
+    N, L = global_labels.shape
+    baseline = float(y.mean()) if y is not None else 0.5
+    rows = []
+    for li in range(L - 1):
+        lf = int(layers[li])
+        lt = int(layers[li + 1])
+        cf = global_labels[:, li].astype(np.int64)
+        ct = global_labels[:, li + 1].astype(np.int64)
+        mask = (cf >= 0) & (ct >= 0)
+        if not np.any(mask):
+            continue
+        cf_v, ct_v = cf[mask], ct[mask]
+        y_v = y[mask] if y is not None else None
+        pairs, counts = np.unique(
+            np.stack([cf_v, ct_v], axis=1), axis=0, return_counts=True,
+        )
+        out_totals: Dict[int, int] = {}
+        for (f, t), cnt in zip(pairs, counts):
+            out_totals[int(f)] = out_totals.get(int(f), 0) + int(cnt)
+        in_totals: Dict[int, int] = {}
+        for (f, t), cnt in zip(pairs, counts):
+            in_totals[int(t)] = in_totals.get(int(t), 0) + int(cnt)
+        for (f, t), cnt in zip(pairs, counts):
+            f, t, cnt = int(f), int(t), int(cnt)
+            row = {
+                "layer_from": lf, "layer_to": lt,
+                "cluster_from": f, "cluster_to": t,
+                "count": cnt,
+                "prob_out": cnt / out_totals.get(f, 1),
+                "prob_in": cnt / in_totals.get(t, 1),
+            }
+            if y_v is not None:
+                idx = np.where((cf_v == f) & (ct_v == t))[0]
+                yt = y_v[idx]
+                row.update({
+                    "pos_count": int(yt.sum()),
+                    "pos_rate": float(yt.mean()) if len(yt) > 0 else 0.0,
+                    "disc": float(yt.mean()) - baseline if len(yt) > 0 else 0.0,
+                })
+            rows.append(row)
+    return FlowTable(df=pd.DataFrame(rows), baseline=baseline)
+
+
+def compute_outgoing_entropy(
+    node_df: pd.DataFrame,
+    flow_df: pd.DataFrame,
+) -> pd.DataFrame:
+    out_ent = {}
+    for (lf, cf), g in flow_df.groupby(["layer_from", "cluster_from"]):
+        p = g["count"].to_numpy(dtype=np.float64)
+        total = p.sum()
+        if total > 0:
+            p = p / total
+        p = p[p > 0]
+        H = float(-np.sum(p * np.log2(p + 1e-12))) if len(p) > 0 else 0.0
+        K = len(p)
+        H_norm = H / np.log2(K) if K > 1 else 0.0
+        out_ent[(int(lf), int(cf))] = float(H_norm)
+    df = node_df.copy()
+    df["out_entropy"] = [
+        out_ent.get((int(r.layer), int(r.cluster)), np.nan)
+        for r in df.itertuples(index=False)
+    ]
+    return df
+
+
+def compute_discriminativeness_matrix(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    n_global: int,
+    min_samples: int = 20,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    N, L = global_labels.shape
+    baseline = float(y.mean())
+    G = n_global
+    rate = np.full((L, G), np.nan, dtype=np.float64)
+    disc = np.full((L, G), np.nan, dtype=np.float64)
+    size = np.zeros((L, G), dtype=np.int32)
+    for li in range(L):
+        c = global_labels[:, li].astype(np.int64)
+        m = c >= 0
+        if not np.any(m):
+            continue
+        c_v, y_v = c[m], y[m].astype(np.float64)
+        cnt = np.bincount(c_v, minlength=G).astype(np.float64)
+        sumy = np.bincount(c_v, weights=y_v, minlength=G).astype(np.float64)
+        size[li] = cnt.astype(np.int32)
+        valid = cnt >= min_samples
+        rr = np.zeros_like(cnt)
+        rr[valid] = sumy[valid] / np.maximum(1.0, cnt[valid])
+        rate[li, valid] = rr[valid]
+        disc[li, valid] = rr[valid] - baseline
+    return rate, disc, size
+
+
+def compute_class_conditional_diff(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    n_global: int,
+    smoothing: float = 1.0,
+) -> np.ndarray:
+    N, L = global_labels.shape
+    G = n_global
+    counts_pos = np.zeros((L, G), dtype=np.float64)
+    counts_neg = np.zeros((L, G), dtype=np.float64)
+    for li in range(L):
+        c = global_labels[:, li].astype(np.int64)
+        m = c >= 0
+        if not np.any(m):
+            continue
+        c_v, y_v = c[m], y[m].astype(np.int64)
+        pos = y_v == 1
+        neg = y_v == 0
+        if np.any(pos):
+            counts_pos[li] += np.bincount(c_v[pos], minlength=G)
+        if np.any(neg):
+            counts_neg[li] += np.bincount(c_v[neg], minlength=G)
+    counts_pos += smoothing
+    counts_neg += smoothing
+    prob_pos = counts_pos / counts_pos.sum(axis=1, keepdims=True)
+    prob_neg = counts_neg / counts_neg.sum(axis=1, keepdims=True)
+    return prob_pos - prob_neg
+
+
+def compute_birth_death(
+    node_df: pd.DataFrame,
+) -> Tuple[Dict[int, int], Dict[int, int]]:
+    birth = {}
+    death = {}
+    for cluster, g in node_df.groupby("cluster"):
+        cluster = int(cluster)
+        cluster_layers = sorted(g["layer"].astype(int).tolist())
+        if cluster_layers:
+            birth[cluster] = cluster_layers[0]
+            death[cluster] = cluster_layers[-1]
+    return birth, death
+
+
+def detect_sink_states(
+    disc_matrix: np.ndarray,
+    layers: np.ndarray,
+    birth: Dict[int, int],
+    death: Dict[int, int],
+    threshold: float = -0.10,
+    min_lifespan: int = 5,
+) -> pd.DataFrame:
+    L, G = disc_matrix.shape
+    layer_list = layers.tolist()
+    rows = []
+    for g in range(G):
+        b = birth.get(g)
+        d = death.get(g)
+        if b is None or d is None:
+            continue
+        b_idx = layer_list.index(b) if b in layer_list else -1
+        d_idx = layer_list.index(d) if d in layer_list else -1
+        if b_idx < 0 or d_idx < 0:
+            continue
+        lifespan = d_idx - b_idx + 1
+        if lifespan < min_lifespan:
+            continue
+        vals = disc_matrix[b_idx:d_idx + 1, g]
+        valid = vals[np.isfinite(vals)]
+        if len(valid) == 0:
+            continue
+        mean_disc = float(np.mean(valid))
+        if mean_disc < threshold:
+            rows.append({
+                "cluster": g,
+                "birth_layer": b,
+                "death_layer": d,
+                "lifespan": lifespan,
+                "mean_disc": mean_disc,
+                "min_disc": float(np.nanmin(valid)),
+                "max_disc": float(np.nanmax(valid)),
+            })
+    return pd.DataFrame(rows)
+
+
+def select_top_clusters(
+    disc_matrix: np.ndarray,
+    size_matrix: np.ndarray,
+    max_clusters: int = 35,
+    min_total: int = 200,
+) -> List[int]:
+    L, G = disc_matrix.shape
+    v = np.nan_to_num(disc_matrix, nan=0.0)
+    score = np.max(np.abs(v), axis=0)
+    total_size = size_matrix.sum(axis=0)
+    score[total_size < min_total] = 0.0
+    top = np.argsort(-score)[:max_clusters]
+    return sorted(top.tolist())
+
+
+def run_label_analysis(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    cfg: ExperimentConfig,
+    save_dir: Optional[Path] = None,
+) -> LabelAnalysisResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("label_analysis")
+
+    N, L = global_labels.shape
+    G = int(global_labels[global_labels >= 0].max() + 1) if np.any(global_labels >= 0) else 0
+    baseline = float(y.mean())
+
+    node_table = compute_node_table(global_labels, layers, y)
+    flow_table = compute_flow_table(global_labels, layers, y)
+    node_table = NodeTable(
+        df=compute_outgoing_entropy(node_table.df, flow_table.df),
+        baseline=baseline,
+    )
+
+    rate, disc, size = compute_discriminativeness_matrix(global_labels, y, G)
+    ccd = compute_class_conditional_diff(global_labels, y, G)
+    birth, death = compute_birth_death(node_table.df)
+
+    np.save(save_dir / "correct_rate_matrix.npy", rate)
+    np.save(save_dir / "discriminativeness_matrix.npy", disc)
+    np.save(save_dir / "class_cond_diff.npy", ccd)
+    np.save(save_dir / "cluster_size_matrix.npy", size)
+    node_table.df.to_parquet(save_dir / "node_table.parquet", index=False)
+    flow_table.df.to_parquet(save_dir / "flow_table.parquet", index=False)
+
+    sink = detect_sink_states(disc, layers, birth, death)
+    if len(sink) > 0:
+        sink.to_csv(save_dir / "sink_states.csv", index=False)
+
+    return LabelAnalysisResult(
+        node_table=node_table,
+        flow_table=flow_table,
+        discriminativeness_matrix=disc,
+        correct_rate_matrix=rate,
+        class_cond_diff=ccd,
+        cluster_size_matrix=size,
+        birth_layers=birth,
+        death_layers=death,
+        layers=layers,
+        n_global=G,
+        baseline=baseline,
+    )
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/prediction.py =====
+# NB, Markov, baselines (LDA, GaussNB, Logistic, LinearSVM, MLP) with CV.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
+
+from hss import NaiveBayesClassifier, MarkovClassifier
+from hss.splitting import stratified_split, kfold_indices
+
+from .exp_config import ExperimentConfig, PredictionConfig
+
+
+@dataclass
+class PredictionResult:
+    results_df: pd.DataFrame
+    fold_results: pd.DataFrame
+    best_method: str
+    best_auroc: float
+
+
+def _evaluate(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0.5):
+    y_pred = (y_prob >= threshold).astype(np.int32)
+    try:
+        auroc = float(roc_auc_score(y_true, y_prob))
+    except ValueError:
+        auroc = float("nan")
+    acc = float(accuracy_score(y_true, y_pred))
+    f1 = float(f1_score(y_true, y_pred, zero_division=0.0))
+    return {"auroc": auroc, "accuracy": acc, "f1": f1}
+
+
+def train_eval_nb(
+    gl_train: np.ndarray, y_train: np.ndarray,
+    gl_test: np.ndarray, y_test: np.ndarray,
+    alpha: float = 1.0,
+) -> Dict[str, float]:
+    clf = NaiveBayesClassifier(alpha=alpha)
+    clf.fit(gl_train, y_train)
+    proba = clf.predict_proba(gl_test)
+    y_prob = proba[:, 1] if proba.shape[1] > 1 else proba[:, 0]
+    return _evaluate(y_test, y_prob)
+
+
+def train_eval_markov(
+    gl_train: np.ndarray, y_train: np.ndarray,
+    gl_test: np.ndarray, y_test: np.ndarray,
+    alpha: float = 1.0,
+) -> Dict[str, float]:
+    clf = MarkovClassifier(alpha=alpha)
+    clf.fit(gl_train, y_train)
+    proba = clf.predict_proba(gl_test)
+    y_prob = proba[:, 1] if proba.shape[1] > 1 else proba[:, 0]
+    return _evaluate(y_test, y_prob)
+
+
+def _flatten_trajectories(global_labels: np.ndarray, n_global: int) -> np.ndarray:
+    N, L = global_labels.shape
+    features = np.zeros((N, L * n_global), dtype=np.float32)
+    for li in range(L):
+        col = global_labels[:, li]
+        for i in range(N):
+            c = int(col[i])
+            if 0 <= c < n_global:
+                features[i, li * n_global + c] = 1.0
+    return features
+
+
+def _flatten_mean_hidden(states: np.ndarray) -> np.ndarray:
+    N, L, D = states.shape
+    return states.reshape(N, L * D).astype(np.float32)
+
+
+def _flatten_last_layer_hidden(states: np.ndarray) -> np.ndarray:
+    return states[:, -1, :].astype(np.float32)
+
+
+def train_eval_baseline(
+    X_train: np.ndarray, y_train: np.ndarray,
+    X_test: np.ndarray, y_test: np.ndarray,
+    method: str,
+    cfg: PredictionConfig,
+) -> Dict[str, float]:
+    if method == "lda":
+        from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+        clf = LinearDiscriminantAnalysis()
+        clf.fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)[:, 1]
+    elif method == "gaussian_nb":
+        from sklearn.naive_bayes import GaussianNB
+        clf = GaussianNB()
+        clf.fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)[:, 1]
+    elif method == "logistic":
+        from sklearn.linear_model import LogisticRegression
+        clf = LogisticRegression(max_iter=1000, C=1.0, solver="lbfgs")
+        clf.fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)[:, 1]
+    elif method == "linear_svm":
+        from sklearn.svm import LinearSVC
+        from sklearn.calibration import CalibratedClassifierCV
+        svm = LinearSVC(max_iter=2000, C=1.0)
+        clf = CalibratedClassifierCV(svm, cv=3)
+        clf.fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)[:, 1]
+    elif method == "mlp":
+        from sklearn.neural_network import MLPClassifier
+        clf = MLPClassifier(
+            hidden_layer_sizes=cfg.mlp_hidden,
+            max_iter=cfg.mlp_max_iter,
+            random_state=42,
+            early_stopping=True,
+            validation_fraction=0.1,
+        )
+        clf.fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)[:, 1]
+    else:
+        raise ValueError(f"Unknown baseline method: {method}")
+    return _evaluate(y_test, y_prob)
+
+
+def run_prediction_cv(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    states: np.ndarray,
+    cfg: ExperimentConfig,
+    save_dir: Optional[Path] = None,
+) -> PredictionResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("prediction")
+
+    pcfg = cfg.prediction
+    N, L = global_labels.shape
+    G = int(global_labels[global_labels >= 0].max() + 1) if np.any(global_labels >= 0) else 0
+
+    X_hidden = _flatten_last_layer_hidden(states)
+
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+
+    folds = kfold_indices(N, n_splits=pcfg.n_folds, seed=cfg.seed)
+
+    fold_records = []
+    for fold_idx, (train_idx, val_idx) in enumerate(folds):
+        gl_train = global_labels[train_idx]
+        gl_val = global_labels[val_idx]
+        y_train = y[train_idx]
+        y_val = y[val_idx]
+        X_h_train = X_hidden[train_idx]
+        X_h_val = X_hidden[val_idx]
+
+        X_h_train_s = scaler.fit_transform(X_h_train)
+        X_h_val_s = scaler.transform(X_h_val)
+
+        nb_res = train_eval_nb(gl_train, y_train, gl_val, y_val, pcfg.alpha_smoothing)
+        fold_records.append({"fold": fold_idx, "method": "HSS-NB", **nb_res})
+
+        mk_res = train_eval_markov(gl_train, y_train, gl_val, y_val, pcfg.alpha_smoothing)
+        fold_records.append({"fold": fold_idx, "method": "HSS-Markov", **mk_res})
+
+        for bm in pcfg.baseline_methods:
+            try:
+                bl_res = train_eval_baseline(X_h_train_s, y_train, X_h_val_s, y_val, bm, pcfg)
+                fold_records.append({"fold": fold_idx, "method": bm, **bl_res})
+            except Exception as e:
+                fold_records.append({
+                    "fold": fold_idx, "method": bm,
+                    "auroc": float("nan"), "accuracy": float("nan"), "f1": float("nan"),
+                })
+
+    fold_df = pd.DataFrame(fold_records)
+    fold_df.to_csv(save_dir / "fold_results.csv", index=False)
+
+    agg = fold_df.groupby("method").agg(
+        auroc_mean=("auroc", "mean"),
+        auroc_std=("auroc", "std"),
+        acc_mean=("accuracy", "mean"),
+        acc_std=("accuracy", "std"),
+        f1_mean=("f1", "mean"),
+        f1_std=("f1", "std"),
+    ).reset_index()
+    agg.to_csv(save_dir / "prediction_summary.csv", index=False)
+
+    best_row = agg.loc[agg["auroc_mean"].idxmax()]
+    best_method = str(best_row["method"])
+    best_auroc = float(best_row["auroc_mean"])
+
+    return PredictionResult(
+        results_df=agg,
+        fold_results=fold_df,
+        best_method=best_method,
+        best_auroc=best_auroc,
+    )
+
+
+def run_prediction_single_split(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    states: np.ndarray,
+    cfg: ExperimentConfig,
+    save_dir: Optional[Path] = None,
+) -> PredictionResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("prediction_split")
+
+    pcfg = cfg.prediction
+    N, L = global_labels.shape
+    G = int(global_labels[global_labels >= 0].max() + 1) if np.any(global_labels >= 0) else 0
+
+    train_idx, test_idx = stratified_split(y, train_frac=pcfg.train_frac, seed=cfg.seed)
+    gl_train, gl_test = global_labels[train_idx], global_labels[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
+
+    X_hidden = _flatten_last_layer_hidden(states)
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_h_train = scaler.fit_transform(X_hidden[train_idx])
+    X_h_test = scaler.transform(X_hidden[test_idx])
+
+    records = []
+    nb_res = train_eval_nb(gl_train, y_train, gl_test, y_test, pcfg.alpha_smoothing)
+    records.append({"method": "HSS-NB", **nb_res})
+
+    mk_res = train_eval_markov(gl_train, y_train, gl_test, y_test, pcfg.alpha_smoothing)
+    records.append({"method": "HSS-Markov", **mk_res})
+
+    for bm in pcfg.baseline_methods:
+        try:
+            bl_res = train_eval_baseline(X_h_train, y_train, X_h_test, y_test, bm, pcfg)
+            records.append({"method": bm, **bl_res})
+        except Exception:
+            records.append({"method": bm, "auroc": float("nan"), "accuracy": float("nan"), "f1": float("nan")})
+
+    results_df = pd.DataFrame(records)
+    results_df.to_csv(save_dir / "prediction_results.csv", index=False)
+
+    best_row = results_df.loc[results_df["auroc"].idxmax()]
+    return PredictionResult(
+        results_df=results_df,
+        fold_results=results_df,
+        best_method=str(best_row["method"]),
+        best_auroc=float(best_row["auroc"]),
+    )
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/stability.py =====
+# Enhanced stability: trend, centroid persistence, label stability (ARI/NMI).
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import linear_sum_assignment
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+
+from hss import (
+    NumpyProvider,
+    HSSConfig,
+    TransformSpec,
+    TransformStepSpec,
+    ClusterSpec,
+    AlignSpec,
+    discretize,
+    scan,
+    ScanConfig,
+    select_icl_parsimonious,
+)
+from hss.cluster import fit_cluster
+from hss.transform import build_chain_from_spec
+from hss.distance import cosine_similarity_matrix
+from hss.utils import f32
+
+from .exp_config import ExperimentConfig, StabilityConfig
+from .adapter import ExperimentData
+
+
+@dataclass
+class TrendStabilityResult:
+    seed_k_curves: np.ndarray
+    subsample_k_curves: Dict[float, np.ndarray]
+    kmax_k_curves: Dict[int, np.ndarray]
+    layers: np.ndarray
+    baseline_k_curve: np.ndarray
+
+
+@dataclass
+class CentroidPersistenceResult:
+    seed_distances: np.ndarray
+    sample_distances: np.ndarray
+    random_distances: np.ndarray
+    layers: np.ndarray
+
+
+@dataclass
+class LabelStabilityResult:
+    ari_seed: np.ndarray
+    nmi_seed: np.ndarray
+    ari_subsample: Dict[float, np.ndarray]
+    layers: np.ndarray
+
+
+@dataclass
+class StabilityResult:
+    trend: TrendStabilityResult
+    centroid: CentroidPersistenceResult
+    label_stability: LabelStabilityResult
+    summary_df: pd.DataFrame
+
+
+def _build_transform_spec(cfg: ExperimentConfig) -> TransformSpec:
+    steps = [
+        TransformStepSpec(name=s["name"], params={k: v for k, v in s.items() if k != "name"})
+        for s in cfg.transform.steps
+    ]
+    return TransformSpec(steps=steps)
+
+
+def _fit_single_layer(
+    X: np.ndarray,
+    method: str,
+    k: int,
+    seed: int,
+    transform_spec: TransformSpec,
+    cluster_params: Dict[str, Any],
+) -> Tuple[np.ndarray, np.ndarray]:
+    chain = build_chain_from_spec(transform_spec)
+
+    def factory():
+        yield f32(X)
+
+    chain.fit(factory)
+    Xt = chain.transform(f32(X))
+
+    model = fit_cluster(
+        lambda: iter([Xt]),
+        method=method,
+        k=k,
+        k_range=(k, k),
+        seed=seed,
+        params=cluster_params,
+    )
+    labels = model.predict(Xt)
+    centers_hidden = chain.inverse(f32(model.centers()))
+    return labels, centers_hidden
+
+
+def _scan_layer_for_k(
+    X: np.ndarray,
+    method: str,
+    k_range: Tuple[int, int],
+    seed: int,
+    tolerance: float,
+    transform_spec: TransformSpec,
+    cluster_params: Dict[str, Any],
+    icl_mode: str,
+) -> int:
+    from hss.cluster.auto_k import select_k_gmm, select_k_kmeans
+
+    chain = build_chain_from_spec(transform_spec)
+
+    def factory():
+        yield f32(X)
+
+    chain.fit(factory)
+    Xt = chain.transform(f32(X))
+
+    if method == "gmm":
+        model = select_k_gmm(
+            Xt, k_range=k_range, seed=seed,
+            tolerance=tolerance, icl_mode=icl_mode, params=cluster_params,
+        )
+    else:
+        model = select_k_kmeans(
+            Xt, k_range=k_range, seed=seed,
+            tolerance=tolerance, params=cluster_params,
+        )
+    return model.n_clusters()
+
+
+def _bipartite_cosine_distance(
+    centers_a: np.ndarray,
+    centers_b: np.ndarray,
+) -> float:
+    if centers_a.shape[0] == 0 or centers_b.shape[0] == 0:
+        return 1.0
+    k = min(centers_a.shape[0], centers_b.shape[0])
+    sim = cosine_similarity_matrix(f32(centers_a[:k]), f32(centers_b[:k]))
+    ri, ci = linear_sum_assignment(-sim.astype(np.float64))
+    matched_sim = np.mean([float(sim[i, j]) for i, j in zip(ri, ci)])
+    return float(1.0 - matched_sim)
+
+
+def _random_partition_centers(
+    X: np.ndarray,
+    k: int,
+    seed: int,
+) -> np.ndarray:
+    rng = np.random.RandomState(seed)
+    labels = rng.randint(0, k, size=X.shape[0])
+    centers = np.zeros((k, X.shape[1]), dtype=np.float64)
+    for c in range(k):
+        mask = labels == c
+        if mask.sum() > 0:
+            centers[c] = X[mask].mean(axis=0)
+        else:
+            centers[c] = X[rng.randint(0, X.shape[0])]
+    return centers.astype(np.float32)
+
+
+def run_trend_stability(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+    k_range: Optional[Tuple[int, int]] = None,
+) -> TrendStabilityResult:
+    scfg = cfg.stability
+    transform_spec = _build_transform_spec(cfg)
+    cluster_params = {"covariance_type": "diag", "reg_covar": 1e-2}
+    if k_range is None:
+        k_range = cfg.k_selection.k_range
+    layers = data.layers
+    L = len(layers)
+
+    baseline_k = np.zeros(L, dtype=np.int32)
+    for li in range(L):
+        X = data.states[:, li, :]
+        baseline_k[li] = _scan_layer_for_k(
+            X, cfg.cluster_method, k_range, cfg.seed, 0.02,
+            transform_spec, cluster_params, cfg.k_selection.icl_mode,
+        )
+
+    seed_curves = np.zeros((scfg.n_seed_trials, L), dtype=np.int32)
+    for trial in range(scfg.n_seed_trials):
+        s = cfg.seed + trial * 7919
+        for li in range(L):
+            X = data.states[:, li, :]
+            seed_curves[trial, li] = _scan_layer_for_k(
+                X, cfg.cluster_method, k_range, s, 0.02,
+                transform_spec, cluster_params, cfg.k_selection.icl_mode,
+            )
+
+    subsample_curves: Dict[float, np.ndarray] = {}
+    rng = np.random.RandomState(cfg.seed)
+    for frac in scfg.subsample_fractions:
+        n_sub = max(50, int(data.N * frac))
+        idx = rng.choice(data.N, n_sub, replace=False)
+        curve = np.zeros(L, dtype=np.int32)
+        for li in range(L):
+            X = data.states[idx, li, :]
+            curve[li] = _scan_layer_for_k(
+                X, cfg.cluster_method, k_range, cfg.seed, 0.02,
+                transform_spec, cluster_params, cfg.k_selection.icl_mode,
+            )
+        subsample_curves[frac] = curve
+
+    kmax_curves: Dict[int, np.ndarray] = {}
+    for kmax in scfg.kmax_variants:
+        kr = (k_range[0], kmax)
+        curve = np.zeros(L, dtype=np.int32)
+        for li in range(L):
+            X = data.states[:, li, :]
+            curve[li] = _scan_layer_for_k(
+                X, cfg.cluster_method, kr, cfg.seed, 0.02,
+                transform_spec, cluster_params, cfg.k_selection.icl_mode,
+            )
+        kmax_curves[kmax] = curve
+
+    return TrendStabilityResult(
+        seed_k_curves=seed_curves,
+        subsample_k_curves=subsample_curves,
+        kmax_k_curves=kmax_curves,
+        layers=layers,
+        baseline_k_curve=baseline_k,
+    )
+
+
+def run_centroid_persistence(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+    k_map: Dict[int, int],
+) -> CentroidPersistenceResult:
+    scfg = cfg.stability
+    transform_spec = _build_transform_spec(cfg)
+    cluster_params = {"covariance_type": "diag", "reg_covar": 1e-2}
+    layers = data.layers
+    L = len(layers)
+    rng = np.random.RandomState(cfg.seed)
+
+    baseline_centers = []
+    for li in range(L):
+        layer = int(layers[li])
+        k = k_map.get(layer, 4)
+        X = data.states[:, li, :]
+        _, centers = _fit_single_layer(
+            X, cfg.cluster_method, k, cfg.seed,
+            transform_spec, cluster_params,
+        )
+        baseline_centers.append(centers)
+
+    seed_dists = np.zeros((scfg.n_seed_trials, L), dtype=np.float64)
+    for trial in range(scfg.n_seed_trials):
+        s = cfg.seed + trial * 7919
+        for li in range(L):
+            layer = int(layers[li])
+            k = k_map.get(layer, 4)
+            X = data.states[:, li, :]
+            _, centers = _fit_single_layer(
+                X, cfg.cluster_method, k, s,
+                transform_spec, cluster_params,
+            )
+            seed_dists[trial, li] = _bipartite_cosine_distance(
+                baseline_centers[li], centers,
+            )
+
+    sample_dists_list = []
+    for frac in scfg.subsample_fractions:
+        if frac >= 1.0:
+            continue
+        n_sub = max(50, int(data.N * frac))
+        dists = np.zeros(L, dtype=np.float64)
+        for trial in range(3):
+            idx = rng.choice(data.N, n_sub, replace=False)
+            for li in range(L):
+                layer = int(layers[li])
+                k = k_map.get(layer, 4)
+                X = data.states[idx, li, :]
+                _, centers = _fit_single_layer(
+                    X, cfg.cluster_method, k, cfg.seed + trial,
+                    transform_spec, cluster_params,
+                )
+                dists[li] += _bipartite_cosine_distance(
+                    baseline_centers[li], centers,
+                ) / 3.0
+        sample_dists_list.append(dists)
+    sample_dists = np.array(sample_dists_list) if sample_dists_list else np.zeros((1, L))
+
+    random_dists = np.zeros(L, dtype=np.float64)
+    for li in range(L):
+        layer = int(layers[li])
+        k = k_map.get(layer, 4)
+        X = data.states[:, li, :]
+        chain = build_chain_from_spec(transform_spec)
+
+        def factory(x=X):
+            yield f32(x)
+        chain.fit(factory)
+        Xt = chain.transform(f32(X))
+
+        rd = []
+        for trial in range(10):
+            rc = _random_partition_centers(Xt, k, cfg.seed + trial * 31)
+            rc_hidden = chain.inverse(f32(rc))
+            rd.append(_bipartite_cosine_distance(baseline_centers[li], rc_hidden))
+        random_dists[li] = float(np.mean(rd))
+
+    return CentroidPersistenceResult(
+        seed_distances=seed_dists,
+        sample_distances=sample_dists,
+        random_distances=random_dists,
+        layers=layers,
+    )
+
+
+def run_label_stability(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+    k_map: Dict[int, int],
+) -> LabelStabilityResult:
+    scfg = cfg.stability
+    transform_spec = _build_transform_spec(cfg)
+    cluster_params = {"covariance_type": "diag", "reg_covar": 1e-2}
+    layers = data.layers
+    L = len(layers)
+
+    baseline_labels = []
+    for li in range(L):
+        layer = int(layers[li])
+        k = k_map.get(layer, 4)
+        X = data.states[:, li, :]
+        labels, _ = _fit_single_layer(
+            X, cfg.cluster_method, k, cfg.seed,
+            transform_spec, cluster_params,
+        )
+        baseline_labels.append(labels)
+
+    ari_seed = np.zeros((scfg.n_seed_trials, L), dtype=np.float64)
+    nmi_seed = np.zeros((scfg.n_seed_trials, L), dtype=np.float64)
+    for trial in range(scfg.n_seed_trials):
+        s = cfg.seed + trial * 7919
+        for li in range(L):
+            layer = int(layers[li])
+            k = k_map.get(layer, 4)
+            X = data.states[:, li, :]
+            labels, _ = _fit_single_layer(
+                X, cfg.cluster_method, k, s,
+                transform_spec, cluster_params,
+            )
+            ari_seed[trial, li] = adjusted_rand_score(baseline_labels[li], labels)
+            nmi_seed[trial, li] = normalized_mutual_info_score(baseline_labels[li], labels)
+
+    rng = np.random.RandomState(cfg.seed)
+    ari_sub: Dict[float, np.ndarray] = {}
+    for frac in scfg.subsample_fractions:
+        if frac >= 1.0:
+            continue
+        n_sub = max(50, int(data.N * frac))
+        ari_vals = np.zeros(L, dtype=np.float64)
+        for trial in range(3):
+            idx = rng.choice(data.N, n_sub, replace=False)
+            for li in range(L):
+                layer = int(layers[li])
+                k = k_map.get(layer, 4)
+                X = data.states[idx, li, :]
+                labels, _ = _fit_single_layer(
+                    X, cfg.cluster_method, k, cfg.seed + trial,
+                    transform_spec, cluster_params,
+                )
+                bl = baseline_labels[li][idx]
+                ari_vals[li] += adjusted_rand_score(bl, labels) / 3.0
+        ari_sub[frac] = ari_vals
+
+    return LabelStabilityResult(
+        ari_seed=ari_seed,
+        nmi_seed=nmi_seed,
+        ari_subsample=ari_sub,
+        layers=layers,
+    )
+
+
+def build_stability_summary(
+    trend: TrendStabilityResult,
+    centroid: CentroidPersistenceResult,
+    label_stab: LabelStabilityResult,
+) -> pd.DataFrame:
+    L = len(trend.layers)
+    rows = []
+    for li in range(L):
+        layer = int(trend.layers[li])
+        row = {"layer": layer}
+        row["k_baseline"] = int(trend.baseline_k_curve[li])
+        row["k_seed_mean"] = float(np.mean(trend.seed_k_curves[:, li]))
+        row["k_seed_std"] = float(np.std(trend.seed_k_curves[:, li]))
+        row["centroid_seed_dist_mean"] = float(np.mean(centroid.seed_distances[:, li]))
+        row["centroid_seed_dist_std"] = float(np.std(centroid.seed_distances[:, li]))
+        row["centroid_random_dist"] = float(centroid.random_distances[li])
+        row["ari_seed_mean"] = float(np.mean(label_stab.ari_seed[:, li]))
+        row["ari_seed_std"] = float(np.std(label_stab.ari_seed[:, li]))
+        row["nmi_seed_mean"] = float(np.mean(label_stab.nmi_seed[:, li]))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def run_stability(
+    data: ExperimentData,
+    cfg: ExperimentConfig,
+    k_map: Dict[int, int],
+    save_dir: Optional[Path] = None,
+) -> StabilityResult:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("stability")
+
+    trend = run_trend_stability(data, cfg)
+    np.save(save_dir / "seed_k_curves.npy", trend.seed_k_curves)
+    np.save(save_dir / "baseline_k_curve.npy", trend.baseline_k_curve)
+
+    centroid = run_centroid_persistence(data, cfg, k_map)
+    np.save(save_dir / "seed_distances.npy", centroid.seed_distances)
+    np.save(save_dir / "random_distances.npy", centroid.random_distances)
+
+    label_stab = run_label_stability(data, cfg, k_map)
+    np.save(save_dir / "ari_seed.npy", label_stab.ari_seed)
+    np.save(save_dir / "nmi_seed.npy", label_stab.nmi_seed)
+
+    summary = build_stability_summary(trend, centroid, label_stab)
+    summary.to_csv(save_dir / "stability_summary.csv", index=False)
+
+    return StabilityResult(
+        trend=trend,
+        centroid=centroid,
+        label_stability=label_stab,
+        summary_df=summary,
+    )
+===== /lambda/nfs/damienli-3/hidden-states-as-states/experiments/statistics.py =====
+# Hypothesis testing: permutation, bootstrap, chi2, MI, multiple testing correction.
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from scipy import stats as sp_stats
+
+from .exp_config import ExperimentConfig, StatisticalTestConfig
+
+
+@dataclass
+class PermutationTestResult:
+    observed: float
+    null_distribution: np.ndarray
+    p_value: float
+    effect_size: float
+
+
+@dataclass
+class BootstrapCIResult:
+    point_estimate: float
+    ci_lower: float
+    ci_upper: float
+    bootstrap_samples: np.ndarray
+    confidence_level: float
+
+
+@dataclass
+class ClusterTestResult:
+    layer: int
+    cluster: int
+    n_samples: int
+    pos_rate: float
+    baseline: float
+    delta: float
+    p_value_permutation: float
+    p_value_binomial: float
+    ci_lower: float
+    ci_upper: float
+    significant: bool
+
+
+@dataclass
+class LayerTestResult:
+    layer: int
+    chi2_stat: float
+    chi2_pvalue: float
+    mi: float
+    mi_pvalue: float
+    n_significant_clusters: int
+    total_clusters: int
+
+
+@dataclass
+class StatisticalTestResults:
+    cluster_tests: pd.DataFrame
+    layer_tests: pd.DataFrame
+    global_summary: Dict[str, float]
+
+
+def permutation_test_cluster(
+    y_cluster: np.ndarray,
+    baseline: float,
+    n_perm: int = 1000,
+    seed: int = 42,
+) -> PermutationTestResult:
+    n = len(y_cluster)
+    if n == 0:
+        return PermutationTestResult(0.0, np.array([]), 1.0, 0.0)
+
+    observed = float(np.mean(y_cluster)) - baseline
+    rng = np.random.RandomState(seed)
+    null = np.zeros(n_perm, dtype=np.float64)
+    for i in range(n_perm):
+        perm = rng.binomial(1, baseline, size=n)
+        null[i] = float(np.mean(perm)) - baseline
+    p_value = float(np.mean(np.abs(null) >= np.abs(observed)))
+    se = float(np.std(null)) if np.std(null) > 0 else 1e-12
+    effect = observed / se
+
+    return PermutationTestResult(
+        observed=observed,
+        null_distribution=null,
+        p_value=max(p_value, 1.0 / (n_perm + 1)),
+        effect_size=effect,
+    )
+
+
+def bootstrap_ci_rate(
+    y_cluster: np.ndarray,
+    n_boot: int = 1000,
+    confidence: float = 0.95,
+    seed: int = 42,
+) -> BootstrapCIResult:
+    n = len(y_cluster)
+    if n == 0:
+        return BootstrapCIResult(0.0, 0.0, 0.0, np.array([]), confidence)
+
+    point = float(np.mean(y_cluster))
+    rng = np.random.RandomState(seed)
+    samples = np.zeros(n_boot, dtype=np.float64)
+    for i in range(n_boot):
+        idx = rng.choice(n, n, replace=True)
+        samples[i] = float(np.mean(y_cluster[idx]))
+
+    alpha = 1.0 - confidence
+    lo = float(np.percentile(samples, 100.0 * alpha / 2.0))
+    hi = float(np.percentile(samples, 100.0 * (1.0 - alpha / 2.0)))
+
+    return BootstrapCIResult(
+        point_estimate=point,
+        ci_lower=lo,
+        ci_upper=hi,
+        bootstrap_samples=samples,
+        confidence_level=confidence,
+    )
+
+
+def binomial_test_cluster(
+    y_cluster: np.ndarray,
+    baseline: float,
+) -> float:
+    n = len(y_cluster)
+    if n == 0:
+        return 1.0
+    k = int(np.sum(y_cluster))
+    result = sp_stats.binomtest(k, n, baseline, alternative="two-sided")
+    return float(result.pvalue)
+
+
+def chi2_test_layer(
+    labels: np.ndarray,
+    y: np.ndarray,
+) -> Tuple[float, float]:
+    valid = labels >= 0
+    if valid.sum() < 10:
+        return 0.0, 1.0
+    labels_v = labels[valid]
+    y_v = y[valid]
+    clusters = np.unique(labels_v)
+    if len(clusters) < 2:
+        return 0.0, 1.0
+
+    contingency = np.zeros((len(clusters), 2), dtype=np.int64)
+    for i, c in enumerate(clusters):
+        mask = labels_v == c
+        contingency[i, 0] = int(np.sum(y_v[mask] == 0))
+        contingency[i, 1] = int(np.sum(y_v[mask] == 1))
+
+    contingency = contingency[contingency.sum(axis=1) > 0]
+    if contingency.shape[0] < 2:
+        return 0.0, 1.0
+
+    chi2, pval, _, _ = sp_stats.chi2_contingency(contingency)
+    return float(chi2), float(pval)
+
+
+def mutual_information_permutation(
+    labels: np.ndarray,
+    y: np.ndarray,
+    n_perm: int = 500,
+    seed: int = 42,
+) -> Tuple[float, float]:
+    from sklearn.metrics import mutual_info_score
+
+    valid = labels >= 0
+    if valid.sum() < 10:
+        return 0.0, 1.0
+    labels_v = labels[valid]
+    y_v = y[valid]
+
+    observed_mi = mutual_info_score(labels_v, y_v)
+
+    rng = np.random.RandomState(seed)
+    null_mi = np.zeros(n_perm, dtype=np.float64)
+    for i in range(n_perm):
+        y_perm = rng.permutation(y_v)
+        null_mi[i] = mutual_info_score(labels_v, y_perm)
+
+    p_value = float(np.mean(null_mi >= observed_mi))
+    return float(observed_mi), max(p_value, 1.0 / (n_perm + 1))
+
+
+def correct_pvalues(
+    pvalues: np.ndarray,
+    method: str = "bonferroni",
+) -> np.ndarray:
+    n = len(pvalues)
+    if n == 0:
+        return np.array([])
+
+    if method == "bonferroni":
+        return np.minimum(pvalues * n, 1.0)
+
+    if method == "bh":
+        order = np.argsort(pvalues)
+        ranks = np.empty_like(order)
+        ranks[order] = np.arange(1, n + 1)
+        corrected = pvalues * n / ranks
+        corrected = np.minimum.accumulate(corrected[np.argsort(-ranks)])
+        corrected = corrected[np.argsort(np.argsort(-ranks))]
+        return np.minimum(corrected, 1.0)
+
+    return pvalues
+
+
+def run_cluster_tests(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    cfg: StatisticalTestConfig,
+) -> List[ClusterTestResult]:
+    N, L = global_labels.shape
+    baseline = float(np.mean(y))
+    results = []
+
+    for li in range(L):
+        layer = int(layers[li])
+        c = global_labels[:, li]
+        valid = c >= 0
+        if valid.sum() == 0:
+            continue
+
+        c_valid = c[valid]
+        y_valid = y[valid]
+        clusters = np.unique(c_valid)
+
+        for cluster in clusters:
+            mask = c_valid == cluster
+            n_c = int(mask.sum())
+            if n_c < cfg.min_cluster_size:
+                continue
+
+            y_c = y_valid[mask]
+            pos_rate = float(np.mean(y_c))
+            delta = pos_rate - baseline
+
+            perm = permutation_test_cluster(
+                y_c, baseline, cfg.permutation_n,
+                seed=cfg.min_cluster_size + layer * 1000 + int(cluster),
+            )
+            p_binom = binomial_test_cluster(y_c, baseline)
+            ci = bootstrap_ci_rate(
+                y_c, cfg.bootstrap_n, cfg.confidence_level,
+                seed=cfg.min_cluster_size + layer * 1000 + int(cluster),
+            )
+
+            results.append(ClusterTestResult(
+                layer=layer,
+                cluster=int(cluster),
+                n_samples=n_c,
+                pos_rate=pos_rate,
+                baseline=baseline,
+                delta=delta,
+                p_value_permutation=perm.p_value,
+                p_value_binomial=p_binom,
+                ci_lower=ci.ci_lower,
+                ci_upper=ci.ci_upper,
+                significant=False,
+            ))
+
+    if results:
+        pvals = np.array([r.p_value_permutation for r in results])
+        corrected = correct_pvalues(pvals, cfg.correction_method)
+        alpha = 1.0 - cfg.confidence_level
+        for i, r in enumerate(results):
+            results[i] = ClusterTestResult(
+                layer=r.layer,
+                cluster=r.cluster,
+                n_samples=r.n_samples,
+                pos_rate=r.pos_rate,
+                baseline=r.baseline,
+                delta=r.delta,
+                p_value_permutation=float(corrected[i]),
+                p_value_binomial=r.p_value_binomial,
+                ci_lower=r.ci_lower,
+                ci_upper=r.ci_upper,
+                significant=bool(corrected[i] < alpha),
+            )
+
+    return results
+
+
+def run_layer_tests(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    cfg: StatisticalTestConfig,
+    cluster_results: List[ClusterTestResult],
+) -> List[LayerTestResult]:
+    N, L = global_labels.shape
+    results = []
+
+    sig_by_layer: Dict[int, int] = {}
+    total_by_layer: Dict[int, int] = {}
+    for cr in cluster_results:
+        total_by_layer[cr.layer] = total_by_layer.get(cr.layer, 0) + 1
+        if cr.significant:
+            sig_by_layer[cr.layer] = sig_by_layer.get(cr.layer, 0) + 1
+
+    for li in range(L):
+        layer = int(layers[li])
+        c = global_labels[:, li]
+        chi2, chi2_p = chi2_test_layer(c, y)
+        mi, mi_p = mutual_information_permutation(
+            c, y, n_perm=min(500, cfg.permutation_n), seed=cfg.min_cluster_size + layer,
+        )
+
+        results.append(LayerTestResult(
+            layer=layer,
+            chi2_stat=chi2,
+            chi2_pvalue=chi2_p,
+            mi=mi,
+            mi_pvalue=mi_p,
+            n_significant_clusters=sig_by_layer.get(layer, 0),
+            total_clusters=total_by_layer.get(layer, 0),
+        ))
+
+    return results
+
+
+def run_statistical_tests(
+    global_labels: np.ndarray,
+    y: np.ndarray,
+    layers: np.ndarray,
+    cfg: ExperimentConfig,
+    save_dir: Optional[Path] = None,
+) -> StatisticalTestResults:
+    if save_dir is None:
+        save_dir = cfg.sub_dir("statistical_tests")
+
+    tcfg = cfg.statistical
+
+    cluster_results = run_cluster_tests(global_labels, y, layers, tcfg)
+    layer_results = run_layer_tests(global_labels, y, layers, tcfg, cluster_results)
+
+    cluster_df = pd.DataFrame([
+        {
+            "layer": r.layer, "cluster": r.cluster, "n_samples": r.n_samples,
+            "pos_rate": r.pos_rate, "baseline": r.baseline, "delta": r.delta,
+            "p_perm": r.p_value_permutation, "p_binom": r.p_value_binomial,
+            "ci_lower": r.ci_lower, "ci_upper": r.ci_upper,
+            "significant": r.significant,
+        }
+        for r in cluster_results
+    ])
+    layer_df = pd.DataFrame([
+        {
+            "layer": r.layer, "chi2": r.chi2_stat, "chi2_p": r.chi2_pvalue,
+            "mi": r.mi, "mi_p": r.mi_pvalue,
+            "n_sig_clusters": r.n_significant_clusters,
+            "total_clusters": r.total_clusters,
+        }
+        for r in layer_results
+    ])
+
+    cluster_df.to_csv(save_dir / "cluster_tests.csv", index=False)
+    layer_df.to_csv(save_dir / "layer_tests.csv", index=False)
+
+    n_sig = int(cluster_df["significant"].sum()) if len(cluster_df) > 0 else 0
+    n_total = len(cluster_df)
+    n_layers_sig = int((layer_df["chi2_p"] < (1.0 - tcfg.confidence_level)).sum()) if len(layer_df) > 0 else 0
+
+    summary = {
+        "n_cluster_tests": n_total,
+        "n_significant_clusters": n_sig,
+        "fraction_significant": n_sig / max(1, n_total),
+        "n_layers_chi2_significant": n_layers_sig,
+        "mean_mi": float(layer_df["mi"].mean()) if len(layer_df) > 0 else 0.0,
+    }
+
+    return StatisticalTestResults(
+        cluster_tests=cluster_df,
+        layer_tests=layer_df,
+        global_summary=summary,
+    )

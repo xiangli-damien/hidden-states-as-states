@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hss-core"
+version = "0.3.0"
+description = "Hidden States as States: minimal, modular, publication-ready core"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "scipy>=1.10",
+  "scikit-learn>=1.3",
+  "joblib>=1.2",
+  "pandas>=1.5",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
