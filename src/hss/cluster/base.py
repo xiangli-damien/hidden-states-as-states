@@ -16,6 +16,21 @@ class ClusterModel(ABC):
     @abstractmethod
     def predict(self, X: np.ndarray) -> np.ndarray: ...
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Return soft assignments.
+
+        Models with a natural probabilistic interpretation should override this
+        method. The default implementation returns a one-hot encoding of hard
+        assignments, which keeps the core persistence contract uniform even for
+        simpler models.
+        """
+
+        labels = np.asarray(self.predict(X), dtype=np.int64).ravel()
+        out = np.zeros((labels.shape[0], self.n_clusters()), dtype=np.float32)
+        if labels.size:
+            out[np.arange(labels.shape[0]), labels] = 1.0
+        return out
+
     @abstractmethod
     def centers(self) -> np.ndarray: ...
 
@@ -28,8 +43,10 @@ class ClusterModel(ABC):
     @classmethod
     @abstractmethod
     def from_state(
-        cls, config: Dict[str, Any], arrays: Dict[str, np.ndarray]
-    ) -> ClusterModel: ...
+        cls,
+        config: Dict[str, Any],
+        arrays: Dict[str, np.ndarray],
+    ) -> "ClusterModel": ...
 
 
 def _materialize(factory: BatchFactory) -> np.ndarray:

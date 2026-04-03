@@ -1,12 +1,71 @@
+# ── Python ─────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
+.Python
 .venv/
 venv/
+ENV/
+.env
+.env.*
+!.env.example
 *.egg-info/
+.eggs/
 dist/
 build/
+*.egg
 .pytest_cache/
 .mypy_cache/
-.DS_Store
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# ── Jupyter ────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# ── IDE / local ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Logs / temp ───────────────────────────────────────────────────────
 *.log
+*.tmp
+*.temp
+.cache/
+
+# ── Data & experiment outputs (keep paths if you commit small fixtures) ─
+runs/
+outputs/
+results/
+wandb/
+mlruns/
+lightning_logs/
+*.parquet
+*.zarr
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# ── Line-count / bundle text exports (regenerate locally) ───────────────
+*.txt
+
+# ── OS ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

@@ -6,7 +6,7 @@ from typing import Any, Dict
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
 
-from ..distance import assign_nearest_chunked
+from ..distance import assign_nearest_chunked, euclidean_distance_sq
 from ..utils import f32
 from .base import ClusterModel
 
@@ -24,16 +24,38 @@ class KMeansModel(ClusterModel):
     def predict(self, X: np.ndarray) -> np.ndarray:
         return assign_nearest_chunked(f32(X), self.centers_, metric="euclidean")
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Return a deterministic pseudo-soft assignment.
+
+        K-means is not probabilistic, but downstream sanity checks and storage
+        benefit from a dense assignment matrix. We therefore normalize inverse
+        Euclidean distances into a simplex. This is intentionally labeled as a
+        pseudo-probability in the model config.
+        """
+
+        X = f32(X)
+        d2 = euclidean_distance_sq(X, self.centers_).astype(np.float64, copy=False)
+        inv = 1.0 / np.maximum(np.sqrt(d2), 1e-6)
+        inv_sum = np.maximum(inv.sum(axis=1, keepdims=True), 1e-12)
+        prob = inv / inv_sum
+        return prob.astype(np.float32, copy=False)
+
     def config(self) -> Dict[str, Any]:
-        return {"kind": "kmeans", "n_clusters": self.n_clusters()}
+        return {
+            "kind": "kmeans",
+            "n_clusters": self.n_clusters(),
+            "soft_assignment": "inverse_distance_normalized",
+        }
 
     def state_arrays(self) -> Dict[str, np.ndarray]:
         return {"centers": f32(self.centers_)}
 
     @classmethod
     def from_state(
-        cls, config: Dict[str, Any], arrays: Dict[str, np.ndarray]
-    ) -> KMeansModel:
+        cls,
+        config: Dict[str, Any],
+        arrays: Dict[str, np.ndarray],
+    ) -> "KMeansModel":
         return cls(centers_=f32(arrays["centers"]))
 
 
@@ -46,10 +68,10 @@ def _fit_kmeans(
     max_iter: int = 100,
 ) -> KMeansModel:
     model = MiniBatchKMeans(
-        n_clusters=k,
-        batch_size=batch_size,
-        n_init=n_init,
-        max_iter=max_iter,
-        random_state=seed,
+        n_clusters=int(k),
+        batch_size=int(batch_size),
+        n_init=int(n_init),
+        max_iter=int(max_iter),
+        random_state=int(seed),
     ).fit(X)
     return KMeansModel(centers_=f32(model.cluster_centers_))

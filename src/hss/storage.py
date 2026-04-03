@@ -7,17 +7,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .align import align_layers
 from .cluster import ClusterModel, rebuild_model
 from .transform import TransformChain, build_chain
-from .types import (
-    AlignmentResult,
-    AlignmentStep,
-    AlignSpec,
-    HSSConfig,
-    HSSResult,
-    LayerResult,
-)
+from .types import AlignmentResult, HSSConfig, HSSResult, LayerResult, RowMetadata
 from .utils import (
     atomic_json,
     atomic_npy,
@@ -47,7 +39,6 @@ class ArtifactStore:
     def __post_init__(self) -> None:
         self.root = ensure_dir(self.root)
 
-    # ------------------------------------------------------------------ paths
     @property
     def config_path(self) -> Path:
         return self.root / "config.json"
@@ -56,94 +47,96 @@ class ArtifactStore:
     def alignment_dir(self) -> Path:
         return ensure_dir(self.root / "alignment")
 
+    @property
+    def row_metadata_dir(self) -> Path:
+        return ensure_dir(self.root / "row_metadata")
+
+    @property
+    def progress_path(self) -> Path:
+        return self.root / "progress.json"
+
     def layer_dir(self, layer: int) -> Path:
         return ensure_dir(self.root / "layers" / f"layer{int(layer):03d}")
 
-    # --------------------------------------------------------- memmap helper
     def create_labels_memmap(
-        self, *, layer: int, n_items: int
+        self,
+        *,
+        layer: int,
+        n_items: int,
     ) -> Tuple[Path, np.ndarray]:
         d = self.layer_dir(layer)
         p = d / "labels.tmp.npy"
         mm = open_writable_memmap(p, shape=(int(n_items),), dtype=np.int32)
         return p, mm
 
-    # ================================================================== save
+    def save_progress(self, payload: Dict[str, Any]) -> None:
+        atomic_json(self.progress_path, payload)
+
     def save(self, result: HSSResult) -> None:
-        """Persist a full HSSResult to disk.
-
-        Delegates metadata serialisation to each type's own ``meta_dict`` /
-        ``to_dict`` helpers so that ArtifactStore does not need field-level
-        knowledge of the data structures.
-        """
-        # --- config
         atomic_json(self.config_path, result.config.to_dict())
-
-        # --- per-layer results
-        for lr in result.layer_results:
-            self._save_layer_result(lr)
-
-        # --- alignment
+        for layer_result in result.layer_results:
+            self._save_layer_result(layer_result)
         if result.alignment is not None:
             self._save_alignment(result.alignment)
-
-        # --- global labels
         if result.global_labels is not None:
-            atomic_npy(
-                self.root / "global_labels.npy",
-                result.global_labels.astype(np.int32),
-            )
+            atomic_npy(self.root / "global_labels.npy", result.global_labels.astype(np.int32))
+        if result.row_metadata is not None:
+            self._save_row_metadata(result.row_metadata)
+
+    def _save_row_metadata(self, metadata: RowMetadata) -> None:
+        d = self.row_metadata_dir
+        atomic_json(d / "meta.json", to_jsonable(metadata.meta_dict()))
+        arrays = metadata.arrays_dict()
+        if arrays:
+            atomic_npz(d / "arrays.npz", **arrays)
 
     def _save_layer_result(self, lr: LayerResult) -> None:
         d = self.layer_dir(lr.layer)
         atomic_json(d / "meta.json", to_jsonable(lr.meta_dict()))
-        atomic_npy(d / "labels.npy", lr.labels.astype(np.int32))
-        atomic_npy(
-            d / "centers_hidden.npy",
-            lr.centers_hidden.astype(np.float32),
-        )
+        atomic_npy(d / "labels.npy", np.asarray(lr.labels, dtype=np.int32))
+        atomic_npy(d / "centers_hidden.npy", np.asarray(lr.centers_hidden, dtype=np.float32))
+        if lr.soft_labels is not None:
+            atomic_npy(d / "soft_labels.npy", np.asarray(lr.soft_labels))
 
     def _save_alignment(self, alignment: AlignmentResult) -> None:
-        ad = self.alignment_dir
-        atomic_npz(ad / "local_to_global.npz", **alignment.local_to_global_dict())
-        atomic_json(ad / "steps.json", to_jsonable(alignment.steps_list()))
-        atomic_json(ad / "meta.json", to_jsonable(alignment.meta_dict()))
+        d = self.alignment_dir
+        atomic_npz(d / "local_to_global.npz", **alignment.local_to_global_dict())
+        atomic_json(d / "steps.json", to_jsonable(alignment.steps_list()))
+        atomic_json(d / "meta.json", to_jsonable(alignment.meta_dict()))
 
-    # ================================================================== load
     def load(self) -> HSSResult:
-        """Load a full HSSResult from disk.
-
-        Uses each type's ``from_meta_and_arrays`` / ``from_dict`` class
-        methods so that field-level knowledge stays in the types module.
-        """
-        # --- config
         config_dict = read_json(self.config_path)
         config = HSSConfig.from_dict(config_dict)
-
-        # --- per-layer results
         layer_results = self._load_all_layer_results()
-
-        # --- alignment
         alignment = self._load_alignment()
-
-        # --- global labels
-        global_labels: Optional[np.ndarray] = None
+        global_labels = None
         gl_path = self.root / "global_labels.npy"
         if gl_path.exists():
-            global_labels = np.load(gl_path).astype(np.int32, copy=False)
-
+            global_labels = np.load(gl_path, mmap_mode="r")
+        row_metadata = self._load_row_metadata()
         return HSSResult(
             config=config,
             layer_results=layer_results,
             alignment=alignment,
             global_labels=global_labels,
+            row_metadata=row_metadata,
         )
+
+    def _load_row_metadata(self) -> Optional[RowMetadata]:
+        meta_path = self.row_metadata_dir / "meta.json"
+        arrays_path = self.row_metadata_dir / "arrays.npz"
+        if not meta_path.exists() or not arrays_path.exists():
+            return None
+        meta = read_json(meta_path)
+        with np.load(arrays_path, allow_pickle=False) as payload:
+            arrays = {str(key): np.asarray(payload[key]) for key in payload.files}
+        return RowMetadata.from_meta_and_arrays(meta, arrays)
 
     def _load_all_layer_results(self) -> List[LayerResult]:
         layers_root = self.root / "layers"
-        results: List[LayerResult] = []
         if not layers_root.exists():
-            return results
+            return []
+        results: List[LayerResult] = []
         for d in sorted(layers_root.iterdir()):
             if not d.is_dir():
                 continue
@@ -153,37 +146,39 @@ class ArtifactStore:
                 continue
             meta_path = d / "meta.json"
             if not meta_path.exists():
-                _log.warning(
-                    "Skipping layer directory without meta.json: %s",
-                    d.name,
-                )
+                _log.warning("Skipping layer directory without meta.json: %s", d.name)
                 continue
             meta = read_json(meta_path)
-            labels = np.load(d / "labels.npy").astype(np.int32, copy=False)
-            centers = np.load(d / "centers_hidden.npy").astype(
-                np.float32, copy=False
-            )
+            labels = np.load(d / "labels.npy", mmap_mode="r")
+            centers = np.load(d / "centers_hidden.npy", mmap_mode="r")
+            soft_labels = None
+            soft_path = d / "soft_labels.npy"
+            if soft_path.exists():
+                soft_labels = np.load(soft_path, mmap_mode="r")
             results.append(
-                LayerResult.from_meta_and_arrays(meta, labels, centers)
+                LayerResult.from_meta_and_arrays(
+                    meta,
+                    labels=labels,
+                    centers_hidden=centers,
+                    soft_labels=soft_labels,
+                )
             )
         return results
 
     def _load_alignment(self) -> Optional[AlignmentResult]:
-        ad = self.root / "alignment"
-        meta_path = ad / "meta.json"
+        d = self.root / "alignment"
+        meta_path = d / "meta.json"
         if not meta_path.exists():
             return None
-        al_meta = read_json(meta_path)
-        npz = np.load(ad / "local_to_global.npz", allow_pickle=False)
-        ltg_dict: Dict[int, np.ndarray] = {
-            int(k): np.asarray(npz[k], dtype=np.int32) for k in npz.files
+        meta = read_json(meta_path)
+        npz = np.load(d / "local_to_global.npz", allow_pickle=False)
+        mappings: Dict[int | str, np.ndarray] = {
+            key: np.asarray(npz[key], dtype=np.int32)
+            for key in npz.files
         }
-        steps_data = read_json(ad / "steps.json")
-        return AlignmentResult.from_meta_steps_arrays(
-            al_meta, steps_data, ltg_dict
-        )
+        steps_data = read_json(d / "steps.json")
+        return AlignmentResult.from_meta_steps_arrays(meta, steps_data, mappings)
 
-    # =========================================== per-layer model save / load
     def save_layer_model(
         self,
         layer: int,
@@ -196,16 +191,11 @@ class ArtifactStore:
         if t_arrays:
             atomic_npz(d / "transform_arrays.npz", **t_arrays)
         else:
-            atomic_npz(
-                d / "transform_arrays.npz",
-                _empty=np.array([], dtype=np.float32),
-            )
+            atomic_npz(d / "transform_arrays.npz", _empty=np.array([], dtype=np.float32))
         atomic_json(d / "model_config.json", model.config())
         atomic_npz(d / "model_arrays.npz", **model.state_arrays())
 
-    def load_layer_model(
-        self, layer: int
-    ) -> Tuple[TransformChain, ClusterModel]:
+    def load_layer_model(self, layer: int) -> Tuple[TransformChain, ClusterModel]:
         d = self.layer_dir(layer)
         t_cfg = read_json(d / "transform_config.json")
         chain = build_chain(t_cfg.get("steps", []))
@@ -220,16 +210,15 @@ class ArtifactStore:
         model = rebuild_model(m_cfg, m_arrays)
         return chain, model
 
-    # ------------------------------------------------- layer directory scan
     def list_layers(self) -> List[int]:
         layers_root = self.root / "layers"
         if not layers_root.exists():
             return []
-        result = []
+        out: List[int] = []
         for d in sorted(layers_root.iterdir()):
             if not d.is_dir():
                 continue
             layer_num = _parse_layer_num(d.name)
             if layer_num is not None:
-                result.append(layer_num)
-        return result
+                out.append(layer_num)
+        return out

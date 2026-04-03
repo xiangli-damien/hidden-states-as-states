@@ -6,9 +6,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Tuple
+from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .types import StateProvider
 
 
 def f32(x: np.ndarray) -> np.ndarray:
@@ -33,11 +36,14 @@ def i64(x: np.ndarray) -> np.ndarray:
 
 
 def normalize_l2(
-    x: np.ndarray, *, axis: int = 1, eps: float = 1e-12
+    x: np.ndarray,
+    *,
+    axis: int = 1,
+    eps: float = 1e-12,
 ) -> np.ndarray:
-    x = np.asarray(x)
-    norms = np.linalg.norm(x, axis=axis, keepdims=True)
-    return x / np.maximum(norms, float(eps))
+    arr = np.asarray(x)
+    norms = np.linalg.norm(arr, axis=axis, keepdims=True)
+    return arr / np.maximum(norms, float(eps))
 
 
 def now_utc() -> str:
@@ -45,21 +51,21 @@ def now_utc() -> str:
 
 
 def ensure_dir(path: str | Path) -> Path:
-    p = Path(path)
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+    out = Path(path)
+    out.mkdir(parents=True, exist_ok=True)
+    return out
 
 
 def set_thread_env(n: int = 1) -> None:
-    s = str(int(max(1, n)))
-    for k in (
+    value = str(int(max(1, n)))
+    for key in (
         "OMP_NUM_THREADS",
         "MKL_NUM_THREADS",
         "OPENBLAS_NUM_THREADS",
         "NUMEXPR_NUM_THREADS",
         "VECLIB_MAXIMUM_THREADS",
     ):
-        os.environ[k] = s
+        os.environ[key] = value
 
 
 def stable_hash(obj: Any, *, n_chars: int = 12) -> str:
@@ -109,21 +115,27 @@ def atomic_npz(path: str | Path, **arrays: np.ndarray) -> None:
 
 
 def open_writable_memmap(
-    path: str | Path, *, shape: Tuple[int, ...], dtype: np.dtype | str
+    path: str | Path,
+    *,
+    shape: Tuple[int, ...],
+    dtype: np.dtype | str,
 ) -> np.memmap:
     path = Path(path)
     ensure_dir(path.parent)
     return np.lib.format.open_memmap(
-        str(path), mode="w+", dtype=np.dtype(dtype), shape=tuple(shape)
+        str(path),
+        mode="w+",
+        dtype=np.dtype(dtype),
+        shape=tuple(shape),
     )
 
 
 def iter_slices(n: int, bs: int) -> Iterator[Tuple[int, int]]:
-    bs = max(1, int(bs))
-    i = 0
-    while i < n:
-        yield i, min(n, i + bs)
-        i += bs
+    block = max(1, int(bs))
+    start = 0
+    while start < n:
+        yield start, min(n, start + block)
+        start += block
 
 
 def to_jsonable(obj: Any) -> Any:
@@ -138,10 +150,112 @@ def to_jsonable(obj: Any) -> Any:
     if isinstance(obj, np.integer):
         return int(obj)
     if isinstance(obj, np.floating):
-        v = float(obj)
-        return None if not np.isfinite(v) else v
+        value = float(obj)
+        return None if not np.isfinite(value) else value
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, float) and not np.isfinite(obj):
         return None
     return obj
+
+
+def sanitize_metadata_array(value: Any) -> Optional[np.ndarray]:
+    """Convert provider metadata to a persistable numpy array.
+
+    Numeric, boolean and unicode arrays are preserved. Generic object arrays are
+    converted to unicode when possible; otherwise the field is dropped.
+    """
+
+    arr = np.asarray(value)
+    if arr.ndim == 0:
+        arr = arr.reshape(1)
+    if arr.dtype == object:
+        try:
+            arr = arr.astype(str)
+        except Exception:
+            return None
+    if np.issubdtype(arr.dtype, np.datetime64):
+        arr = arr.astype("datetime64[ns]").astype(str)
+    return arr
+
+
+def sanitize_metadata_fields(
+    fields: Mapping[str, Any] | None,
+    *,
+    expected_len: Optional[int] = None,
+) -> dict[str, np.ndarray]:
+    out: dict[str, np.ndarray] = {}
+    for key, value in dict(fields or {}).items():
+        arr = sanitize_metadata_array(value)
+        if arr is None:
+            continue
+        if expected_len is not None and int(arr.shape[0]) != int(expected_len):
+            raise ValueError(
+                f"metadata field '{key}' has length {arr.shape[0]} but expected {expected_len}"
+            )
+        out[str(key)] = arr
+    return out
+
+
+def resolve_parallel_backend(
+    requested: str,
+    *,
+    n_jobs: int,
+    prefer_memmap: bool,
+) -> str:
+    if int(n_jobs) <= 1:
+        return "serial"
+    mode = str(requested or "auto").strip().lower()
+    if mode in {"serial", "none", "off"}:
+        return "serial"
+    if prefer_memmap:
+        return "process"
+    if mode in {"thread", "threads", "threading"}:
+        return "thread"
+    return "process"
+
+
+def materialize_provider_states(
+    provider: "StateProvider",
+    *,
+    path: str | Path,
+    layers: Sequence[int],
+    indices: Optional[np.ndarray] = None,
+    batch_size: int = 4096,
+    dtype: np.dtype | str = np.float32,
+) -> Path:
+    """Materialize selected provider rows/layers into one memmap-backed .npy.
+
+    This is the key enabler for process-based parallelism without duplicating
+    large in-memory arrays in each worker.
+    """
+
+    layer_ids = [int(x) for x in layers]
+    if len(layer_ids) == 0:
+        raise ValueError("layers must be non-empty")
+    rows = provider.n_items() if indices is None else int(len(indices))
+    cols = int(provider.state_dim())
+    arr = open_writable_memmap(path, shape=(rows, len(layer_ids), cols), dtype=dtype)
+    for pos, layer in enumerate(layer_ids):
+        offset = 0
+        for batch in provider.iter_batches(
+            layer=int(layer),
+            indices=indices,
+            batch_size=int(batch_size),
+        ):
+            states = np.asarray(batch.states, dtype=dtype)
+            if states.ndim != 2:
+                raise ValueError(
+                    f"Layer {layer}: expected a 2-D state batch, got shape {states.shape}"
+                )
+            b = int(states.shape[0])
+            if b == 0:
+                continue
+            arr[offset : offset + b, pos, :] = states
+            offset += b
+        if offset != rows:
+            raise ValueError(
+                f"Layer {layer}: materialized {offset} rows but expected {rows}"
+            )
+    del arr
+    return Path(path)

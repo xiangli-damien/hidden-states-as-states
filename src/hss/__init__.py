@@ -9,8 +9,8 @@ Primary API (start here):
   - select_icl_parsimonious, select_sil_stable, select_auto_target_k  — choose k from metrics
   - ArtifactStore                  — save/load results
 
-The rest of __all__ are types and helpers for custom pipelines, transforms, clustering,
-alignment, trajectory analysis, and prediction. Import only what you need.
+This revision also exposes RowMetadata so sentence-level and token-level runs can
+carry stable row/sample provenance through the core library.
 """
 from .version import __version__
 from .types import (
@@ -21,6 +21,7 @@ from .types import (
     ClusterSpec,
     AlignSpec,
     HSSConfig,
+    RowMetadata,
     LayerResult,
     AlignmentStep,
     AlignmentResult,
@@ -84,7 +85,6 @@ from .splitting import (
     stratified_split,
 )
 
-# Primary entry points; everything else is for advanced use or integration.
 __primary__ = (
     "NumpyProvider",
     "MemmapProvider",
@@ -108,6 +108,7 @@ __all__ = [
     "ClusterSpec",
     "AlignSpec",
     "HSSConfig",
+    "RowMetadata",
     "LayerResult",
     "AlignmentStep",
     "AlignmentResult",
