@@ -7,10 +7,12 @@ import numpy as np
 from .base import ClusterModel
 from .gmm import GMMModel
 from .kmeans import KMeansModel
+from .mfa import MFAModel
 
 _MODEL_REGISTRY: Dict[str, type] = {
     "kmeans": KMeansModel,
     "gmm": GMMModel,
+    "mfa": MFAModel,
 }
 
 

@@ -1,0 +1,55 @@
+name = "llama32_math_geometry"
+seed = 42
+
+[data]
+paths = ["/lambda/nfs/dami/openact/runs/math_full_20260916/llama32"]
+representation = "mean"
+final_norm = "post"
+expected_samples = 5000
+expected_model = "meta-llama/Llama-3.2-1B-Instruct"
+require_copy_receipt = true
+min_free_gib = 64
+
+[cluster]
+method = "gmm"
+k_min = 2
+k_max = 80
+covariance_type = "diag"
+reg_covar = 0.000001
+adaptive_reg = false
+n_init = 2
+max_iter = 200
+tol = 0.00001
+chunk_size = 1024
+backend = "cpu"
+parsimony_tolerance = 0.02
+assignment = "nearest"
+
+[transform]
+standardize = false
+whiten = false
+
+[alignment]
+similarity = "cosine"
+method = "hungarian"
+threshold = 0.6
+
+[evaluation]
+mode = "geometry"
+train_fraction = 0.4
+validation_fraction = 0.2
+split_seed = 42
+alpha = 1.0
+far_target = 0.1
+continuous_features = "last_layer"
+
+[execution]
+cache_root = "/home/ubuntu/hss-cache"
+artifact_cache_root = "/lambda/nfs/dami/hss-results/fit_cache"
+output_root = "/lambda/nfs/dami/hss-results"
+workers = 2
+threads_per_worker = 2
+memory_gib = 24
+min_available_gib = 16
+min_gpu_free_gib = 8
+max_trials = 10000

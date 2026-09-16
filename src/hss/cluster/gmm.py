@@ -1025,6 +1025,14 @@ def _choose_gmm_backend(
     auto_gpu_threshold: int,
 ) -> str:
     requested = str(backend or 'auto').strip().lower()
+    if requested not in {'auto', 'sklearn', 'cpu', 'gpu'}:
+        raise ValueError(f'Unknown GMM backend={backend!r}')
+    if requested == 'gpu' and str(covariance_type).lower() != 'diag':
+        raise ValueError('The GPU GMM implementation supports diagonal covariance only')
+    if str(covariance_type).lower() == 'diag' and requested in {'cpu', 'gpu'}:
+        # Both custom kernels implement fixed as well as adaptive regularization.
+        # An explicit GPU request must not silently become sklearn on the CPU.
+        return requested
     if not adaptive_reg:
         return 'sklearn'
     if str(covariance_type).lower() != 'diag':

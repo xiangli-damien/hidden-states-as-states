@@ -108,7 +108,7 @@ class TransformSpec:
 
 @dataclass(frozen=True)
 class ClusterSpec:
-    method: Literal["kmeans", "gmm"] = "gmm"
+    method: Literal["kmeans", "gmm", "mfa"] = "gmm"
     k: Optional[int] = None
     k_range: Tuple[int, int] = (2, 40)
     params: Dict[str, Any] = field(default_factory=dict)
