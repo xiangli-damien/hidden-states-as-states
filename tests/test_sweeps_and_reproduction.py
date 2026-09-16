@@ -108,9 +108,7 @@ def test_config_contract_suite_and_failure_resume(tmp_path):
     assert run_sweep(cfg)["status"] == "failed"
     cfg.execution.retry_failed = False
     assert run_sweep(cfg)["results"][0]["status"] == "skipped_failed"
-    generate_suite(
-        "/missing", tmp_path / "paper", tmp_path / "cache", tmp_path / "out"
-    )
+    generate_suite("/missing", tmp_path / "paper", tmp_path / "cache", tmp_path / "out")
     manifest = json.loads((tmp_path / "paper" / "suite.json").read_text())
     assert len(manifest["jobs"]) >= 35
     for job in manifest["jobs"]:
@@ -124,3 +122,50 @@ def test_icl_sign_and_entropy():
     score = selection_metrics(model, X, "mfa", 9, 42)
     assert score["entropy"] > 0
     assert score["criterion"] == pytest.approx(model.bic(X) + 2 * score["entropy"])
+
+
+def test_global_control_and_fixed_k_suite_dependency(tmp_path):
+    from hss.experiments.paper import run_suite
+
+    cfg = config(tmp_path)
+    cfg.cluster.k = 2
+    cfg.evaluation.mode = "global_control"
+    result = run_experiment(cfg)
+    assert (Path(result["path"]) / "global_layer_purity.csv").exists()
+    cfg.evaluation.mode = "geometry"
+    cfg.grid = {}
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps(cfg.to_dict()))
+    target = replace(cfg, seed=43)
+    child = tmp_path / "child.json"
+    child.write_text(json.dumps(target.to_dict()))
+    manifest = tmp_path / "suite.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "jobs": [
+                    {"name": "base", "config": "base.json", "depends_on": {}},
+                    {
+                        "name": "refit",
+                        "config": "child.json",
+                        "depends_on": {
+                            "evaluation.fixed_k_map": {
+                                "job": "base",
+                                "file": "selection.json",
+                            }
+                        },
+                    },
+                ]
+            }
+        )
+    )
+    suite = run_suite(manifest, only=["refit"])
+    assert suite["status"] == "complete"
+    assert set(suite["jobs"]) == {"base", "refit"}
+    reference = suite["jobs"]["base"]["results"][0]["path"]
+    cfg.evaluation.fixed_map = reference
+    reused = run_experiment(cfg)
+    np.testing.assert_array_equal(
+        np.load(Path(reference) / "states.npy"),
+        np.load(Path(reused["path"]) / "states.npy"),
+    )

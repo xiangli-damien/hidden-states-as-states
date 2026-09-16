@@ -12,6 +12,9 @@ git fetch origin
 git switch --track origin/codex/openact-mfa-grid
 # Subsequent updates on this branch:
 git pull --ff-only
+# Create the environment on local disk; leave code/results on dami.
+uv venv --python 3.11 /home/ubuntu/hss-venv
+ln -s /home/ubuntu/hss-venv .venv
 uv sync --locked --extra dev
 ```
 
@@ -44,10 +47,11 @@ Prefix and full-token arrays can be much larger. The planner checks the expected
 # Review scale and RAM before launching a large grid.
 hss plan configs/mfa_grid.toml
 # Background execution survives SSH disconnects.
+mkdir -p /lambda/nfs/dami/hss-results
 tmux new-session -d -s hss-grid 'cd /lambda/nfs/dami/hidden-states-as-states && .venv/bin/hss sweep configs/mfa_grid.toml > /lambda/nfs/dami/hss-results/grid.log 2>&1'
 ```
 
-Create the output directory before redirecting a tmux log. `status.json` and `sweeps/*/task_*_status.json` provide machine-readable progress. Failed trials retain errors/tracebacks; sweep exit status is nonzero. No completed result is overwritten by an incomplete retry.
+`status.json` and `sweeps/*/task_*_status.json` provide machine-readable progress. Failed trials retain errors/tracebacks; sweep exit status is nonzero. No completed result is overwritten by an incomplete retry.
 
 For multiple CPU machines sharing persistent results, give each a local data cache and use stable partitions:
 
