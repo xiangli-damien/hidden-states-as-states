@@ -97,6 +97,8 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 
 ## Validation
 
+[Actual Lambda validation and measured timings](docs/validation.md).
+
 ```bash
 uv run --extra dev pytest -q
 # CUDA parity test is skipped without torch/CUDA.
