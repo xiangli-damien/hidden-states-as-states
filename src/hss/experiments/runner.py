@@ -41,6 +41,7 @@ from .evaluate import (
 from .fitting import Projection, assign, fit_candidates, fit_transform
 from .openact import CachedStates, prepare
 from .diagnostics import layer_diagnostics
+from .resources import model_bytes, candidates
 
 
 def _rows_digest(indices):
@@ -53,7 +54,10 @@ def estimate_memory_gib(data, cfg):
     n, d, l = data.n_items(), data.state_dim(), len(data.layers())
     feature = n * d * 8
     # Fit input, projections, sufficient stats, BLAS temporaries, runtime overhead.
-    estimate = feature * 8 + cfg.cluster.k_max * d * max(16, cfg.cluster.rank * 16)
+    estimate = (
+        feature * 8
+        + model_bytes(cfg, cfg.transform.pca_components or d, max(candidates(cfg))) * 8
+    )
     if cfg.evaluation.continuous_features == "all_layers" and cfg.evaluation.mode in (
         "prediction",
         "monitoring",

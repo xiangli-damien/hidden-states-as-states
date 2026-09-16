@@ -16,6 +16,7 @@ from .artifacts import digest, lock, save_json, source_version
 from .config import Experiment, set_value
 from .openact import CachedStates, prepare
 from .runner import estimate_memory_gib, run_experiment, trial_identity
+from .resources import storage_entries
 
 
 def expand(cfg):
@@ -97,12 +98,13 @@ def plan(cfg, *, refresh_data=False):
             for trial in result["trials"]:
                 CachedStates(trial["snapshot_path"])
             return result
-        datasets, trials = {}, []
+        datasets, trials, candidate_storage = {}, [], {}
         for config in configs:
             data_key = digest(asdict(config.data))
             if data_key not in datasets:
                 datasets[data_key] = prepare(config.data, config.execution.cache_root)
             data = datasets[data_key]
+            candidate_storage.update(storage_entries(config, data))
             trials.append(
                 {
                     "config": config.to_dict(),
@@ -120,6 +122,10 @@ def plan(cfg, *, refresh_data=False):
             "trials": trials,
             "data_snapshots": [str(d.path) for d in datasets.values()],
             "created_at_epoch": time.time(),
+            "candidate_fits_upper_bound": len(candidate_storage),
+            "candidate_array_storage_gib_upper_bound": sum(candidate_storage.values())
+            / 1024**3,
+            "storage_estimate_note": "Candidate parameter arrays only, before existing-cache reuse. Excludes projected data, exports and filesystem overhead.",
         }
         save_json(saved, result)
         return result
@@ -135,17 +141,45 @@ def run_sweep(cfg, *, refresh_data=False):
     with lock(folder / (suffix + ".lock")):
         if not trials:
             return {"status": "complete", "trials": 0, "path": str(folder)}
-        maximum = max(t["estimated_ram_gib"] for t in trials)
+        cached = {}
+        for trial in trials:
+            root = (
+                Path(cfg.execution.output_root).expanduser().resolve()
+                / trial["trial_id"]
+            )
+            if all(
+                (root / name).exists()
+                for name in (
+                    "_SUCCESS.json",
+                    "states.npy",
+                    "rows.parquet",
+                    "config.json",
+                    "summary.json",
+                )
+            ):
+                record = json.loads((root / "_SUCCESS.json").read_text())
+                if record.get("trial_id") == trial["trial_id"]:
+                    cached[trial["trial_id"]] = {
+                        "status": "complete",
+                        **record,
+                        "cache_hit": True,
+                    }
+        todo = [t for t in trials if t["trial_id"] not in cached]
+        maximum = max((t["estimated_ram_gib"] for t in todo), default=0.0)
         available = (
             psutil.virtual_memory().available / 1024**3
             - cfg.execution.min_available_gib
         )
         ram_budget = min(cfg.execution.memory_gib, available)
-        workers = min(
-            cfg.execution.workers,
-            len(trials),
-            int(ram_budget // maximum),
-            max(1, (os.cpu_count() or 1) // cfg.execution.threads_per_worker),
+        workers = (
+            1
+            if not todo
+            else min(
+                cfg.execution.workers,
+                len(trials),
+                int(ram_budget // maximum),
+                max(1, (os.cpu_count() or 1) // cfg.execution.threads_per_worker),
+            )
         )
         if workers < 1:
             raise MemoryError(
@@ -201,6 +235,9 @@ def run_sweep(cfg, *, refresh_data=False):
                     trial = next(iterator)
                 except StopIteration:
                     return False
+                if trial["trial_id"] in cached:
+                    accept(cached[trial["trial_id"]])
+                    return True
                 if not cfg.execution.retry_failed:
                     status = (
                         Path(cfg.execution.output_root)

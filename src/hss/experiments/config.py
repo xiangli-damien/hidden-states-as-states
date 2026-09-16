@@ -140,6 +140,8 @@ class Experiment:
             "sklearn",
         ):
             raise ValueError("Invalid cluster method/backend")
+        if c.covariance_type not in ("diag", "spherical", "tied", "full"):
+            raise ValueError("Invalid GMM covariance type")
         if c.method == "mfa" and c.backend == "sklearn":
             raise ValueError("MFA supports cpu/gpu")
         if c.method == "kmeans" and c.backend == "gpu":

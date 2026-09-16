@@ -50,6 +50,8 @@ def test_grid_reuses_fits_frozen_snapshot_resume_and_report(tmp_path):
     assert all(r["cache_hit"] for r in second["results"])
     assert stamps == {str(p): p.stat().st_mtime_ns for p in fits}
     prepared = plan(cfg)
+    assert prepared["candidate_fits_upper_bound"] == 6
+    assert prepared["candidate_array_storage_gib_upper_bound"] > 0
     receipt = next((tmp_path / "source").glob("*/_COPY_VERIFIED.json"))
     receipt.write_text('{"changed":true}')
     assert plan(cfg)["data_snapshots"] == prepared["data_snapshots"]

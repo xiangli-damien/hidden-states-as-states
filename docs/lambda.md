@@ -34,6 +34,8 @@ Example raw float32 aggregate sizes, before small metadata: `samples × layers �
 
 Prefix and full-token arrays can be much larger. The planner checks the expected cache size against free disk plus a reserve. Cache preparation still depends on NFS throughput; warm reuse does not remove the cost of fitting new mixtures.
 
+The plan also reports unique candidate-fit counts and candidate parameter storage before checkpoint reuse. For example, Qwen2 raw MFA with rank 32, K=2…80 and 29 layers stores roughly **85 GiB of candidate parameter arrays per seed**. A multi-rank/multi-seed search can therefore consume hundreds of GiB even when the raw aggregate cache is small. This estimate excludes final exports and filesystem overhead; inspect the storage quota before choosing the full grid.
+
 ## Resource limits and resume
 
 - `workers × threads_per_worker` bounds CPU fitting parallelism. Use 2 workers × 2 threads initially while collection runs, then measure.

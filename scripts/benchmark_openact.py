@@ -22,6 +22,11 @@ def main():
     p.add_argument("--source", required=True)
     p.add_argument("--cache", required=True)
     p.add_argument("--output", required=True)
+    p.add_argument(
+        "--cuda",
+        action="store_true",
+        help="Also verify bounded real-data MFA CUDA parity",
+    )
     args = p.parse_args()
     spec = DataSpec(
         [args.source],
@@ -115,6 +120,28 @@ def main():
         )
         fitted = timed("mfa_raw", lambda: run_experiment(mfa))
         result["mfa_profile"] = fitted["profile"]
+        if args.cuda:
+            import torch
+            from hss.experiments.runner import _load_layer
+
+            cuda = replace(
+                mfa, cluster=replace(mfa.cluster, backend="gpu", device="cuda:0")
+            )
+            torch.cuda.reset_peak_memory_stats()
+            gpu_result = timed("mfa_raw_cuda", lambda: run_experiment(cuda))
+            for layer in cached.layers():
+                a, pa, _ = _load_layer(fitted["path"], layer)
+                b, pb, _ = _load_layer(gpu_result["path"], layer)
+                np.testing.assert_allclose(
+                    a.score_samples(pa.transform(cached.array(layer))),
+                    b.score_samples(pb.transform(cached.array(layer))),
+                    rtol=1e-4,
+                    atol=1e-3,
+                )
+            result["cuda_peak_allocated_mib"] = (
+                torch.cuda.max_memory_allocated() / 1024**2
+            )
+            result["checks"]["real_mfa_cuda_parity"] = True
         result["cache_bytes"] = cached.info["bytes"]
         result["rows"] = cached.n_items()
         result["layers"] = cached.layers()
