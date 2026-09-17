@@ -243,7 +243,13 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             similarity, order = trajectory_similarity(r, max_trajectories)
             child.table("trajectory_order", order)
             child.figure("geometry", plots.geometry(marginal, profile, similarity))
-            child.figure("selection", plots.icl_surface(scan))
+            if (
+                r.config["evaluation"]["fixed_k_map"]
+                or r.config["cluster"]["k"] is not None
+            ):
+                child.figure("fixed_K_profile", plots.profile_plot(profile))
+            else:
+                child.figure("selection", plots.icl_surface(scan))
             child.figure(
                 "associations", plots.associations(r.table("associations.csv"))
             )
@@ -399,10 +405,11 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             DB=("davies_bouldin", "mean"),
             min_K=("selected_k", "min"),
             max_K=("selected_k", "max"),
+            min_active_K=("active_k", "min"),
             not_converged=("converged", lambda v: int(v.eq(False).sum())),
         )
         qtable = (
-            '<h2>聚类比较</h2><p>跨层均值仅供概览；请结合逐层 CSV。Silhouette / CH 越高越好，DB 越低越好；不同方法的 ICL 和 silhouette 不能直接比较。not_converged 表示明确未达到 EM 收敛条件的层数（KMeans 不使用这个标志）；这些结果不能称为已收敛。</p><div class="scroll">'
+            '<h2>聚类比较</h2><p>跨层均值仅供概览；请结合逐层 CSV。Silhouette / CH 越高越好，DB 越低越好；不同方法的 ICL 和 silhouette 不能直接比较。active_K 是实际占用的簇数：prompt-last 的常量词嵌入层可以只有一个有效簇。not_converged 表示明确未达到 EM 收敛条件的层数（KMeans 不使用这个标志）；这些结果不能称为已收敛。</p><div class="scroll">'
             + summary.to_html(float_format=lambda x: f"{x:.4f}")
             + "</div>"
         )
