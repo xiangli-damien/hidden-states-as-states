@@ -178,6 +178,10 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         for name, j in state["jobs"].items()
         if j["status"] == "complete"
     }
+    for name, result in results.items():
+        audit = result.validate()
+        if not audit["valid"]:
+            raise ValueError(f"Invalid trial {name}: {audit['errors']}")
     if any(dest == r.path or r.path in dest.parents for r in results.values()):
         raise ValueError("Review must be outside immutable trials")
     version = stage_version("figure")
@@ -200,6 +204,13 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             cached = (
                 old["parameters"] == params
                 and old["inputs"][0]["trial_id"] == r.summary["trial_id"]
+                and old["inputs"][0]["summary_sha256"]
+                == file_digest(r.path / "summary.json")
+                and all(
+                    (bundle_root / path).is_file()
+                    and file_digest(bundle_root / path) == entry["sha256"]
+                    for path, entry in old["outputs"].items()
+                )
             )
         if not cached:
             child = FigureBundle(bundle_root, [r], params)
@@ -270,9 +281,16 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         "window.HSS_TRAJECTORIES=" + javascript(trajectories) + ";\n"
     )
     bundle = FigureBundle(
-        dest / "comparison", results.values(), dict(bootstrap=bootstrap)
+        dest / "comparison",
+        results.values(),
+        dict(
+            bootstrap=bootstrap,
+            snapshot=data.info["key"],
+            cases_manifest_sha256=file_digest(dest / "cases-manifest.json"),
+        ),
     )
     cases = pd.read_parquet(dest / "original_cases.parquet")
+    bundle.figure("dataset_overview", plots.dataset_overview(cases))
     for axis in ("category", "level", "finish_reason"):
         if axis in cases:
             table = (
@@ -377,6 +395,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
     intro = f"""<!doctype html><meta charset="utf-8"><title>Llama MATH · HSS results</title><style>{CSS}</style><main><header><p class="muted">HIDDEN STATES AS STATES · REAL DATA REVIEW</p><h1>Llama-3.2-1B × MATH 5,000</h1><p>论文对应分析、聚类方法对照与逐题原文。保存时间 {time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}。</p><div class="metrics"><div class="metric">{overview["n"]:,} 道题</div><div class="metric">正确率 {accuracy:.2%}</div><div class="metric">{overview["truncated"]} 条达到长度上限</div><div class="metric">{len(completed)} 个实验完成</div></div></header>
 <p class="warn">这是单模型 MATH 分析。其他模型和数据集的原论文数值尚不能从这批数据复现。正确性来自 OpenAct 的数学答案评估；关联图是描述统计，预测性能只使用独立测试集。聚类为生成 token 的均值或 prompt 最后 token，不是逐 token 聚类。MFA rank=8 使用 GMM 选出的逐层 K，属于相同 K 对照。</p>
 <p><a href="#cases">查看原题与回答</a> · <a href="original_cases.parquet">下载原文与评估 Parquet</a> · <a href="coverage.json">复现范围/进度</a></p>
+<div class="card"><img src="comparison/dataset_overview.png" alt="MATH correctness by category, difficulty, and response length"><p class="small">采集结果的描述统计。长度和最终正确性不作为 prompt 预测输入。</p></div>
 <p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
 <p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
 {qtable}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><ul>{"".join(galleries)}</ul>

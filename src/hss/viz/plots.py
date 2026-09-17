@@ -18,6 +18,49 @@ STYLE = {
 }
 
 
+def dataset_overview(cases):
+    """Descriptive response quality; these outcomes are not predictor features."""
+    with plt.rc_context(STYLE):
+        fig, axs = plt.subplots(1, 3, figsize=(14, 4.3), layout="constrained")
+        category = cases.groupby("category").is_correct.agg(["count", "mean"])
+        axs[0].barh(
+            category.index.str.replace("_", " "), category["mean"], color="#426f9f"
+        )
+        axs[0].set(
+            xlabel="Correct response fraction",
+            title="Correctness by problem type",
+            xlim=(0, 1),
+        )
+        for j, row in enumerate(category.itertuples()):
+            axs[0].text(row.mean + 0.01, j, f"n={row.count}", va="center", fontsize=8)
+        difficulty = cases.groupby("level").is_correct.mean()
+        axs[1].plot(difficulty.index, difficulty.values, marker="o", color="#426f9f")
+        axs[1].set(
+            xlabel="MATH difficulty level",
+            ylabel="Correct response fraction",
+            ylim=(0, 1),
+            title="Correctness by difficulty",
+        )
+        if "n_response_tokens" in cases:
+            for label, color in [(False, "#be655b"), (True, "#40846f")]:
+                values = cases.loc[cases.is_correct == label, "n_response_tokens"]
+                axs[2].hist(
+                    values,
+                    bins=np.linspace(0, max(cases.n_response_tokens), 33),
+                    alpha=0.55,
+                    label="Correct" if label else "Incorrect",
+                    color=color,
+                )
+            axs[2].legend()
+        axs[2].set(
+            xlabel="Generated tokens",
+            ylabel="Responses",
+            title="Observed response lengths",
+        )
+        fig.suptitle("Llama-3.2-1B-Instruct / MATH — captured response checks")
+        return fig
+
+
 def state_graph(nodes, edges, color="entropy", title="State transitions"):
     with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(14, 5.5), layout="constrained")
