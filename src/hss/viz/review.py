@@ -515,6 +515,15 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         if len(matched_quality)
         else ""
     )
+    norm_plot = ""
+    norm_manifest = dest / "normalization/provenance.json"
+    if norm_manifest.exists():
+        norm = json.loads(norm_manifest.read_text())
+        if norm["post_snapshot"] == data.info["key"] and all(
+            file_digest(dest / "normalization" / name) == checksum
+            for name, checksum in norm["outputs"].items()
+        ):
+            norm_plot = '<h2>最后一层 RMSNorm 诊断</h2><p>比较同一道题在前一 block、最后 block 的 pre-RMS 和 post-RMS 生成均值。图中是成对余弦相似度，不是重新聚类；均值归一化也不等于归一化后的 token 均值。</p><div class="card"><img src="normalization/paired_norm_geometry.png" alt="Paired final normalization geometry"></div><p><a href="normalization/paired_norm_geometry.csv">逐题数据</a> · <a href="normalization/summary.csv">汇总统计</a> · <a href="normalization/provenance.json">来源记录</a></p>'
     pipeline_note = html.escape(
         json.dumps(coverage.get("pipeline", {}).get("stages", {}), ensure_ascii=False)
     )
@@ -524,7 +533,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
 <div class="card"><img src="comparison/dataset_overview.png" alt="MATH correctness by category, difficulty, and response length"><p class="small">采集结果的描述统计。长度和最终正确性不作为 prompt 预测输入。</p></div>
 <p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
 <p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
-{qtable}{quality_plot}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><p class="small">最终层使用 post-RMS；与前一层匹配的变化同时包含最后一个 Transformer block 与 RMSNorm 的影响。论文的 ±30 个百分点状态标签是相对全局正确率的固定阈值；当全局正确率低于 30% 时，不可能出现 low 标签，请结合逐状态实际正确率与样本量阅读。</p><ul>{"".join(galleries)}</ul>
+{qtable}{quality_plot}{norm_plot}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><p class="small">最终层使用 post-RMS；与前一层匹配的变化同时包含最后一个 Transformer block 与 RMSNorm 的影响。论文的 ±30 个百分点状态标签是相对全局正确率的固定阈值；当全局正确率低于 30% 时，不可能出现 low 标签，请结合逐状态实际正确率与样本量阅读。</p><ul>{"".join(galleries)}</ul>
 <h2>可下载指标</h2><p><a href="comparison/configurations.json">完整实验配置 JSON</a> · method_agreement 中 ARI 表示方法之间分组的一致程度，不是正确性。</p><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
     (dest / "index.html").write_text(intro + VIEWER + "</main>")
     return dict(path=str(dest / "index.html"), overview=overview, **coverage)
