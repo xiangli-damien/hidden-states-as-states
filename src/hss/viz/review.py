@@ -306,6 +306,24 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             )
     for name, table in collect_tables(list(results.values())).items():
         bundle.table(name, table)
+    bundle.table(
+        "protocol_inventory",
+        pd.DataFrame([dict(job=name, **r.metadata()) for name, r in results.items()]),
+    )
+    protocols = bundle.path / "configurations.json"
+    save_json(protocols, {name: r.config for name, r in results.items()})
+    bundle.outputs.append(protocols)
+    paired = [
+        r
+        for name, r in results.items()
+        if name in ("mean_gmm", "mean_mfa", "mean_kmeans", "mean_minibatch_kmeans")
+    ]
+    if len(paired) > 1:
+        agreement = compare_trials(paired, all_pairs=True)
+        names = {r.summary["trial_id"]: n for n, r in results.items()}
+        agreement["reference_job"] = agreement.reference.map(names)
+        agreement["target_job"] = agreement.target.map(names)
+        bundle.table("method_agreement", agreement)
     quality_frame = pd.concat(quality, ignore_index=True) if quality else pd.DataFrame()
     bundle.table("cluster_quality", quality_frame)
     stability = [r for n, r in results.items() if n.startswith(("stability_", "mean_"))]
@@ -399,6 +417,6 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
 <p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
 <p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
 {qtable}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><ul>{"".join(galleries)}</ul>
-<h2>可下载指标</h2><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
+<h2>可下载指标</h2><p><a href="comparison/configurations.json">完整实验配置 JSON</a> · method_agreement 中 ARI 表示方法之间分组的一致程度，不是正确性。</p><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
     (dest / "index.html").write_text(intro + VIEWER + "</main>")
     return dict(path=str(dest / "index.html"), overview=overview, **coverage)
