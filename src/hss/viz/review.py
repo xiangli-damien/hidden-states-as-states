@@ -322,7 +322,10 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
                 if history:
                     trace = pd.DataFrame(history)
                     child.table("em_history", trace)
-                    child.figure("em_convergence", plots.em_convergence(trace))
+                    child.figure(
+                        "em_convergence",
+                        plots.em_convergence(trace, r.config["cluster"]["tol"]),
+                    )
             child.finish(
                 status="complete",
                 paper_scope="Llama-MATH adaptation; no cross-model claims",

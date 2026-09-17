@@ -85,7 +85,7 @@ def method_quality(table):
         return fig
 
 
-def em_convergence(table):
+def em_convergence(table, tolerance):
     """Observed likelihood trace; absence of a plateau must stay visible."""
     with plt.rc_context(STYLE):
         fig, axs = plt.subplots(1, 2, figsize=(12, 4.5), layout="constrained")
@@ -103,6 +103,10 @@ def em_convergence(table):
         axs[1].set(
             xlabel="EM iteration", ylabel="Absolute change per EM step", yscale="log"
         )
+        axs[1].axhline(
+            tolerance, color="black", linestyle="--", label=f"Tolerance {tolerance:g}"
+        )
+        axs[1].legend()
         axs[0].legend(ncol=4, fontsize=7)
         fig.suptitle(
             "MFA saved initialization — inspect convergence before interpretation"
