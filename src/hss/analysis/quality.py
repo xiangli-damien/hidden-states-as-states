@@ -7,25 +7,51 @@ Silhouette uses a seeded sample; CH and DB use every stored response.
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
-    silhouette_score,
     calinski_harabasz_score,
     davies_bouldin_score,
+    silhouette_score,
 )
 from threadpoolctl import threadpool_limits
 
-from ..results.models import load_layer
 from ..data import CachedStates
+from ..results.models import load_layer
+
+
+def state_outcomes(result):
+    """Descriptive state membership, outcome and length; no label-based refit."""
+    records = []
+    for j, layer in enumerate(result.layers):
+        for state in np.unique(result.states[:, j]):
+            part = result.rows.loc[result.states[:, j] == state]
+            ended = part.finish_reason.ne("length")
+            records.append(
+                dict(
+                    layer=layer,
+                    state=int(state),
+                    n=len(part),
+                    accuracy=float(part.label.mean()),
+                    accuracy_delta=float(part.label.mean() - result.rows.label.mean()),
+                    mean_tokens=float(part.n_tokens.mean()),
+                    median_tokens=float(part.n_tokens.median()),
+                    truncated_fraction=float((~ended).mean()),
+                    n_nontruncated=int(ended.sum()),
+                    accuracy_nontruncated=float(part.loc[ended, "label"].mean())
+                    if ended.any()
+                    else None,
+                )
+            )
+    return pd.DataFrame(records)
 
 
 def prediction_quality(result):
     """Held-out diagnostics including imbalance-aware baselines and PR-AUC."""
     from sklearn.metrics import (
+        accuracy_score,
         average_precision_score,
         balanced_accuracy_score,
+        brier_score_loss,
         matthews_corrcoef,
         roc_auc_score,
-        accuracy_score,
-        brier_score_loss,
     )
 
     records = []

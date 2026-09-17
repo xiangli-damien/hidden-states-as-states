@@ -1,19 +1,20 @@
+import json
 from dataclasses import replace
 from pathlib import Path
-import json
-import numpy as np
 
+import numpy as np
 from fixtures import openact_shards
-from hss.experiments.config import (
-    Experiment,
-    ClusterConfig,
-    ExecutionConfig,
-    EvaluationConfig,
-)
+
+from hss.cluster.gmm import GMMModel, _fit_gmm
 from hss.data import DataSpec
+from hss.experiments.config import (
+    ClusterConfig,
+    EvaluationConfig,
+    ExecutionConfig,
+    Experiment,
+)
 from hss.experiments.parallel import prefit_layers
 from hss.experiments.runner import run_experiment
-from hss.cluster.gmm import _fit_gmm, GMMModel
 
 
 def test_prefit_uses_same_train_only_cache_as_serial(tmp_path):

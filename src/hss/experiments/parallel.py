@@ -4,22 +4,22 @@ Uses exactly the runner's split, transform and candidate cache identities. No
 change to scientific selection, and no fitting on held-out prediction rows.
 """
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import asdict, replace
 import json
 import multiprocessing
-from pathlib import Path
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import asdict, replace
+from pathlib import Path
 
 import psutil
 from threadpoolctl import threadpool_limits
 
 from ..data import CachedStates, prepare
 from ..provenance import stage_version
-from .artifacts import save_json, digest
+from .artifacts import digest, save_json
 from .config import Experiment
 from .fitting import fit_candidates, fit_transform
-from .runner import fitting_split, _rows_digest, estimate_memory_gib
+from .runner import _rows_digest, estimate_memory_gib, fitting_split
 
 
 def _layer(payload, snapshot, layer, progress):
@@ -145,6 +145,7 @@ def prefit_layers(configs, directory, *, workers=10, on_ready=None, layer_ids=No
 
 if __name__ == "__main__":
     import argparse
+
     from .config import load
 
     parser = argparse.ArgumentParser(description=__doc__)

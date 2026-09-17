@@ -6,29 +6,29 @@ case viewer works from file:// (external JS data, no fetch/server dependency).
 
 import html
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from ..analysis.quality import cluster_quality, prediction_quality, state_outcomes
 from ..analysis.tables import (
-    state_map,
-    dynamics,
-    trajectory_similarity,
-    selection_surface,
+    bootstrap_predictions,
     collect_tables,
     compare_trials,
-    bootstrap_predictions,
+    dynamics,
+    selection_surface,
+    state_map,
+    trajectory_similarity,
 )
-from ..analysis.quality import cluster_quality, prediction_quality
 from ..data import prepare
+from ..experiments.artifacts import file_digest, save_json
 from ..experiments.config import load
-from ..experiments.artifacts import save_json, file_digest
 from ..provenance import stage_version
 from ..results import Result
-from .artifacts import FigureBundle
 from . import plots
+from .artifacts import FigureBundle
 
 
 def javascript(value):
@@ -148,6 +148,7 @@ VIEWER = r"""
 <p class="muted">状态编号仅在同一个 trial 内可比较。生成均值轨迹是回答生成后对各层的汇总，不是逐 token 的时间轨迹。</p>
 <input id="query" placeholder="搜索题目、回答或 sample ID" style="min-width:320px"><select id="correct"><option value="">全部正确性</option><option value="true">正确</option><option value="false">错误</option></select>
 <select id="category"><option value="">全部类别</option></select><button id="prev">上一页</button><button id="next">下一页</button><span id="count"></span>
+<div><select id="mapFilter" aria-label="聚类方法"><option value="">不按聚类状态筛选</option></select><select id="layerFilter" aria-label="层"><option value="">任意层</option></select><select id="stateFilter" aria-label="状态"><option value="">任意状态</option></select></div>
 <div class="scroll"><table><thead><tr><th>ID</th><th>类别 / Level</th><th>正确</th><th>题目</th></tr></thead><tbody id="list"></tbody></table></div>
 <div id="detail"></div></section><script src="cases.js"></script><script src="trajectories.js"></script>
 <script>
@@ -155,12 +156,17 @@ const cases=window.HSS_CASES||[], maps=window.HSS_TRAJECTORIES||{};
 const el=id=>document.getElementById(id);let page=0,filtered=cases;
 const text=(tag,value,parent)=>{const x=document.createElement(tag);x.textContent=value??'';parent.appendChild(x);return x;};
 for(const cat of [...new Set(cases.map(c=>c.category).filter(Boolean))].sort()){const o=document.createElement('option');o.value=cat;o.textContent=cat;el('category').appendChild(o);}
+function option(parent,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;parent.appendChild(o);}
+for(const name of Object.keys(maps))option(el('mapFilter'),name,name);
+function states(){el('stateFilter').replaceChildren();option(el('stateFilter'),'','任意状态');const map=maps[el('mapFilter').value];if(map){const layer=el('layerFilter').value;const j=map.layers.indexOf(Number(layer));const values=Object.values(map.states).flatMap(s=>layer===''?s:[s[j]]);for(const v of [...new Set(values)].sort((a,b)=>a-b))option(el('stateFilter'),v,'S'+v);}filter();}
+el('mapFilter').onchange=()=>{el('layerFilter').replaceChildren();option(el('layerFilter'),'','任意层');const map=maps[el('mapFilter').value];if(map)for(const layer of map.layers)option(el('layerFilter'),layer,'L'+layer);states();};el('layerFilter').onchange=states;el('stateFilter').onchange=filter;
+function inState(c){const map=maps[el('mapFilter').value],state=el('stateFilter').value,layer=el('layerFilter').value;if(!map||state==='')return true;const seq=map.states[c.sample_id];if(!seq)return false;return layer===''?seq.includes(Number(state)):seq[map.layers.indexOf(Number(layer))]===Number(state);}
 function show(c){const d=el('detail');d.replaceChildren();text('h3',c.sample_id+' · '+(c.is_correct?'正确':'错误')+' · '+c.finish_reason,d);
 for(const [name,map] of Object.entries(maps)){const s=map.states[c.sample_id];if(!s)continue;text('h4',name+' · '+map.representation+' · '+map.trial_id,d);const row=document.createElement('div');d.appendChild(row);map.layers.forEach((layer,j)=>{const x=text('span','L'+layer+': S'+s[j],row);x.className='tag';});}
 for(const [title,key] of [['原始题目','problem'],['标准答案','ground_truth'],['抽取的模型答案','extracted_answer'],['模型完整回答','response_text'],['标准解答','solution'],['实际模型输入（含 chat template）','model_input_text']]){text('h4',title,d);text('pre',c[key],d);} }
 function render(){el('list').replaceChildren();const part=filtered.slice(page*25,(page+1)*25);el('count').textContent=filtered.length+' 条 · 第 '+(page+1)+' 页';
 for(const c of part){const tr=document.createElement('tr');el('list').appendChild(tr);const td=document.createElement('td');tr.appendChild(td);const b=text('button',c.sample_id,td);b.onclick=()=>show(c);text('td',(c.category||'')+' / '+c.level,tr);text('td',c.is_correct?'✓':'✗',tr);text('td',(c.problem||c.prompt_text||'').slice(0,160),tr);}}
-function filter(){const q=el('query').value.toLowerCase(),correct=el('correct').value,cat=el('category').value;filtered=cases.filter(c=>(!q||[c.sample_id,c.problem,c.response_text].join(' ').toLowerCase().includes(q))&&(!correct||String(c.is_correct)===correct)&&(!cat||c.category===cat));page=0;render();}
+function filter(){const q=el('query').value.toLowerCase(),correct=el('correct').value,cat=el('category').value;filtered=cases.filter(c=>(!q||[c.sample_id,c.problem,c.response_text].join(' ').toLowerCase().includes(q))&&(!correct||String(c.is_correct)===correct)&&(!cat||c.category===cat)&&inState(c));page=0;render();}
 el('query').oninput=filter;el('correct').onchange=filter;el('category').onchange=filter;el('prev').onclick=()=>{page=Math.max(0,page-1);render();};el('next').onclick=()=>{if((page+1)*25<filtered.length)page++;render();};render();if(cases.length)show(cases[0]);
 </script>
 """
@@ -229,6 +235,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
                 ("dynamics", profile),
                 ("selection", scan),
                 ("quality", q),
+                ("state_outcomes", state_outcomes(r)),
                 ("associations", r.table("associations.csv")),
             ]:
                 child.table(label, table)
@@ -270,6 +277,10 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         figures = "".join(
             f'<details><summary>{html.escape(p.stem)} · <a href="{p.stem}.svg">SVG</a></summary><img loading="lazy" src="{p.name}" alt="{p.stem}"></details>'
             for p in paths
+        )
+        figures = (
+            '<p><a href="state_outcomes.csv">逐状态正确率、回答长度与截断比例</a> · 在总览的逐题页选择方法/层/状态可查看成员。</p>'
+            + figures
         )
         (bundle_root / "index.html").write_text(
             f'<!doctype html><meta charset="utf-8"><title>{html.escape(title)}</title><style>{CSS}</style><main><a href="../index.html">← 总览</a><h1>{html.escape(title)}</h1><p>5,000 real MATH responses · all captured layers · raw features. Same-K control when fixed_k_map is set; MFA has no independent K search in this comparison.</p>{figures}</main>'

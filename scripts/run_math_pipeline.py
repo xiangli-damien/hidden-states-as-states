@@ -1,14 +1,12 @@
 """Finish the authorized finite study and rebuild the portable report per stage."""
 
 import argparse
-import json
-from pathlib import Path
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-from hss.experiments.artifacts import save_json, lock
-
+from hss.experiments.artifacts import lock, save_json
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

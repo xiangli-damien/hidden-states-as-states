@@ -5,18 +5,17 @@ reuses identical cache entries and remains the authority for final trial output.
 """
 
 import argparse
-from concurrent.futures import ProcessPoolExecutor
-from dataclasses import replace
 import json
 import multiprocessing
-from pathlib import Path
 import time
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import replace
+from pathlib import Path
 
 from hss.data import prepare
+from hss.experiments.artifacts import lock, save_json
 from hss.experiments.config import load
 from hss.experiments.parallel import _layer
-from hss.experiments.artifacts import save_json, lock
-
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

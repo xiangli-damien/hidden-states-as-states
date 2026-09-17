@@ -5,13 +5,13 @@ App code is deployed through Git. Source captures are read-only. Geometry uses
 """
 
 import argparse
-from dataclasses import replace
 import json
 import os
-from pathlib import Path
 import time
+from dataclasses import replace
+from pathlib import Path
 
-from hss.experiments.artifacts import save_json, lock, source_version
+from hss.experiments.artifacts import lock, save_json, source_version
 from hss.experiments.config import load
 from hss.experiments.parallel import prefit_layers
 from hss.experiments.runner import run_experiment
