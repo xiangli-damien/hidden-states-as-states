@@ -12,7 +12,7 @@ from pathlib import Path
 import time
 
 from hss.experiments.artifacts import save_json, lock, source_version
-from hss.experiments.config import load, EvaluationConfig
+from hss.experiments.config import load
 from hss.experiments.parallel import prefit_layers
 from hss.experiments.runner import run_experiment
 from hss.results import Result
@@ -132,7 +132,9 @@ def main():
                 prompt = replace(
                     base, data=replace(base.data, representation="prompt_last")
                 )
-                pred = replace(prompt, evaluation=EvaluationConfig(mode="prediction"))
+                pred = replace(
+                    prompt, evaluation=replace(base.evaluation, mode="prediction")
+                )
                 run(
                     [
                         replace(prompt, name="prompt_gmm"),
@@ -140,10 +142,17 @@ def main():
                     ]
                 )
                 configs = []
+                # Continuous probes see identical features and splits for every
+                # cluster method; fit/report them once in prediction_gmm.
+                state_pred = replace(
+                    pred, evaluation=replace(pred.evaluation, methods=["HSS-NB"])
+                )
                 for method in ("kmeans", "minibatch_kmeans", "mfa"):
                     configs += [
                         matched(f"prompt_{method}", method, "prompt_gmm", prompt),
-                        matched(f"prediction_{method}", method, "prediction_gmm", pred),
+                        matched(
+                            f"prediction_{method}", method, "prediction_gmm", state_pred
+                        ),
                     ]
                 run(configs)
             elif args.stage == "reliability":
@@ -165,7 +174,7 @@ def main():
                 prefix = replace(
                     base,
                     data=replace(base.data, representation="prefix"),
-                    evaluation=EvaluationConfig(mode="monitoring"),
+                    evaluation=replace(base.evaluation, mode="monitoring"),
                 )
                 run(
                     [
