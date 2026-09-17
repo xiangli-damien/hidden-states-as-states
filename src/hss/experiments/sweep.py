@@ -14,7 +14,9 @@ import psutil
 
 from .artifacts import digest, lock, save_json, source_version
 from .config import Experiment, set_value
-from .openact import CachedStates, prepare
+from ..data import CachedStates, prepare
+from ..results import Result
+from ..provenance import stage_version
 from .runner import estimate_memory_gib, run_experiment, trial_identity
 from .resources import storage_entries
 
@@ -88,7 +90,9 @@ def plan(cfg, *, refresh_data=False):
     canonical = cfg.to_dict()
     canonical["execution"].pop("task_index")
     canonical["execution"].pop("task_count")
-    key = digest({"config": canonical, "version": version})
+    key = digest(
+        {"config": canonical, "version": version, "reader": stage_version("data")}
+    )
     folder = Path(cfg.execution.output_root).expanduser().resolve() / "sweeps" / key
     folder.mkdir(parents=True, exist_ok=True)
     with lock(folder / ".plan.lock"):
@@ -159,6 +163,11 @@ def run_sweep(cfg, *, refresh_data=False):
             ):
                 record = json.loads((root / "_SUCCESS.json").read_text())
                 if record.get("trial_id") == trial["trial_id"]:
+                    audit = Result(root).validate()
+                    if not audit["valid"]:
+                        raise ValueError(
+                            f"Completed trial failed audit: {root}: {audit['errors']}"
+                        )
                     cached[trial["trial_id"]] = {
                         "status": "complete",
                         **record,

@@ -8,78 +8,13 @@ import time
 
 import numpy as np
 from scipy.special import xlogy
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 
-from ..cluster.gmm import _fit_gmm
-from ..cluster.kmeans import KMeansModel
-from ..cluster.mfa import fit_mfa
 from ..cluster.registry import rebuild_model
+from ..cluster.methods import fit_method
+from ..cluster.assignment import assign as assign
 from .artifacts import digest, lock, save_json, save_npz
-
-
-class Projection:
-    def __init__(self, mean, scale, pca_mean, components, whitening):
-        self.mean, self.scale = mean, scale
-        self.pca_mean, self.components, self.whitening = pca_mean, components, whitening
-
-    @classmethod
-    def fit(cls, X, config, seed):
-        mean = (
-            X.mean(0, dtype=np.float64) if config.standardize else np.zeros(X.shape[1])
-        )
-        scale = (
-            np.sqrt(X.var(0, dtype=np.float64))
-            if config.standardize
-            else np.ones(X.shape[1])
-        )
-        scale[scale < 1e-12] = 1
-        pca_mean, components, whitening = (
-            np.zeros(X.shape[1]),
-            np.empty((0, X.shape[1])),
-            np.empty(0),
-        )
-        if config.pca_components is not None:
-            if config.pca_components > min(X.shape):
-                raise ValueError(
-                    "PCA components exceed training samples/features; no silent dimension change"
-                )
-            pca = PCA(
-                n_components=config.pca_components,
-                svd_solver="randomized",
-                random_state=seed,
-            )
-            pca.fit((X - mean) / scale)
-            pca_mean, components = pca.mean_, pca.components_
-            whitening = (
-                np.sqrt(np.maximum(pca.explained_variance_, 1e-12))
-                if config.whiten
-                else np.ones(len(components))
-            )
-        return cls(mean, scale, pca_mean, components, whitening)
-
-    def transform(self, X):
-        Z = (X - self.mean) / self.scale
-        return (
-            (Z - self.pca_mean) @ self.components.T / self.whitening
-            if len(self.components)
-            else Z
-        )
-
-    def inverse(self, Z):
-        X = (
-            (Z * self.whitening) @ self.components + self.pca_mean
-            if len(self.components)
-            else Z
-        )
-        return X * self.scale + self.mean
-
-    def arrays(self):
-        return {
-            k: getattr(self, k)
-            for k in ("mean", "scale", "pca_mean", "components", "whitening")
-        }
+from ..transform.projection import Projection
 
 
 def fit_transform(X, train, cfg, context, cache_root):
@@ -133,6 +68,8 @@ def common_parameters(config):
         )
     else:
         p = {"n_init": config.n_init, "max_iter": config.max_iter, "tol": config.tol}
+    if config.method == "minibatch_kmeans":
+        p["batch_size"] = config.batch_size
     return p
 
 
@@ -158,7 +95,7 @@ def gpu_slot(cfg, needed_gib):
 
 
 def selection_metrics(model, X, method, chunk_size, seed):
-    if method == "kmeans":
+    if method in ("kmeans", "minibatch_kmeans"):
         rng = np.random.default_rng(seed)
         idx = np.sort(rng.choice(len(X), min(len(X), 2000), replace=False))
         labels = model.predict(X[idx])
@@ -224,16 +161,7 @@ def fit_candidates(X, cfg, context, cache_root):
                         (X.nbytes * 8 + k * X.shape[1] * (c.rank + 1) * 128) / 1024**3,
                     ),
                 ):
-                    if c.method == "gmm":
-                        model = _fit_gmm(X, k, seed, **params)
-                    elif c.method == "mfa":
-                        model = fit_mfa(X, k, seed, **params)
-                    else:
-                        model = KMeansModel(
-                            KMeans(k, random_state=seed, **params)
-                            .fit(X)
-                            .cluster_centers_
-                        )
+                    model = fit_method(c.method, X, k, seed, params)
                 scores = selection_metrics(model, X, c.method, c.chunk_size, seed)
                 if not np.isfinite(scores["criterion"]):
                     raise FloatingPointError("Nonfinite model-selection criterion")
@@ -274,15 +202,3 @@ def fit_candidates(X, cfg, context, cache_root):
         requested_k=requested,
         omitted_k=[k for k in requested if k not in candidates],
     )
-
-
-def assign(model, X, assignment):
-    if assignment == "posterior":
-        return model.predict(X)
-    centers = np.asarray(model.centers(), dtype=np.float64)
-    distance = (
-        (X * X).sum(1)[:, None]
-        - 2 * X @ centers.T
-        + (centers * centers).sum(1)[None, :]
-    )
-    return distance.argmin(1).astype(np.int32)

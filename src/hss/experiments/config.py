@@ -11,7 +11,8 @@ try:
 except ImportError:
     import tomli as tomllib
 
-from .openact import DataSpec
+from ..data import DataSpec
+from ..cluster.methods import METHODS
 
 
 @dataclass
@@ -28,6 +29,7 @@ class ClusterConfig:
     max_iter: int = 200
     tol: float = 1e-5
     chunk_size: int = 1024
+    batch_size: int = 1024
     backend: str = "cpu"
     device: str = "cuda:0"
     adaptive_reg: bool = False
@@ -60,6 +62,7 @@ class EvaluationConfig:
     split_seed: int = 42
     alpha: float = 1.0
     far_target: float = 0.1
+    far_scope: str = "all_boundaries"
     methods: list[str] = field(
         default_factory=lambda: [
             "HSS-NB",
@@ -134,7 +137,7 @@ class Experiment:
     def validate(self):
         self.data.validate()
         c, e, x = self.cluster, self.evaluation, self.execution
-        if c.method not in ("gmm", "mfa", "kmeans") or c.backend not in (
+        if c.method not in METHODS or c.backend not in (
             "cpu",
             "gpu",
             "sklearn",
@@ -144,7 +147,7 @@ class Experiment:
             raise ValueError("Invalid GMM covariance type")
         if c.method == "mfa" and c.backend == "sklearn":
             raise ValueError("MFA supports cpu/gpu")
-        if c.method == "kmeans" and c.backend == "gpu":
+        if c.method in ("kmeans", "minibatch_kmeans") and c.backend == "gpu":
             raise ValueError("KMeans control uses CPU; choose backend=cpu")
         if c.assignment not in ("nearest", "posterior"):
             raise ValueError("assignment must be nearest or posterior")
@@ -155,7 +158,7 @@ class Experiment:
         ):
             raise ValueError("k_values must be positive")
         if (
-            min(c.n_init, c.max_iter, c.chunk_size) < 1
+            min(c.n_init, c.max_iter, c.chunk_size, c.batch_size) < 1
             or c.rank < 0
             or c.reg_covar <= 0
             or c.tol < 0
@@ -188,6 +191,8 @@ class Experiment:
             )
         if e.alpha <= 0 or not 0 <= e.far_target < 1 or e.positive_label not in (0, 1):
             raise ValueError("Invalid smoothing, FAR target, or label polarity")
+        if e.far_scope not in ("all_boundaries", "nonfinal"):
+            raise ValueError("far_scope must be all_boundaries or nonfinal")
         if e.continuous_features not in ("last_layer", "all_layers"):
             raise ValueError("Invalid continuous feature mode")
         methods = {

@@ -76,3 +76,44 @@ A saved plan contains absolute paths. On multiple hosts, use the same absolute l
 This bounds reads to 100 samples/two layers (two samples for prefixes), checks cached values against source arrays, fits small GMM/MFA models, measures a two-trial sweep, and verifies resume. `benchmark.json` records actual times and versions. It is not a full 5,000-sample, 80-component grid timing estimate. Use those intended dimensions for a separate capacity benchmark before budgeting the full run.
 
 Persistent results include portable model/projection arrays and labels/state sequences. Local derived raw caches can be rebuilt from verified NFS shards after replacing the GPU instance. Preserve generated configs, the frozen plan and benchmark/results with the code revision.
+
+## Current organized workspace
+
+New runs use the following layout. Earlier `hss-benchmark-*` and `hss-experiments` directories are retained as historical artifacts; their data are not silently moved or overwritten.
+
+```text
+/lambda/nfs/dami/
+  openact/                         Collection code and published runs (unchanged)
+  hidden-states-as-states/          HSS Git checkout; .venv → /home/ubuntu/hss-venv
+  hss/
+    README.md / workspace.json     Paths, code checkout and artifact roles
+    studies/paper/                 Resolved configs, suite.json, suite_status.json
+    results/trials/                Immutable completed scientific trials
+    cache/fits/                    Persistent transform/candidate-fit checkpoints
+    figures/paper/                 PNG/SVG/CSV/NPY + manifests + HTML gallery
+    figures/controls/              Supplemental controls and uncertainty tables
+    reports/                       Audits, availability and coverage manifests
+    validation/                    Bounded CPU/synthetic validation, separately named
+/home/ubuntu/hss-cache/             Rebuildable local mmap activation cache
+```
+
+Dataset paths are configured in `configs/lambda/datasets.toml`, not inside fitting or plotting code. `hss paper --catalog ...` copies resolved mappings into a persistent study. Generate once per study; use a new directory for a changed scientific protocol. Existing studies are protected against regeneration unless `--overwrite` is explicit. Rerun `hss suite ... --only JOB` to resume. Separate job invocations retain each other's status under a file lock.
+
+Changing the study JSON after a job finishes is detected during figure resolution. The original trial still contains its exact configuration; rerun the changed job or use a separately preserved study. Keep the HSS checkout stable while a grid is active; update code before launching a new study.
+
+### Bounded architecture validation
+
+```bash
+# Real captures, three CPU clustering methods, prediction, full checksums,
+# resume and standalone paper diagnostics; no generation/model weights.
+.venv/bin/python scripts/validate_lambda_workflow.py \
+  --source /lambda/nfs/dami/openact/runs/math_full_20260916/llama32 \
+  --cache /home/ubuntu/hss-cache \
+  --directory /lambda/nfs/dami/hss/validation/real-UNIQUE_NAME
+
+# All recipes/controls on explicitly synthetic 40-response, 6-dimensional data.
+.venv/bin/python scripts/smoke_reproduction.py \
+  --directory /lambda/nfs/dami/hss/validation/synthetic-UNIQUE_NAME
+```
+
+These scripts use bounded engineering fixtures, not full paper hyperparameters. Use fresh validation directories. The real script fits only 3 layers, K=2 and 6 iterations with two CPU workers; the synthetic script exercises all figure/control routes. Production collection remains the primary GPU workload.

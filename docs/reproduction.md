@@ -42,3 +42,9 @@ Per-trial outputs include tables for characterization and transitions, map/selec
 - **Annotation semantics:** existing correctness/judge labels are consumed with source fingerprints. This analysis refactor does not establish that all upstream answer matching or judge judgments are error-free.
 
 Selection curves and refit stability must be inspected before interpreting states scientifically. Hyperparameter grids do not automatically select a winner using test metrics. For tuning a supervised classifier, add a separate validation split/nested protocol rather than selecting from reported test scores.
+
+## Independent paper artifacts and explicit appendix choices
+
+The complete Figure 1–12 / Table 1–3 recipe inventory, exact quantities, control jobs and missing-data behavior are now maintained in [paper-artifacts.md](paper-artifacts.md). `hss figures` rebuilds those artifacts from saved results; `hss controls` handles the supplemental sensitivity studies. Figures 1–2 are illustrative schematics. Figure 3/7 colors are outgoing entropy; correctness graphs use deviation from global accuracy.
+
+The manuscript's main-text/appendix FAR definitions disagree: both are now selectable and recorded. The appendix clustering control uses MiniBatchKMeans. Hamming heatmaps default to average linkage with explicitly recorded sample limits; Ward on categorical Hamming distances is not silently used. P-values from repeated token/prefix rows are omitted, and response-level tables include sparse expected-count diagnostics. See the artifact inventory for these limits before interpreting numerical agreement.

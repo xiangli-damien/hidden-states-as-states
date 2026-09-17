@@ -20,7 +20,6 @@ from threadpoolctl import threadpool_limits
 
 from ..align import align_layers
 from ..types import AlignSpec
-from ..cluster.registry import rebuild_model
 from .artifacts import (
     digest,
     file_digest,
@@ -38,8 +37,11 @@ from .evaluate import (
     grouped_split,
     monitoring_metrics,
 )
-from .fitting import Projection, assign, fit_candidates, fit_transform
-from .openact import CachedStates, prepare
+from .fitting import assign, fit_candidates, fit_transform
+from ..data import CachedStates, prepare
+from ..results.models import load_layer as _load_layer, save_layer as _save_layer
+from ..provenance import stage_version
+from ..results.store import seal_result, Result
 from .diagnostics import layer_diagnostics
 from .resources import model_bytes, candidates
 
@@ -92,24 +94,6 @@ def trial_identity(cfg, data, version):
             k: p[k] for k in ("seed", "cluster", "transform", "alignment", "evaluation")
         },
     }
-
-
-def _save_layer(root, layer, model, projection, scan):
-    path = root / "models" / f"layer_{layer}"
-    save_npz(path / "model.npz", **model.state_arrays())
-    save_npz(path / "projection.npz", **projection.arrays())
-    save_json(path / "model.json", model.config())
-    save_json(path / "selection.json", scan)
-
-
-def _load_layer(root, layer):
-    path = Path(root) / "models" / f"layer_{layer}"
-    config = json.loads((path / "model.json").read_text())
-    with np.load(path / "model.npz", allow_pickle=False) as f:
-        model = rebuild_model(config, {k: f[k] for k in f.files})
-    with np.load(path / "projection.npz", allow_pickle=False) as f:
-        projection = Projection(**{k: f[k] for k in f.files})
-    return model, projection, json.loads((path / "selection.json").read_text())
 
 
 def _continuous(data, indices, cfg):
@@ -214,9 +198,14 @@ def _supervised(root, cfg, data, states, vocab, meta, split):
         else:
             danger_val, danger_test = 1 - pred["validation"], 1 - pred["test"]
             threshold, val_far = calibrate_threshold(
-                meta.iloc[val], danger_val, cfg.evaluation.far_target
+                meta.iloc[val],
+                danger_val,
+                cfg.evaluation.far_target,
+                cfg.evaluation.far_scope,
             )
-            metrics, cases = monitoring_metrics(meta.iloc[test], danger_test, threshold)
+            metrics, cases = monitoring_metrics(
+                meta.iloc[test], danger_test, threshold, cfg.evaluation.far_scope
+            )
             summary.append({"method": method, "validation_far": val_far, **metrics})
             cases.to_parquet(root / f"monitor_{method}.parquet", index=False)
             for idx, score in zip(test, danger_test):
@@ -245,13 +234,26 @@ def _supervised(root, cfg, data, states, vocab, meta, split):
                 continue
             danger = sign * meta[field].to_numpy()
             threshold, val_far = calibrate_threshold(
-                meta.iloc[val], danger[val], cfg.evaluation.far_target
+                meta.iloc[val],
+                danger[val],
+                cfg.evaluation.far_target,
+                cfg.evaluation.far_scope,
             )
             metrics, cases = monitoring_metrics(
-                meta.iloc[test], danger[test], threshold
+                meta.iloc[test], danger[test], threshold, cfg.evaluation.far_scope
             )
             summary.append({"method": name, "validation_far": val_far, **metrics})
             cases.to_parquet(root / f"monitor_{field}.parquet", index=False)
+            for idx in test:
+                scores.append(
+                    {
+                        "row": int(idx),
+                        "sample_id": str(meta.iloc[idx].sample_id),
+                        "method": name,
+                        "label": int(y[idx]),
+                        "score": float(danger[idx]),
+                    }
+                )
     pd.DataFrame(scores).to_parquet(root / "predictions.parquet", index=False)
     save_json(
         root / "evaluation.json", {"metrics": summary, "unavailable_baselines": missing}
@@ -262,6 +264,7 @@ def _supervised(root, cfg, data, states, vocab, meta, split):
 def run_experiment(cfg, *, prepared=None, version=None):
     cfg.validate()
     version = version or source_version()
+    fit_version = stage_version("fit")
     data = (
         CachedStates(prepared)
         if prepared
@@ -280,14 +283,9 @@ def run_experiment(cfg, *, prepared=None, version=None):
         success = root / "_SUCCESS.json"
         if success.exists():
             result = json.loads(success.read_text())
-            for required in (
-                "states.npy",
-                "rows.parquet",
-                "config.json",
-                "summary.json",
-            ):
-                if not (root / required).exists():
-                    raise ValueError(f"Completed result missing {required}")
+            audit = Result(root).validate()
+            if not audit["valid"]:
+                raise ValueError(f"Completed result failed audit: {audit['errors']}")
             return {**result, "cache_hit": True}
         started = time.perf_counter()
         save_json(
@@ -381,7 +379,7 @@ def run_experiment(cfg, *, prepared=None, version=None):
                     [train + j * len(meta) for j in range(len(layers))]
                 )
                 context = {
-                    "version": version,
+                    "version": fit_version,
                     "snapshot": data.info["key"],
                     "layer": -1,
                     "train": _rows_digest(fit_rows),
@@ -420,7 +418,7 @@ def run_experiment(cfg, *, prepared=None, version=None):
                         model, projection, scan = _load_layer(fixed, layer)
                     else:
                         context = {
-                            "version": version,
+                            "version": fit_version,
                             "snapshot": data.info["key"],
                             "layer": layer,
                             "train": _rows_digest(train),
@@ -504,7 +502,7 @@ def run_experiment(cfg, *, prepared=None, version=None):
                     "k": scan["selected"]["k"],
                     "criterion": scan["selected"].get("criterion"),
                     "criterion_name": "negative_silhouette"
-                    if cfg.cluster.method == "kmeans"
+                    if cfg.cluster.method in ("kmeans", "minibatch_kmeans")
                     else "icl",
                     "self_transition": float((states[:, j] == states[:, j - 1]).mean())
                     if j
@@ -532,6 +530,7 @@ def run_experiment(cfg, *, prepared=None, version=None):
             }
             save_json(root / "summary.json", summary)
             save_json(root / "status.json", {"status": "complete", "trial_id": key})
+            seal_result(root)
             save_json(success, summary)
             return {**summary, "cache_hit": False}
         except Exception as exc:

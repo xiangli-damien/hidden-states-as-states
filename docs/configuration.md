@@ -48,3 +48,15 @@ Algorithm source and installed numerical-library versions enter experiment/cache
 A saved sweep plan freezes its source snapshot. Rerunning it resumes that snapshot even as collection publishes new shards. `--refresh-data` explicitly rebuilds the plan against available data. A failed or interrupted trial never writes `_SUCCESS.json`; completed per-K fits remain reusable. `retry_failed=false` records skipped failures and returns a failing status instead of declaring success.
 
 `fixed_k_map` refers to a prior trial's `selection.json`, permitting independent refits with the same K. `fixed_map` uses an existing compatible map for geometry only; supervised protocols always fit their own training map. External reference file contents enter trial identity.
+
+## New public interfaces
+
+- `data.source_format`: `openact` (default) or `arrays` (NPY matrices + Parquet rows + `dataset.json`). `data.dataset_id` is an explicit dataset identifier used in reports. See [the data contract](architecture.md#data-contract).
+- `data.representation="sentence"` averages only the current sentence span; `prefix` remains the cumulative average. They are distinct experiments.
+- `cluster.method="minibatch_kmeans"` adds the appendix control; `cluster.batch_size` configures its minibatches. `kmeans` remains ordinary Lloyd KMeans. Both use negative sampled silhouette for selection. `hss methods` lists all backends.
+- `evaluation.far_scope`: `all_boundaries` (main-text definition) or `nonfinal` (appendix definition).
+- `hss paper --catalog configs/lambda/datasets.toml`: resolves named dataset paths into a study. Missing entries stay explicitly unconfigured. Run `hss data CATALOG` to inspect counts.
+- `hss figures ... --max-trajectories 5000 --linkage average --formats png svg`: controls rendering independently of fitted trials. `--check --strict` audits required job coverage without rendering.
+- `hss report ... --bootstrap 1000` and `hss controls ... --bootstrap 1000`: add stratified fixed-model response bootstrap intervals for saved prediction scores.
+
+The canonical modules and extension procedure are described in [architecture.md](architecture.md). The mapping from every paper figure/control to a job is in [paper-artifacts.md](paper-artifacts.md).

@@ -15,7 +15,7 @@ def candidates(cfg):
 def model_bytes(cfg, d, k):
     if cfg.cluster.method == "mfa":
         return 8 * (k + k * d * (2 + cfg.cluster.rank))
-    if cfg.cluster.method == "kmeans":
+    if cfg.cluster.method in ("kmeans", "minibatch_kmeans"):
         return 4 * k * d
     covariance = {"diag": k * d, "spherical": k, "tied": d * d, "full": k * d * d}[
         cfg.cluster.covariance_type

@@ -3,9 +3,8 @@
 from pathlib import Path
 import json
 
-from .artifacts import save_json
+from .artifacts import save_json, file_digest, lock
 from .config import Experiment, load, set_value
-from .openact import discover
 
 
 MODELS = {
@@ -24,10 +23,26 @@ SIZES = {
 }
 
 
-def generate_suite(data_root, directory, cache_root, output_root, check_data=False):
+def generate_suite(
+    data_root,
+    directory,
+    cache_root,
+    output_root,
+    check_data=False,
+    catalog=None,
+    artifact_cache_root=None,
+    overwrite=False,
+):
     directory = Path(directory).expanduser().resolve()
+    if (directory / "suite.json").exists() and not overwrite:
+        raise ValueError(
+            "Study already exists; run/resume its suite, choose a new directory, or explicitly use --overwrite"
+        )
     directory.mkdir(parents=True, exist_ok=True)
     jobs = []
+    from ..data.catalog import load_catalog
+
+    entries = load_catalog(catalog) if catalog else {}
 
     def add(
         name,
@@ -46,37 +61,40 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
             expected_model=MODELS[alias],
             expected_samples=SIZES.get(dataset),
             representation=representation,
+            dataset_id=dataset,
         )
         payload["evaluation"]["mode"] = mode
         payload["execution"].update(
             cache_root=str(cache_root),
-            artifact_cache_root=str(Path(output_root) / "fit_cache"),
+            artifact_cache_root=str(
+                artifact_cache_root or Path(output_root).parent / "fit_cache"
+            ),
             output_root=str(output_root),
-            workers=4,
+            workers=2,
             memory_gib=32.0,
         )
         for k, v in (overrides or {}).items():
             set_value(payload, k, v)
+        if catalog:
+            key = f"{alias}/{dataset}"
+            if key in entries:
+                payload["data"].update(entries[key])
+            else:
+                payload["data"]["paths"] = [
+                    str(directory / "unconfigured_data" / alias / dataset)
+                ]
+            payload["data"]["representation"] = representation
         cfg = Experiment.from_dict(payload)
         config_path = directory / (name + ".json")
         save_json(config_path, cfg.to_dict())
         status = "not_checked"
         if check_data:
-            try:
-                runs = discover(cfg.data)
-                import pyarrow.parquet as pq
+            from ..data.catalog import inspect_spec
 
-                count = sum(
-                    pq.ParquetFile(p / "data.parquet").metadata.num_rows for p in runs
-                )
-                status = (
-                    "available"
-                    if cfg.data.expected_samples is None
-                    or count == cfg.data.expected_samples
-                    else f"incomplete:{count}/{cfg.data.expected_samples}"
-                )
-            except FileNotFoundError:
-                status = "missing"
+            inspection = inspect_spec(cfg.data)
+            status = inspection["status"]
+            if status == "incomplete":
+                status += f":{inspection['published_samples']}/{inspection['expected_samples']}"
         jobs.append(
             {
                 "name": name,
@@ -134,7 +152,23 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
             overrides={"data.label": "is_safe", "data.label_file": "safety"},
         )
     add("sentence_monitoring", "qwen2", "math", "monitoring", "prefix")
-    add("characterization", "qwen2", "math")
+    add(
+        "characterization",
+        "qwen2",
+        "math",
+        overrides={
+            "evaluation.diagnostics": ["dispersion", "separation", "effective_rank"]
+        },
+    )
+    add("qwen_prompt_map", "qwen2", "math", representation="prompt_last")
+    add(
+        "monitoring_far_scope_control",
+        "qwen2",
+        "math",
+        "monitoring",
+        "prefix",
+        grid={"evaluation.far_scope": ["all_boundaries", "nonfinal"]},
+    )
     add(
         "reliability_trends",
         "qwen2",
@@ -161,7 +195,7 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
         "preprocessing_control",
         "qwen2",
         "math",
-        grid={"transform.standardize": [False, True]},
+        grid={"transform.standardize": [False, True], "seed": [42, 43, 44, 45, 46]},
     )
     add(
         "pca_control",
@@ -178,7 +212,12 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
             "alignment.similarity": ["cosine", "euclidean"],
         },
     )
-    add("kmeans_control", "qwen2", "math", overrides={"cluster.method": "kmeans"})
+    add(
+        "kmeans_control",
+        "qwen2",
+        "math",
+        overrides={"cluster.method": "minibatch_kmeans"},
+    )
     add(
         "global_clustering_control",
         "qwen2",
@@ -190,7 +229,7 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
         "granularity_control",
         "qwen2",
         "math",
-        grid={"data.representation": ["mean", "prompt_last", "prefix"]},
+        grid={"data.representation": ["mean", "prompt_last", "sentence", "prefix"]},
     )
     add("rms_control", "qwen2", "math", grid={"data.final_norm": ["pre", "post"]})
     add(
@@ -200,10 +239,50 @@ def generate_suite(data_root, directory, cache_root, output_root, check_data=Fal
         grid={"cluster.rank": [4, 8, 16, 32]},
         overrides={"cluster.method": "mfa"},
     )
+    # The supplementary controls also assess downstream HSS-NB prediction.
+    for name, grid in {
+        "preprocessing_prediction_control": {"transform.standardize": [False, True]},
+        "pca_prediction_control": {
+            "transform.pca_components": [None, 64, 128, 256, 512]
+        },
+        "alignment_prediction_control": {
+            "alignment.threshold": [0.3, 0.4, 0.5, 0.6, 0.7],
+            "alignment.similarity": ["cosine", "euclidean"],
+        },
+        "method_prediction_control": {
+            "cluster.method": ["gmm", "minibatch_kmeans", "mfa"]
+        },
+        "seed_prediction_control": {"seed": [42, 43, 44, 45, 46]},
+    }.items():
+        add(
+            name,
+            "qwen2",
+            "math",
+            "prediction",
+            "prompt_last",
+            grid=grid,
+            overrides={"evaluation.methods": ["HSS-NB"]},
+        )
+    # Token geometry is deliberately a separate expensive job, not hidden in a
+    # default Cartesian product. Planning shows its full memory/storage cost.
+    add(
+        "token_granularity_control",
+        "qwen2",
+        "math",
+        representation="tokens",
+        overrides={"execution.workers": 1, "execution.memory_gib": 96.0},
+    )
     suite = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "dataset_catalog": str(Path(catalog).resolve()) if catalog else None,
         "jobs": jobs,
         "protocol_notes": [
+            "Figures 1-2 are illustrative schematics; Figures 3-12 and Tables 1-3 have explicit recipes in hss.viz.paper.",
+            "FAR: main-text default all_boundaries; appendix nonfinal is a separate control. Early detection always excludes final boundary.",
+            "Reliability text uses 30-90% data; figure legend differs. Generated fractions are explicit 0.3,0.5,0.7,0.9; seeds 42-46; Kmax 20,40,60,80.",
+            "Hamming heatmaps use average linkage by default; Ward requires Euclidean distances. Rendering records deterministic sampled trajectory IDs (default max 1000).",
+            "Euclidean matching similarity is 1/(1+distance); numeric eta values have a different meaning from cosine similarity.",
+            "KMeans controls use MiniBatchKMeans; ordinary KMeans remains an optional method.",
             "No reported paper scores are embedded; outputs are computed from supplied data.",
             "Main default: raw representations, diagonal GMM, ICL=BIC+2entropy, cosine Hungarian eta=.6.",
             "Monitoring validation fraction, sentence segmentation, mixture regularization/tolerance and some probe details are not fully specified by the manuscript; explicit implementation choices are recorded in configs.",
@@ -251,8 +330,8 @@ def run_suite(path, only=None, overrides=(), refresh_data=False):
             if any(d["job"] not in results for d in job["depends_on"].values()):
                 continue
             pending.remove(name)
-            cfg = load(path.parent / job["config"], overrides)
             try:
+                cfg = load(path.parent / job["config"], overrides)
                 payload = cfg.to_dict()
                 for key, dependency in job["depends_on"].items():
                     prior = results[dependency["job"]]
@@ -274,7 +353,19 @@ def run_suite(path, only=None, overrides=(), refresh_data=False):
                 )
             except Exception as exc:
                 results[name] = {"status": "failed", "error": repr(exc)}
-            save_json(path.parent / "suite_status.json", results)
+            results[name]["source_config_sha256"] = (
+                file_digest(path.parent / job["config"])
+                if (path.parent / job["config"]).exists()
+                else None
+            )
+            # Separate invocations may run different jobs. Preserve their outcomes,
+            # including under concurrent writers, rather than replacing the catalog.
+            with lock(path.parent / ".suite_status.lock"):
+                status_path = path.parent / "suite_status.json"
+                history = (
+                    json.loads(status_path.read_text()) if status_path.exists() else {}
+                )
+                save_json(status_path, {**history, name: results[name]})
     return {
         "status": "complete"
         if all(r["status"] == "complete" for r in results.values())

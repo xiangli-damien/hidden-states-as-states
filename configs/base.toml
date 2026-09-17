@@ -2,6 +2,7 @@ name = "llama32_math_geometry"
 seed = 42
 
 [data]
+dataset_id = "math"
 paths = ["/lambda/nfs/dami/openact/runs/math_full_20260916/llama32"]
 representation = "mean"
 final_norm = "post"
@@ -41,12 +42,13 @@ validation_fraction = 0.2
 split_seed = 42
 alpha = 1.0
 far_target = 0.1
+far_scope = "all_boundaries"
 continuous_features = "last_layer"
 
 [execution]
 cache_root = "/home/ubuntu/hss-cache"
-artifact_cache_root = "/lambda/nfs/dami/hss-results/fit_cache"
-output_root = "/lambda/nfs/dami/hss-results"
+artifact_cache_root = "/lambda/nfs/dami/hss/cache/fits"
+output_root = "/lambda/nfs/dami/hss/results/trials"
 workers = 2
 threads_per_worker = 2
 memory_gib = 24

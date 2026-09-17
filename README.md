@@ -4,12 +4,14 @@ Layer-wise state maps, Mixture of Factor Analyzers (MFA), and reproducible exper
 
 ## Start here
 
+[Architecture and reusable APIs](docs/architecture.md) · [Every paper figure/table and control](docs/paper-artifacts.md) · [Lambda workspace guide](docs/lambda.md)
+
 ```bash
 uv sync --locked --extra dev
 uv run hss --help
 uv run hss plan configs/smoke.toml
 uv run hss sweep configs/smoke.toml
-uv run hss report /lambda/nfs/dami/hss-results
+uv run hss report /lambda/nfs/dami/hss/results/trials
 ```
 
 The shipped paths target Lambda. Override them for another machine:
@@ -34,7 +36,12 @@ uv run hss sweep configs/smoke.toml \
 | `hss sweep CONFIG` | Bounded process grid, fit reuse, checkpoints, resume |
 | `hss paper …` | Generate manuscript experiment configs and dependency manifest |
 | `hss suite suite.json --only NAME …` | Execute selected experiments and prerequisites |
-| `hss report OUTPUT` | Produce CSV tables and PNG state maps, profiles, ICL surfaces |
+| `hss data CATALOG` | Inspect logical dataset paths and published sample counts |
+| `hss methods` | List clustering methods/backends and selection criteria |
+| `hss results ROOT --validate --full` | Audit saved artifacts, checksums and response splits |
+| `hss report OUTPUT` | Aggregate tables and rebuild per-trial PNG/SVG diagnostics |
+| `hss figures ROOT --suite SUITE --destination DEST` | Rebuild Figures 1–12/Tables 1–3; explicit missing-input coverage |
+| `hss controls ROOT --suite SUITE --destination DEST` | Rebuild supplemental robustness plots/tables; optional bootstrap |
 
 ```bash
 # MFA: low-rank covariance + component-specific diagonal noise.
@@ -55,12 +62,12 @@ uv run --extra gpu hss run configs/gpu.toml
 
 ```bash
 uv run hss paper \
-  --data-root /lambda/nfs/dami/openact/runs \
-  --directory configs/generated-paper \
+  --catalog configs/lambda/datasets.toml \
+  --directory /lambda/nfs/dami/hss/studies/paper \
   --cache-root /home/ubuntu/hss-cache \
-  --output-root /lambda/nfs/dami/hss-results \
+  --output-root /lambda/nfs/dami/hss/results/trials \
   --check-data
-uv run hss suite configs/generated-paper/suite.json --only default_map
+uv run hss suite /lambda/nfs/dami/hss/studies/paper/suite.json --only default_map
 ```
 
 The suite covers geometry, seed/subsample/K-range reliability, fixed-K center comparisons, cross-model/dataset profiles, before-generation prediction, sentence monitoring, characterization, construction controls, and MFA/RMS extensions. Dataset locations are explicit editable configs. Generating a suite does not start experiments or collect missing data.
@@ -71,10 +78,15 @@ The suite covers geometry, seed/subsample/K-range reliability, fixed-K center co
 
 ```text
 src/hss/
-  cluster/               GMM, KMeans, MFA; numerical models and portable arrays
+  data/                  OpenAct + array adapters, dataset catalog, local mmap cache
+  cluster/               GMM, MFA, KMeans/MiniBatchKMeans; portable model arrays
+  transform/             Train-only preprocessing and portable projections
+  results/               Lazy result/model reading and checksum/structure audit
+  analysis/              Numerical tables, Hamming geometry, comparisons/bootstrap
+  viz/                   Pure plots, paper recipes, control reports, render manifests
   align.py, predict.py   Reusable core interfaces
   experiments/
-    openact.py           Published-shard reader and local mmap cache
+    openact.py           Compatibility import for hss.data
     config.py            Strict TOML/JSON, inheritance, dotted overrides
     fitting.py           Train-only transforms and reusable candidate fits
     runner.py            Split → fit → freeze → evaluate → save
@@ -82,7 +94,7 @@ src/hss/
     evaluate.py          Categorical NB, holdouts, monitoring and characterization
     diagnostics.py       Separation, dispersion, centroid matching
     paper.py             Experiment catalog and dependencies
-    reporting.py         Tables and scientific figures
+    reporting.py         Compatibility entry for independent table/plot modules
 configs/                 Small editable TOML entry points
 scripts/                 Bounded real-data benchmark
 tests/                  Numerical, protocol, cache, grid and optional CUDA tests
@@ -94,6 +106,17 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 - [Paper methods, coverage and unresolved conditions](docs/reproduction.md)
 - [Lambda installation, performance, storage and large grids](docs/lambda.md)
 - [MFA implementation](docs/mfa.md)
+
+## Plot without refitting
+
+```bash
+hss figures /lambda/nfs/dami/hss/results/trials \
+  --suite /lambda/nfs/dami/hss/studies/paper/suite.json \
+  --destination /lambda/nfs/dami/hss/figures/paper \
+  --only figure_03 figure_04 --max-trajectories 5000
+```
+
+Open `figures/paper/index.html` for the gallery. Each figure includes its source CSV/NPY data and a manifest of trial IDs, parameters and hashes. Results can move machines and render without raw activations or fit caches. Plot edits do not invalidate fitting checkpoints. Full coverage and unresolved paper conditions are documented in the [artifact inventory](docs/paper-artifacts.md).
 
 ## Validation
 

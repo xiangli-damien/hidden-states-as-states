@@ -63,7 +63,16 @@ def lock(path):
 
 def runtime_versions():
     result = {"python": platform.python_version()}
-    for package in ("numpy", "scipy", "scikit-learn", "pandas", "zarr", "torch"):
+    for package in (
+        "numpy",
+        "scipy",
+        "scikit-learn",
+        "pandas",
+        "zarr",
+        "torch",
+        "matplotlib",
+        "pyarrow",
+    ):
         try:
             result[package] = version(package)
         except PackageNotFoundError:
@@ -72,14 +81,7 @@ def runtime_versions():
 
 
 def source_version():
-    # Includes uncommitted implementation edits; never reuse stale algorithm caches.
-    root = Path(__file__).resolve().parents[1]
-    return digest(
-        {
-            "files": {
-                str(p.relative_to(root)): file_digest(p)
-                for p in sorted(root.rglob("*.py"))
-            },
-            "runtime": runtime_versions(),
-        }
-    )
+    # Plotting, CLI and scheduler edits must not invalidate scientific fit caches.
+    from ..provenance import stage_version
+
+    return stage_version("trial")

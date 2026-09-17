@@ -77,15 +77,32 @@ def binary_metrics(y, score, *, threshold=0.5):
     }
 
 
-def calibrate_threshold(meta, scores, far):
+def calibrate_threshold(meta, scores, far, far_scope="all_boundaries"):
     """Threshold is selected only from maximum score of each successful response.
 
     Alerts use strict >, so ties are conservative. The empirical validation FAR
     is <= the requested rate, including very small validation sets.
     """
-    frame = meta[["group_id", "label"]].copy()
+    if far_scope not in ("all_boundaries", "nonfinal"):
+        raise ValueError("Unknown FAR boundary scope")
+    if not 0 <= far < 1 or not np.isfinite(scores).all():
+        raise ValueError("FAR must be in [0,1); scores must be finite")
+    frame = meta.copy()
     frame["score"] = scores
-    successful = frame[frame.label == 1].groupby("group_id").score.max().to_numpy()
+    success_ids = frame.loc[frame.label == 1, "group_id"].unique()
+    eligible = (
+        frame if far_scope == "all_boundaries" else frame[~frame.is_final.astype(bool)]
+    )
+    # Responses with no eligible boundary remain in the denominator and cannot
+    # alarm. A finite floor keeps their threshold serializable and reproducible.
+    floor = float(np.nextafter(np.min(scores), -np.inf))
+    successful = (
+        eligible[eligible.label == 1]
+        .groupby("group_id")
+        .score.max()
+        .reindex(success_ids, fill_value=floor)
+        .to_numpy()
+    )
     if not len(successful):
         raise ValueError("FAR calibration needs successful validation responses")
     ordered = np.sort(successful)
@@ -94,7 +111,9 @@ def calibrate_threshold(meta, scores, far):
     return threshold, float((successful > threshold).mean())
 
 
-def monitoring_metrics(meta, scores, threshold):
+def monitoring_metrics(meta, scores, threshold, far_scope="all_boundaries"):
+    if far_scope not in ("all_boundaries", "nonfinal"):
+        raise ValueError("Unknown FAR boundary scope")
     frame = meta.copy()
     frame["score"] = scores
     cases = []
@@ -110,7 +129,7 @@ def monitoring_metrics(meta, scores, threshold):
             {
                 "group_id": int(group),
                 "failed": failed,
-                "alarm": len(alarms) > 0,
+                "alarm": len(alarms if far_scope == "all_boundaries" else early) > 0,
                 "early_detected": len(early) > 0,
                 "saved_fraction": (1 - int(early.token_end.iloc[0]) / total)
                 if len(early)
@@ -124,6 +143,7 @@ def monitoring_metrics(meta, scores, threshold):
     half = cases.dropna(subset=["score_half"])
     result = {
         "threshold": threshold,
+        "far_scope": far_scope,
         "n_responses": len(cases),
         "test_far": float(success.alarm.mean()) if len(success) else None,
         "early_detection_rate": float(failure.early_detected.mean())
@@ -151,13 +171,29 @@ def characterize(states, meta, layers):
         for axis in ("category", "level", "subject", "language", "label"):
             valid = meta[axis].notna().to_numpy()
             table = pd.crosstab(states[valid, j], meta.loc[valid, axis].to_numpy())
-            v = None
+            v = chi = p_value = dof = expected_min = sparse_fraction = None
+            independent = not meta.loc[valid, "group_id"].duplicated().any()
             if min(table.shape) > 1:
-                chi = chi2_contingency(table, correction=False)[0]
+                chi, p_value, dof, expected = chi2_contingency(table, correction=False)
+                expected_min = float(expected.min())
+                sparse_fraction = float((expected < 5).mean())
                 v = float(
                     np.sqrt(chi / (table.to_numpy().sum() * (min(table.shape) - 1)))
                 )
-            associations.append({"layer": layer, "axis": axis, "cramers_v": v})
+            associations.append(
+                {
+                    "layer": layer,
+                    "axis": axis,
+                    "cramers_v": v,
+                    "chi_square": chi,
+                    "p_value": p_value if independent else None,
+                    "degrees_of_freedom": dof,
+                    "n_rows": int(valid.sum()),
+                    "independent_responses": independent,
+                    "expected_min": expected_min,
+                    "expected_below_5_fraction": sparse_fraction,
+                }
+            )
         for state in np.unique(states[:, j]):
             part = meta.loc[states[:, j] == state]
             types = part.category.dropna().value_counts(normalize=True)

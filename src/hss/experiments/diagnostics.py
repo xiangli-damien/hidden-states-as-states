@@ -37,7 +37,7 @@ def layer_diagnostics(X, model, projection, assignment, requested):
         and model.covariance_type == "diag"
     ):
         # All statistics use the map-fitting data only, in the model's feature space.
-        from .fitting import assign
+        from ..cluster.assignment import assign
 
         features = projection.transform(X)
         labels = assign(model, features, assignment)
@@ -95,11 +95,14 @@ def layer_diagnostics(X, model, projection, assignment, requested):
 
 def compare_results(reference, target):
     """Compare refits/ablations; never align unequal model hidden dimensions."""
-    from .runner import _load_layer
+    from ..results.models import load_layer as _load_layer
 
     a, b = Path(reference), Path(target)
     am, bm = pd.read_parquet(a / "rows.parquet"), pd.read_parquet(b / "rows.parquet")
-    sa, sb = np.load(a / "states.npy"), np.load(b / "states.npy")
+    sa, sb = (
+        np.load(a / "states.npy", mmap_mode="r"),
+        np.load(b / "states.npy", mmap_mode="r"),
+    )
     ak = json.loads((a / "summary.json").read_text())
     bk = json.loads((b / "summary.json").read_text())
     if ak["model"] != bk["model"]:

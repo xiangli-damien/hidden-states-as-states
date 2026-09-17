@@ -48,6 +48,8 @@ tmp/
 runs/
 outputs/
 results/
+!src/hss/results/
+!src/hss/results/*.py
 wandb/
 mlruns/
 lightning_logs/

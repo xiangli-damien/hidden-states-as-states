@@ -171,3 +171,45 @@ def test_global_control_and_fixed_k_suite_dependency(tmp_path):
         np.load(Path(reference) / "states.npy"),
         np.load(Path(reused["path"]) / "states.npy"),
     )
+
+
+def test_separate_suite_invocations_preserve_history_and_detect_changed_config(
+    tmp_path,
+):
+    from hss.experiments.paper import run_suite
+    from hss.results import ResultCatalog
+    from hss.viz.paper import suite_aliases
+
+    cfg = config(tmp_path)
+    cfg.cluster.k = 2
+    paths = []
+    for name, seed in [("one", 42), ("two", 43)]:
+        path = tmp_path / (name + ".json")
+        payload = replace(cfg, name=name, seed=seed).to_dict()
+        path.write_text(json.dumps(payload))
+        paths.append(path)
+    suite = tmp_path / "suite.json"
+    suite.write_text(
+        json.dumps(
+            {
+                "jobs": [
+                    {"name": p.stem, "config": p.name, "depends_on": {}} for p in paths
+                ]
+            }
+        )
+    )
+    assert run_suite(suite, only=["one"])["status"] == "complete"
+    assert run_suite(suite, only=["two"])["status"] == "complete"
+    history = json.loads((tmp_path / "suite_status.json").read_text())
+    assert set(history) == {"one", "two"}
+    catalog = ResultCatalog(tmp_path / "outputs")
+    aliases, issues, _ = suite_aliases(suite, catalog)
+    assert len(aliases["one"]) == 1 and not issues
+    payload = json.loads(paths[0].read_text())
+    payload["seed"] = 99
+    paths[0].write_text(json.dumps(payload))
+    assert "one" in suite_aliases(suite, catalog)[1]
+    generated = tmp_path / "generated"
+    generate_suite("/missing", generated, tmp_path / "cache", tmp_path / "outputs")
+    with pytest.raises(ValueError, match="already exists"):
+        generate_suite("/missing", generated, tmp_path / "cache", tmp_path / "outputs")
