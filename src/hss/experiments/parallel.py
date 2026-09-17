@@ -61,7 +61,7 @@ def _layer(payload, snapshot, layer, progress):
     return result
 
 
-def prefit_layers(configs, directory, *, workers=10, on_ready=None):
+def prefit_layers(configs, directory, *, workers=10, on_ready=None, layer_ids=None):
     """One bounded pool shared by all configs, checkpointing every K and layer."""
     directory = Path(directory)
     tasks, snapshots = [], {}
@@ -81,9 +81,20 @@ def prefit_layers(configs, directory, *, workers=10, on_ready=None):
         data = prepare(cfg.data, cfg.execution.cache_root)
         assert data.info["identity"]["spec"] == asdict(cfg.data)
         snapshots[cfg.name] = str(data.path)
-        pending[cfg.name] = len(data.layers())
+        layers = data.layers() if layer_ids is None else list(layer_ids)
+        if (
+            not layers
+            or len(layers) != len(set(layers))
+            or not set(layers) <= set(data.layers())
+        ):
+            raise ValueError(
+                "Prefit layer IDs must be a nonempty subset without duplicates"
+            )
+        if layer_ids is not None and on_ready:
+            raise ValueError("Subset prefit cannot signal that a full trial is ready")
+        pending[cfg.name] = len(layers)
         maximum = max(maximum, estimate_memory_gib(data, cfg))
-        for layer in data.layers():
+        for layer in layers:
             key = digest(
                 dict(
                     config=cfg.to_dict(),
@@ -130,3 +141,21 @@ def prefit_layers(configs, directory, *, workers=10, on_ready=None):
             if not pending[result["name"]] and on_ready:
                 on_ready(by_name[result["name"]], snapshots[result["name"]])
     return snapshots
+
+
+if __name__ == "__main__":
+    import argparse
+    from .config import load
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("config", nargs="+")
+    parser.add_argument("--directory", required=True)
+    parser.add_argument("--workers", type=int, default=10)
+    parser.add_argument("--layers", type=int, nargs="+")
+    args = parser.parse_args()
+    prefit_layers(
+        [load(p) for p in args.config],
+        args.directory,
+        workers=args.workers,
+        layer_ids=args.layers,
+    )
