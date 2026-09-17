@@ -28,6 +28,7 @@ from ..experiments.artifacts import digest, file_digest, save_json
 from ..experiments.config import load
 from ..provenance import stage_version
 from ..results import Result, ResultCatalog
+from ..results.models import load_layer
 from . import plots
 from .artifacts import FigureBundle
 
@@ -310,6 +311,18 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             child.figure(
                 "correctness_bands", plots.correctness_bands(r.table("state_tags.csv"))
             )
+            if r.config["cluster"]["method"] == "mfa":
+                history = []
+                for layer in r.layers:
+                    model, _, _ = load_layer(r.path, layer)
+                    history.extend(
+                        dict(layer=layer, iteration=i + 1, log_likelihood=value)
+                        for i, value in enumerate(model.config().get("history", []))
+                    )
+                if history:
+                    trace = pd.DataFrame(history)
+                    child.table("em_history", trace)
+                    child.figure("em_convergence", plots.em_convergence(trace))
             child.finish(
                 status="complete",
                 paper_scope="Llama-MATH adaptation; no cross-model claims",
@@ -404,6 +417,17 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         bundle.table("method_agreement", agreement)
     quality_frame = pd.concat(quality, ignore_index=True) if quality else pd.DataFrame()
     bundle.table("cluster_quality", quality_frame)
+    matched_quality = (
+        quality_frame[
+            quality_frame.job.isin(
+                ["mean_gmm", "mean_mfa", "mean_kmeans", "mean_minibatch_kmeans"]
+            )
+        ]
+        if len(quality_frame)
+        else quality_frame
+    )
+    if len(matched_quality):
+        bundle.figure("method_quality", plots.method_quality(matched_quality))
     stability = [r for n, r in results.items() if n.startswith(("stability_", "mean_"))]
     comparisons = []
     for method in ("gmm", "kmeans", "minibatch_kmeans", "mfa"):
@@ -486,6 +510,11 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             + "</div>"
         )
     accuracy = overview["correct"] / overview["n"]
+    quality_plot = (
+        '<div class="card"><img src="comparison/method_quality.png" alt="Matched-K per-layer geometry comparison"></div>'
+        if len(matched_quality)
+        else ""
+    )
     pipeline_note = html.escape(
         json.dumps(coverage.get("pipeline", {}).get("stages", {}), ensure_ascii=False)
     )
@@ -495,7 +524,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
 <div class="card"><img src="comparison/dataset_overview.png" alt="MATH correctness by category, difficulty, and response length"><p class="small">采集结果的描述统计。长度和最终正确性不作为 prompt 预测输入。</p></div>
 <p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
 <p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
-{qtable}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><ul>{"".join(galleries)}</ul>
+{qtable}{quality_plot}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><p class="small">最终层使用 post-RMS；与前一层匹配的变化同时包含最后一个 Transformer block 与 RMSNorm 的影响。论文的 ±30 个百分点状态标签是相对全局正确率的固定阈值；当全局正确率低于 30% 时，不可能出现 low 标签，请结合逐状态实际正确率与样本量阅读。</p><ul>{"".join(galleries)}</ul>
 <h2>可下载指标</h2><p><a href="comparison/configurations.json">完整实验配置 JSON</a> · method_agreement 中 ARI 表示方法之间分组的一致程度，不是正确性。</p><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
     (dest / "index.html").write_text(intro + VIEWER + "</main>")
     return dict(path=str(dest / "index.html"), overview=overview, **coverage)

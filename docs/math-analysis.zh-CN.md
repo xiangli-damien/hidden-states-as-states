@@ -23,7 +23,7 @@ CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS
   --stage core --workers 10
 ```
 
-依次运行 `core`、`prediction`、`reliability`、`monitoring`；只有前一阶段的引用存在，后续阶段才能执行。同一命令会复用每个 K 的缓存。CPU 层工作进程共用 48 GiB 预算，并预留 32 GiB 可用内存；GPU 不参与拟合。`study.json` 记录已完成 trial，`progress/*.json` 记录每层，`configs/*.json` 是可编辑参数的完整记录。改变科学代码后使用新 study，防止混入旧版本结果。
+依次运行 `core`、`prediction`、`reliability`、`monitoring`；只有前一阶段的引用存在，后续阶段才能执行。同一命令会复用每个 K 的缓存。每个调度器使用 48 GiB 内存预算，并预留 32 GiB 可用内存；多个辅助调度器需要合计检查资源。GPU 不参与拟合。`study.json` 记录已完成 trial，`progress/*.json` 记录每层，`configs/*.json` 是完整执行记录。调度器会从 `--base` 重建配置，因此参数变更应使用新的 base/study；也可复制某个 JSON 后用 `hss run` 单独运行。改变科学代码后使用新 study，防止混入旧版本结果。
 
 ```bash
 .venv/bin/python scripts/render_math_review.py \
@@ -38,3 +38,7 @@ CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS
 可生成默认状态图、占用/轨迹相似度/层变化、标签关联、ICL 图、prompt/response 正确性状态图、状态带、方法对照、稳定性以及单模型预测/监测表。
 
 论文中 Qwen 对应的图在这里是 **Llama-MATH 适配**。跨模型/跨数据集图和完整 Table 1 必须等对应数据到齐。本文档列出的是可执行协议；完成与否以实际 `study.json`、`coverage.json` 和结果 `_SUCCESS.json` 为准。
+
+图集附 MFA 每次 EM 迭代的平均对数似然及变化幅度。未达到收敛阈值的拟合须标注，不能仅凭图形漂亮或似然较高来判断方法优劣。跨方法几何指标按相同逐层 K 比较，最终任务价值以独立测试集的预测结果为准。
+
+最终层 post-RMS 与上一层的差异同时包含最后一个 block 和 RMSNorm，不能把新状态全部归因于语义变化。论文正确性状态带使用相对全局正确率的 ±30 个百分点阈值；全局正确率低于 30% 时不会出现 low 标签。逐状态 CSV 另给实际正确率、样本量、回答长度及截断比例，便于解释。

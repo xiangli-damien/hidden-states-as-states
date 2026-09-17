@@ -61,6 +61,55 @@ def dataset_overview(cases):
         return fig
 
 
+def method_quality(table):
+    """Shared descriptive geometry measures, displayed layer by layer."""
+    with plt.rc_context(STYLE):
+        fig, axs = plt.subplots(2, 3, figsize=(14, 7), layout="constrained")
+        fields = [
+            ("silhouette", "Silhouette (higher is better)"),
+            ("calinski_harabasz", "Calinski–Harabasz (higher is better)"),
+            ("davies_bouldin", "Davies–Bouldin (lower is better)"),
+            ("active_k", "Occupied clusters"),
+            ("max_cluster_fraction", "Largest cluster fraction"),
+            ("occupancy_entropy_bits", "Occupancy entropy (bits)"),
+        ]
+        for ax, (field, title) in zip(axs.flat, fields):
+            for name, part in table.groupby("job", sort=True):
+                part = part.sort_values("layer")
+                ax.plot(part.layer, part[field], ".-", label=name, markersize=4)
+            ax.set(xlabel="Layer", title=title)
+        axs[1, 1].set_ylim(0, 1)
+        handles, labels = axs[0, 0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="outside lower center", ncol=2)
+        fig.suptitle("Matched-K response-mean methods — descriptive geometry")
+        return fig
+
+
+def em_convergence(table):
+    """Observed likelihood trace; absence of a plateau must stay visible."""
+    with plt.rc_context(STYLE):
+        fig, axs = plt.subplots(1, 2, figsize=(12, 4.5), layout="constrained")
+        for layer, part in table.groupby("layer", sort=True):
+            part = part.sort_values("iteration")
+            axs[0].plot(
+                part.iteration,
+                part.log_likelihood - part.log_likelihood.iloc[0],
+                label=f"L{layer}",
+                linewidth=1,
+            )
+            delta = part.log_likelihood.diff().abs()
+            axs[1].plot(part.iteration, delta.where(delta > 0), linewidth=1)
+        axs[0].set(xlabel="EM iteration", ylabel="Mean log-likelihood gain")
+        axs[1].set(
+            xlabel="EM iteration", ylabel="Absolute final-step change", yscale="log"
+        )
+        axs[0].legend(ncol=4, fontsize=7)
+        fig.suptitle(
+            "MFA saved initialization — inspect convergence before interpretation"
+        )
+        return fig
+
+
 def state_graph(nodes, edges, color="entropy", title="State transitions"):
     with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(14, 5.5), layout="constrained")
@@ -222,7 +271,7 @@ def icl_surface(scan):
             interpolation="nearest",
         )
         xs = {k: i for i, k in enumerate(surface.columns)}
-        ys = {l: i for i, l in enumerate(surface.index)}
+        ys = {layer: i for i, layer in enumerate(surface.index)}
         selected = scan[scan.selected]
         near = scan[scan.near_optimal]
         ax.scatter(
