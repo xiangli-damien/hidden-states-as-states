@@ -5,17 +5,20 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-
-STYLE = {
-    "font.size": 10,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "savefig.dpi": 180,
-    "svg.fonttype": "none",
-    "axes.titlesize": 11,
-    "legend.fontsize": 8,
-}
+from .style import STYLE
+from .publication import (  # re-export the stable plotting API
+    state_graph as state_graph,
+    geometry as geometry,
+    icl_surface as icl_surface,
+    associations as associations,
+    correctness_bands as correctness_bands,
+    prediction_controls as prediction_controls,
+    monitoring_controls as monitoring_controls,
+    stability_summary as stability_summary,
+    separation as separation,
+    graph_display as graph_display,
+    refit_summary as refit_summary,
+)
 
 
 def dataset_overview(cases):
@@ -114,141 +117,6 @@ def em_convergence(table, tolerance):
         return fig
 
 
-def state_graph(nodes, edges, color="entropy", title="State transitions"):
-    with plt.rc_context(STYLE):
-        fig, ax = plt.subplots(figsize=(14, 5.5), layout="constrained")
-        positions = {
-            (int(r.layer), int(r.state)): (r.position, r.y) for r in nodes.itertuples()
-        }
-        segments = [
-            [
-                positions[(r.from_layer, r.from_state)],
-                positions[(r.to_layer, r.to_state)],
-            ]
-            for r in edges.itertuples()
-        ]
-        if segments:
-            rgba = np.tile([0.35, 0.39, 0.43, 1.0], (len(edges), 1))
-            rgba[:, 3] = 0.03 + 0.65 * np.sqrt(
-                edges.frequency.to_numpy() / max(edges.frequency.max(), 1e-10)
-            )
-            ax.add_collection(
-                LineCollection(
-                    segments, colors=rgba, linewidths=0.3 + 2 * edges.frequency
-                )
-            )
-        label = {
-            "entropy": "Outgoing transition entropy (bits)",
-            "accuracy_delta": "Correctness deviation from global mean",
-            "none": "State",
-        }[color]
-        values = nodes[color].to_numpy() if color != "none" else np.zeros(len(nodes))
-        valid = np.isfinite(values)
-        cmap = "coolwarm" if color == "accuracy_delta" else "viridis"
-        limits = (
-            {"vmin": -1, "vmax": 1}
-            if color == "accuracy_delta"
-            else {
-                "vmin": 0,
-                "vmax": max(1, float(np.nanmax(values))) if valid.any() else 1,
-            }
-        )
-        points = ax.scatter(
-            nodes.loc[valid, "position"],
-            nodes.loc[valid, "y"],
-            s=12 + 450 * nodes.loc[valid, "frequency"],
-            c=values[valid],
-            cmap=cmap,
-            **limits,
-            zorder=3,
-            edgecolors="white",
-            linewidths=0.3,
-        )
-        if (~valid).any():
-            ax.scatter(
-                nodes.loc[~valid, "position"],
-                nodes.loc[~valid, "y"],
-                s=12 + 450 * nodes.loc[~valid, "frequency"],
-                c="#b3b9c0",
-                zorder=3,
-            )
-        if len(nodes) <= 300:
-            for r in nodes.itertuples():
-                ax.annotate(
-                    str(r.state),
-                    (r.position, r.y),
-                    xytext=(0, 5),
-                    textcoords="offset points",
-                    ha="center",
-                    fontsize=5,
-                )
-        ticks = nodes[["layer", "position"]].drop_duplicates()
-        ax.set_xticks(ticks.position, ticks.layer)
-        padding = max(1, (nodes.y.max() - nodes.y.min()) * 0.12)
-        ax.set(
-            xlabel="Layer",
-            ylabel="States within each layer",
-            title=title,
-            ylim=(nodes.y.min() - padding, nodes.y.max() + padding),
-            xlim=(-0.5, ticks.position.max() + 0.5),
-        )
-        ax.set_yticks([])
-        if color != "none":
-            fig.colorbar(points, ax=ax, label=label, shrink=0.75)
-        return fig
-
-
-def geometry(marginal, profile, similarity):
-    with plt.rc_context(STYLE):
-        fig, axs = plt.subplots(1, 3, figsize=(14, 3.8), layout="constrained")
-        ax = axs[0]
-        ax.bar(marginal["rank"], marginal.frequency, color="#426f9f", width=1)
-        twin = ax.twinx()
-        twin.plot(marginal["rank"], marginal.cumulative_mass, color="#b74542")
-        twin.set(ylim=(0, 1.03), ylabel="Cumulative mass")
-        ax.set(
-            xlabel="Global state frequency rank",
-            ylabel="Marginal frequency",
-            title="(a) State occupancy",
-        )
-        im = axs[1].imshow(
-            similarity,
-            vmin=0,
-            vmax=1,
-            cmap="magma",
-            interpolation="nearest",
-            rasterized=True,
-        )
-        axs[1].set(
-            xlabel="Reordered trajectory",
-            ylabel="Reordered trajectory",
-            title="(b) Hamming similarity",
-        )
-        fig.colorbar(im, ax=axs[1], shrink=0.7)
-        axs[2].bar(
-            profile.layer, profile.active_k, color="#a9bfd4", label="Active states"
-        )
-        twin = axs[2].twinx()
-        twin.plot(
-            profile.layer,
-            profile.self_transition,
-            color="#b74542",
-            marker=".",
-            label="Self-transition",
-        )
-        twin.plot(
-            profile.layer,
-            profile.uniform_self_transition,
-            ":",
-            color="black",
-            label="Uniform 1/K",
-        )
-        twin.set(ylabel="Transition probability", ylim=(0, 1.03))
-        twin.legend(loc="upper left")
-        axs[2].set(xlabel="Layer", ylabel="Active states K", title="(c) Layer dynamics")
-        return fig
-
-
 def profile_plot(profile):
     with plt.rc_context(STYLE):
         fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), layout="constrained")
@@ -260,121 +128,6 @@ def profile_plot(profile):
             ax.plot(profile.relative_depth, profile[field], "o-", markersize=3)
             ax.set(xlabel="Relative layer depth", ylabel=label)
         axs[1].set_ylim(0, 1)
-        return fig
-
-
-def icl_surface(scan):
-    with plt.rc_context(STYLE):
-        surface = scan.pivot(index="layer", columns="k", values="relative_criterion")
-        fig, ax = plt.subplots(figsize=(9, 4.7), layout="constrained")
-        im = ax.imshow(
-            surface,
-            origin="lower",
-            aspect="auto",
-            cmap="viridis",
-            interpolation="nearest",
-        )
-        xs = {k: i for i, k in enumerate(surface.columns)}
-        ys = {layer: i for i, layer in enumerate(surface.index)}
-        selected = scan[scan.selected]
-        near = scan[scan.near_optimal]
-        ax.scatter(
-            near.k.map(xs),
-            near.layer.map(ys),
-            s=5,
-            c="white",
-            alpha=0.6,
-            label="Within tolerance",
-        )
-        ax.scatter(
-            selected.k.map(xs),
-            selected.layer.map(ys),
-            s=22,
-            facecolors="none",
-            edgecolors="#e76b6b",
-            label="Selected K",
-        )
-        stride = max(1, len(surface.columns) // 16)
-        ax.set_xticks(range(0, len(surface.columns), stride), surface.columns[::stride])
-        stride = max(1, len(surface.index) // 20)
-        ax.set_yticks(range(0, len(surface.index), stride), surface.index[::stride])
-        ax.set(
-            xlabel="Candidate K",
-            ylabel="Layer",
-            title="Relative model-selection criterion",
-        )
-        fig.colorbar(im, ax=ax, label="(criterion - minimum) / max(|minimum|, 1)")
-        ax.legend(loc="upper right")
-        return fig
-
-
-def associations(frame):
-    with plt.rc_context(STYLE):
-        fig, ax = plt.subplots(figsize=(8, 3.7), layout="constrained")
-        for axis, part in frame.groupby("axis", sort=True):
-            part = part.dropna(subset=["cramers_v"])
-            if len(part):
-                ax.plot(part.layer, part.cramers_v, marker=".", label=axis)
-        ax.set(
-            xlabel="Layer",
-            ylabel="Cramér's V",
-            ylim=(0, 1),
-            title="State associations with observed labels",
-        )
-        if ax.lines:
-            ax.legend()
-        return fig
-
-
-def correctness_bands(tags):
-    with plt.rc_context(STYLE):
-        frame = tags.pivot(index="layer", columns="state", values="accuracy_delta")
-        fig, ax = plt.subplots(figsize=(10, 5.5), layout="constrained")
-        cmap = plt.get_cmap("coolwarm").with_extremes(bad="#edf0f3")
-        im = ax.imshow(
-            frame,
-            vmin=-1,
-            vmax=1,
-            cmap=cmap,
-            aspect="auto",
-            origin="upper",
-            interpolation="nearest",
-        )
-        x_stride = max(1, len(frame.columns) // 24)
-        ax.set_xticks(
-            range(0, len(frame.columns), x_stride),
-            frame.columns[::x_stride],
-            rotation=45,
-        )
-        stride = max(1, len(frame) // 20)
-        ax.set_yticks(range(0, len(frame), stride), frame.index[::stride])
-        for x, state in enumerate(frame.columns):
-            active = np.flatnonzero(frame[state].notna().to_numpy())
-            if len(active):
-                ax.scatter(
-                    [x],
-                    [active[0]],
-                    marker="v",
-                    s=15,
-                    c="#287647",
-                    edgecolors="white",
-                    linewidths=0.3,
-                )
-                ax.scatter(
-                    [x],
-                    [active[-1]],
-                    marker="^",
-                    s=15,
-                    c="#9d353f",
-                    edgecolors="white",
-                    linewidths=0.3,
-                )
-        ax.set(
-            xlabel="Global state ID",
-            ylabel="Layer",
-            title="Correctness deviation (▼ first appearance, ▲ last appearance)",
-        )
-        fig.colorbar(im, ax=ax, label="State accuracy - global accuracy")
         return fig
 
 
@@ -564,21 +317,6 @@ def control_diagnostics(diagnostics, comparisons):
                 for (_, target), part in comparisons.groupby(["reference", "target"]):
                     ax.plot(part.layer, part[field], label=str(target)[:8])
             ax.set(xlabel="Layer", ylabel=label)
-        return fig
-
-
-def prediction_controls(metrics):
-    with plt.rc_context(STYLE):
-        fig, axs = plt.subplots(1, 2, figsize=(12, 4.5), layout="constrained")
-        part = metrics[metrics.predictor.eq("HSS-NB")].copy()
-        labels = [
-            f"{r.method}; PCA={r.pca_components}; std={r.standardize}; eta={r.alignment_threshold:g}; seed={r.seed}"
-            for r in part.itertuples()
-        ]
-        for ax, metric in zip(axs, ["auroc", "accuracy"]):
-            ax.barh(range(len(part)), part[metric], color="#547c9d")
-            ax.set_yticks(range(len(part)), labels, fontsize=7)
-            ax.set(xlim=(0, 1), xlabel=metric.upper())
         return fig
 
 

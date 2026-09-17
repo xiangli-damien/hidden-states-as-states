@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from ..experiments.artifacts import save_json, file_digest
 from ..provenance import stage_version
+from .style import publication_settings
 
 
 class FigureBundle:
@@ -33,8 +34,9 @@ class FigureBundle:
             }
             for r in results
         ]
-        self.parameters = parameters or {}
+        self.parameters = {**(parameters or {}), "publication": publication_settings()}
         self.outputs = []
+        self.visual_encodings = {}
 
     def table(self, name, frame):
         path = self.path / (name + ".csv")
@@ -42,6 +44,8 @@ class FigureBundle:
         self.outputs.append(path)
 
     def figure(self, name, fig):
+        if hasattr(fig, "_hss_encoding"):
+            self.visual_encodings[name] = fig._hss_encoding
         if any(x["scope"] == "subset" for x in self.inputs):
             fig.suptitle(
                 "SUBSET / PROTOCOL VALIDATION — not a full paper reproduction",
@@ -60,6 +64,7 @@ class FigureBundle:
             "figure_source_version": stage_version("figure"),
             "inputs": self.inputs,
             "parameters": self.parameters,
+            "visual_encodings": self.visual_encodings,
             "formats": list(self.formats),
             "outputs": {
                 str(p.relative_to(self.path)): {

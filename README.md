@@ -120,6 +120,12 @@ Open `figures/paper/index.html` for the gallery. Each figure includes its source
 
 ## Validation
 
+The Llama–MATH review also provides a manuscript-ordered `paper.html`, separate
+method galleries, and an original-response viewer. [Figure design and reference
+code audit](docs/figure-design.zh-CN.md) explains the visual encodings and remaining
+protocol differences. Set `HSS_FIGURE_STYLE=configs/figures.toml` to adjust rendering
+without refitting; resolved settings and displayed-edge masks are recorded.
+
 [Actual Lambda validation and measured timings](docs/validation.md).
 
 ```bash

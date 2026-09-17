@@ -134,6 +134,9 @@ def _render(name, bundle, inputs, aliases, params):
         nodes, edges = state_map(r)
         bundle.table("nodes", nodes)
         bundle.table("edges", edges)
+        display_nodes, display_edges = plots.graph_display(nodes, edges)
+        bundle.table("nodes_display", display_nodes)
+        bundle.table("edges_display", display_edges)
         color = "entropy" if name in ("figure_03", "figure_07") else "accuracy_delta"
         if color == "accuracy_delta" and nodes.accuracy_delta.isna().all():
             raise ValueError("Correctness labels unavailable")
@@ -177,7 +180,16 @@ def _render(name, bundle, inputs, aliases, params):
     elif name == "figure_09":
         frame = selection_surface(r)
         bundle.table("icl_surface", frame)
-        bundle.figure(name, plots.icl_surface(frame))
+        bundle.figure(
+            name,
+            plots.icl_surface(
+                frame,
+                criterion="ICL"
+                if r.config["cluster"]["method"] in ("gmm", "mfa")
+                else "negative silhouette",
+                tolerance=r.config["cluster"]["parsimony_tolerance"],
+            ),
+        )
     elif name == "figure_12":
         frame = r.table("state_tags.csv")
         if frame.empty or frame.accuracy_delta.isna().all():

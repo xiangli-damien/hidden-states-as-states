@@ -27,6 +27,12 @@ def state_map(result):
                 for next_state, n, prob in zip(
                     next_states, transition_counts, probabilities
                 ):
+                    edge_labels = labels[selected & (states[:, j + 1] == next_state)]
+                    edge_accuracy = (
+                        float(np.nanmean(edge_labels))
+                        if np.isfinite(edge_labels).any()
+                        else np.nan
+                    )
                     edges.append(
                         dict(
                             from_layer=layer,
@@ -36,6 +42,8 @@ def state_map(result):
                             count=int(n),
                             probability=float(prob),
                             frequency=float(n / len(meta)),
+                            accuracy=edge_accuracy,
+                            accuracy_delta=edge_accuracy - baseline,
                         )
                     )
             y = labels[selected]
@@ -63,6 +71,8 @@ def state_map(result):
             "count",
             "probability",
             "frequency",
+            "accuracy",
+            "accuracy_delta",
         ],
     )
 
