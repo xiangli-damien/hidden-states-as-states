@@ -372,6 +372,8 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
     )
     cases = pd.read_parquet(dest / "original_cases.parquet")
     bundle.figure("dataset_overview", plots.dataset_overview(cases))
+    for number in (1, 2):
+        bundle.figure(f"figure_{number:02d}_schematic", plots.schematic(number))
     for axis in ("category", "level", "finish_reason"):
         if axis in cases:
             table = (
@@ -488,6 +490,92 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         "Monitoring uses K selected on prompt training data, not a full prefix ICL scan.",
         "Fixed-K seed/subsample refits measure centers and assignment stability; they do not test K-selection stability.",
     ]
+    paper_rows = [
+        (
+            "Fig. 1–2",
+            "方法示意（非实验测量）",
+            "已生成",
+            "comparison/figure_01_schematic.png",
+        ),
+        (
+            "Fig. 3–4",
+            "默认状态图、占用、轨迹相似度",
+            "已生成" if "mean_gmm" in results else "等待 GMM",
+            "mean_gmm/index.html",
+        ),
+        (
+            "Fig. 5",
+            "可靠性、K 变化及跨模型/数据集",
+            "部分：固定 K 可靠性已生成；缺独立 K 可靠性及跨模型数据"
+            if comparisons
+            else "等待固定 K 可靠性；缺独立 K 可靠性及跨模型数据",
+            "comparison/stability.png" if comparisons else None,
+        ),
+        (
+            "Fig. 6, 9, 11–12",
+            "标签关联、ICL、生成均值正确性图",
+            "已生成 Llama 适配" if "mean_gmm" in results else "等待 GMM",
+            "mean_gmm/index.html",
+        ),
+        (
+            "Fig. 7–8",
+            "MiniBatchKMeans 状态图",
+            "已生成独立选 K 对照"
+            if "selected_minibatch_kmeans" in results
+            else "已生成同 K 对照；独立选 K 仍在运行"
+            if "mean_minibatch_kmeans" in results
+            else "等待 MiniBatchKMeans",
+            "selected_minibatch_kmeans/index.html"
+            if "selected_minibatch_kmeans" in results
+            else "mean_minibatch_kmeans/index.html",
+        ),
+        (
+            "Fig. 10",
+            "Prompt-last 正确性图",
+            "已生成 Llama 适配" if "prompt_gmm" in results else "等待 prompt 拟合",
+            "prompt_gmm/index.html" if "prompt_gmm" in results else None,
+        ),
+        (
+            "Table 1",
+            "独立测试集预测",
+            "部分：Llama-MATH 已生成；缺其他模型/数据"
+            if predictions
+            else "等待 Llama-MATH 预测；缺其他模型/数据",
+            "comparison/prediction_quality.csv" if predictions else None,
+        ),
+        (
+            "Table 2",
+            "前缀监测，10% FAR",
+            "部分：Llama 适配已生成；缺 token entropy/logprob"
+            if any(n.startswith("monitor_") for n in results)
+            else "等待前缀监测；缺 token entropy/logprob",
+            "comparison/evaluation.csv",
+        ),
+        (
+            "Table 3",
+            "实际模型、数据及参数清单",
+            "已生成当前数据清单",
+            "comparison/protocol_inventory.csv",
+        ),
+    ]
+    coverage["paper_artifacts"] = [
+        dict(artifact=artifact, description=description, status=status, link=link)
+        for artifact, description, status, link in paper_rows
+    ]
+    paper_table = (
+        "<table><tr><th>论文图表</th><th>内容</th><th>当前覆盖</th></tr>"
+        + "".join(
+            f"<tr><td>{html.escape(a)}</td><td>{html.escape(d)}</td><td>"
+            + (
+                f'<a href="{html.escape(link)}">{html.escape(status)}</a>'
+                if link and (dest / link).is_file()
+                else html.escape(status)
+            )
+            + "</td></tr>"
+            for a, d, status, link in paper_rows
+        )
+        + '</table><p class="small"><a href="comparison/figure_02_schematic.png">Fig. 2 流程示意</a> · 此清单区分已完成的 Llama 适配、正在运行的实验和当前数据无法覆盖的论文部分。</p>'
+    )
     save_json(dest / "coverage.json", coverage)
     tables = "".join(
         f'<li><a href="comparison/{p.name}">{p.name}</a></li>'
@@ -537,6 +625,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
 <div class="card"><img src="comparison/dataset_overview.png" alt="MATH correctness by category, difficulty, and response length"><p class="small">采集结果的描述统计。长度和最终正确性不作为 prompt 预测输入。</p></div>
 <p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
 <p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
+<h2>论文图表覆盖</h2>{paper_table}
 {qtable}{quality_plot}{norm_plot}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><p class="small">最终层使用 post-RMS；与前一层匹配的变化同时包含最后一个 Transformer block 与 RMSNorm 的影响。论文的 ±30 个百分点状态标签是相对全局正确率的固定阈值；当全局正确率低于 30% 时，不可能出现 low 标签，请结合逐状态实际正确率与样本量阅读。</p><ul>{"".join(galleries)}</ul>
 <h2>可下载指标</h2><p><a href="comparison/configurations.json">完整实验配置 JSON</a> · method_agreement 中 ARI 表示方法之间分组的一致程度，不是正确性。</p><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
     (dest / "index.html").write_text(intro + VIEWER + "</main>")
