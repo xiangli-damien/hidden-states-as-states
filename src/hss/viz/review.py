@@ -1,0 +1,347 @@
+"""Portable HTML review: real trial figures, metrics and escaped original cases.
+
+Raw OpenAct text is exported once. Subsequent rendering never fits a model. The
+case viewer works from file:// (external JS data, no fetch/server dependency).
+"""
+
+import html
+import json
+from pathlib import Path
+import time
+
+import numpy as np
+import pandas as pd
+
+from ..analysis.tables import (
+    state_map,
+    dynamics,
+    trajectory_similarity,
+    selection_surface,
+    collect_tables,
+    compare_trials,
+    bootstrap_predictions,
+)
+from ..analysis.quality import cluster_quality
+from ..data import prepare
+from ..experiments.config import load
+from ..experiments.artifacts import save_json, file_digest, digest
+from ..provenance import stage_version
+from ..results import Result
+from .artifacts import FigureBundle
+from . import plots
+
+
+def javascript(value):
+    """Serialize as data; even closing script tags from a response stay inert."""
+    return (
+        json.dumps(value, ensure_ascii=False, allow_nan=False)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
+
+def export_cases(data, target):
+    target = Path(target)
+    target.mkdir(parents=True, exist_ok=True)
+    marker = target / "cases-manifest.json"
+    if marker.exists():
+        saved = json.loads(marker.read_text())
+        if saved["snapshot"] == data.info["key"] and all(
+            (target / p).is_file() and file_digest(target / p) == h
+            for p, h in saved["files"].items()
+        ):
+            return saved
+    frames = []
+    for source in data.info["identity"]["sources"]:
+        root = Path(source["path"])
+        for name in ("data.parquet", "labels/correctness.parquet"):
+            if (
+                name in source["files"]
+                and file_digest(root / name) != source["files"][name]
+            ):
+                raise ValueError(f"Source changed since snapshot: {root / name}")
+        raw = pd.read_parquet(root / "data.parquet")
+        wanted = [
+            "sample_id",
+            "sample_idx",
+            "problem",
+            "prompt_text",
+            "model_input_text",
+            "response_text",
+            "ground_truth",
+            "solution",
+            "finish_reason",
+            "category",
+            "level",
+            "n_response_tokens",
+        ]
+        raw = raw[[k for k in wanted if k in raw]].copy()
+        labels_path = root / "labels/correctness.parquet"
+        if labels_path.exists():
+            labels = pd.read_parquet(labels_path)
+            keep = [
+                c
+                for c in (
+                    "sample_idx",
+                    "is_correct",
+                    "extracted_answer",
+                    "normalized_answer",
+                    "error",
+                    "meta_parse_failed",
+                    "meta_gt_missing",
+                )
+                if c in labels
+            ]
+            raw = raw.merge(
+                labels[keep], on="sample_idx", how="left", validate="one_to_one"
+            )
+        frames.append(raw)
+    frame = pd.concat(frames, ignore_index=True)
+    frame = (
+        data.meta[["sample_id"]]
+        .drop_duplicates()
+        .merge(frame, on="sample_id", validate="one_to_one")
+    )
+    records = json.loads(frame.to_json(orient="records", force_ascii=False))
+    (target / "cases.js").write_text("window.HSS_CASES=" + javascript(records) + ";\n")
+    frame.to_parquet(target / "original_cases.parquet", index=False)
+    accuracy = pd.to_numeric(frame.get("is_correct"), errors="coerce")
+    summary = dict(
+        snapshot=data.info["key"],
+        n=len(frame),
+        correct=int(accuracy.eq(1).sum()),
+        incorrect=int(accuracy.eq(0).sum()),
+        missing_labels=int(accuracy.isna().sum()),
+        truncated=int(frame.finish_reason.eq("length").sum()),
+        total_tokens=int(frame.n_response_tokens.sum())
+        if "n_response_tokens" in frame
+        else None,
+        parse_failed=int(frame.meta_parse_failed.fillna(False).sum())
+        if "meta_parse_failed" in frame
+        else None,
+        files={
+            n: file_digest(target / n) for n in ("cases.js", "original_cases.parquet")
+        },
+    )
+    save_json(marker, summary)
+    return summary
+
+
+CSS = """
+body{font:16px/1.6 system-ui,sans-serif;background:#f5f7fa;color:#172638;margin:0}
+main{max-width:1320px;margin:auto;padding:30px}h1{font-size:32px}h2{margin-top:38px}
+a{color:#165f9c}header,.card,details{background:white;border:1px solid #dbe2eb;border-radius:12px;padding:20px;margin:14px 0}
+.muted{color:#586b7d}.metrics{display:flex;gap:14px;flex-wrap:wrap}.metric{padding:14px 22px;background:#e8f1f8;border-radius:8px}
+table{border-collapse:collapse;max-width:100%;font-size:13px}th,td{padding:7px 10px;border-bottom:1px solid #dce3ea;text-align:left}
+.scroll{overflow:auto}input,select,button{font:inherit;padding:8px;border:1px solid #b9c8d5;border-radius:6px;background:white;margin:4px}
+button{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace;background:#f5f7fa;padding:16px;border-radius:6px}
+img{width:100%;height:auto}summary{cursor:pointer;font-weight:600}.tag{display:inline-block;font-size:12px;background:#e8f1f8;border-radius:5px;padding:5px;margin:3px}
+.warn{border-left:4px solid #b77624;padding-left:16px}.small{font-size:13px}
+"""
+
+
+VIEWER = r"""
+<section id="cases" class="card"><h2>逐题查看 / Original questions & responses</h2>
+<p class="muted">状态编号仅在同一个 trial 内可比较。生成均值轨迹是回答生成后对各层的汇总，不是逐 token 的时间轨迹。</p>
+<input id="query" placeholder="搜索题目、回答或 sample ID" style="min-width:320px"><select id="correct"><option value="">全部正确性</option><option value="true">正确</option><option value="false">错误</option></select>
+<select id="category"><option value="">全部类别</option></select><button id="prev">上一页</button><button id="next">下一页</button><span id="count"></span>
+<div class="scroll"><table><thead><tr><th>ID</th><th>类别 / Level</th><th>正确</th><th>题目</th></tr></thead><tbody id="list"></tbody></table></div>
+<div id="detail"></div></section><script src="cases.js"></script><script src="trajectories.js"></script>
+<script>
+const cases=window.HSS_CASES||[], maps=window.HSS_TRAJECTORIES||{};
+const el=id=>document.getElementById(id);let page=0,filtered=cases;
+const text=(tag,value,parent)=>{const x=document.createElement(tag);x.textContent=value??'';parent.appendChild(x);return x;};
+for(const cat of [...new Set(cases.map(c=>c.category).filter(Boolean))].sort()){const o=document.createElement('option');o.value=cat;o.textContent=cat;el('category').appendChild(o);}
+function show(c){const d=el('detail');d.replaceChildren();text('h3',c.sample_id+' · '+(c.is_correct?'正确':'错误')+' · '+c.finish_reason,d);
+for(const [name,map] of Object.entries(maps)){const s=map.states[c.sample_id];if(!s)continue;text('h4',name+' · '+map.representation+' · '+map.trial_id,d);const row=document.createElement('div');d.appendChild(row);map.layers.forEach((layer,j)=>{const x=text('span','L'+layer+': S'+s[j],row);x.className='tag';});}
+for(const [title,key] of [['原始题目','problem'],['标准答案','ground_truth'],['抽取的模型答案','extracted_answer'],['模型完整回答','response_text'],['标准解答','solution'],['实际模型输入（含 chat template）','model_input_text']]){text('h4',title,d);text('pre',c[key],d);} }
+function render(){el('list').replaceChildren();const part=filtered.slice(page*25,(page+1)*25);el('count').textContent=filtered.length+' 条 · 第 '+(page+1)+' 页';
+for(const c of part){const tr=document.createElement('tr');el('list').appendChild(tr);const td=document.createElement('td');tr.appendChild(td);const b=text('button',c.sample_id,td);b.onclick=()=>show(c);text('td',(c.category||'')+' / '+c.level,tr);text('td',c.is_correct?'✓':'✗',tr);text('td',(c.problem||c.prompt_text||'').slice(0,160),tr);}}
+function filter(){const q=el('query').value.toLowerCase(),correct=el('correct').value,cat=el('category').value;filtered=cases.filter(c=>(!q||[c.sample_id,c.problem,c.response_text].join(' ').toLowerCase().includes(q))&&(!correct||String(c.is_correct)===correct)&&(!cat||c.category===cat));page=0;render();}
+el('query').oninput=filter;el('correct').onchange=filter;el('category').onchange=filter;el('prev').onclick=()=>{page=Math.max(0,page-1);render();};el('next').onclick=()=>{if((page+1)*25<filtered.length)page++;render();};render();if(cases.length)show(cases[0]);
+</script>
+"""
+
+
+def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
+    root, dest = Path(study).resolve(), Path(destination).resolve()
+    dest.mkdir(parents=True, exist_ok=True)
+    state = json.loads((root / "study.json").read_text())
+    cfg = load(root / "configs/mean_gmm.json")
+    data = prepare(cfg.data, cfg.execution.cache_root)
+    overview = export_cases(data, dest)
+    results = {
+        name: Result(j["path"])
+        for name, j in state["jobs"].items()
+        if j["status"] == "complete"
+    }
+    if any(dest == r.path or r.path in dest.parents for r in results.values()):
+        raise ValueError("Review must be outside immutable trials")
+    version = stage_version("figure")
+    galleries, quality, trajectories = [], [], {}
+    primary = [n for n in results if n.startswith(("mean_", "prompt_", "selected_"))]
+    for name in sorted(primary):
+        r = results[name]
+        bundle_root = dest / name
+        marker = bundle_root / "manifest.json"
+        params = dict(
+            max_trajectories=max_trajectories,
+            linkage="average",
+            silhouette_n=2000,
+            seed=42,
+            source_version=version,
+        )
+        cached = False
+        if marker.exists():
+            old = json.loads(marker.read_text())
+            cached = (
+                old["parameters"] == params
+                and old["inputs"][0]["trial_id"] == r.summary["trial_id"]
+            )
+        if not cached:
+            child = FigureBundle(bundle_root, [r], params)
+            nodes, edges = state_map(r)
+            marginal, profile = dynamics(r)
+            scan = selection_surface(r)
+            q = cluster_quality(
+                r,
+                Path(r.config["execution"]["cache_root"])
+                / "data"
+                / r.summary["snapshot"],
+            )
+            for label, table in [
+                ("nodes", nodes),
+                ("edges", edges),
+                ("dynamics", profile),
+                ("selection", scan),
+                ("quality", q),
+                ("associations", r.table("associations.csv")),
+            ]:
+                child.table(label, table)
+            title = f"Llama-3.2-1B / MATH / {name}"
+            child.figure(
+                "entropy_graph", plots.state_graph(nodes, edges, "entropy", title)
+            )
+            child.figure(
+                "correctness_graph",
+                plots.state_graph(nodes, edges, "accuracy_delta", title),
+            )
+            similarity, order = trajectory_similarity(r, max_trajectories)
+            child.table("trajectory_order", order)
+            child.figure("geometry", plots.geometry(marginal, profile, similarity))
+            child.figure("selection", plots.icl_surface(scan))
+            child.figure(
+                "associations", plots.associations(r.table("associations.csv"))
+            )
+            child.figure(
+                "correctness_bands", plots.correctness_bands(r.table("state_tags.csv"))
+            )
+            child.finish(
+                status="complete",
+                paper_scope="Llama-MATH adaptation; no cross-model claims",
+            )
+        quality.append(pd.read_csv(bundle_root / "quality.csv").assign(job=name))
+        paths = sorted(bundle_root.glob("*.png"))
+        title = f"{name} · {r.summary['trial_id']}"
+        figures = "".join(
+            f'<details><summary>{html.escape(p.stem)} · <a href="{p.stem}.svg">SVG</a></summary><img loading="lazy" src="{p.name}" alt="{p.stem}"></details>'
+            for p in paths
+        )
+        (bundle_root / "index.html").write_text(
+            f'<!doctype html><meta charset="utf-8"><title>{html.escape(title)}</title><style>{CSS}</style><main><a href="../index.html">← 总览</a><h1>{html.escape(title)}</h1><p>5,000 real MATH responses · all captured layers · raw features. Same-K control when fixed_k_map is set; MFA has no independent K search in this comparison.</p>{figures}</main>'
+        )
+        galleries.append(
+            f'<li><a href="{name}/index.html">{html.escape(name)}</a> — K={min(x["k"] for x in r.summary["profile"])}–{max(x["k"] for x in r.summary["profile"])}, {r.summary["n_global_states"]} global states</li>'
+        )
+        if name.startswith(("mean_", "prompt_")):
+            trajectories[name] = dict(
+                trial_id=r.summary["trial_id"],
+                representation=r.config["data"]["representation"],
+                layers=r.layers,
+                states={
+                    str(sid): s.tolist()
+                    for sid, s in zip(r.rows.sample_id, np.asarray(r.states))
+                },
+            )
+    (dest / "trajectories.js").write_text(
+        "window.HSS_TRAJECTORIES=" + javascript(trajectories) + ";\n"
+    )
+    bundle = FigureBundle(
+        dest / "comparison", results.values(), dict(bootstrap=bootstrap)
+    )
+    for name, table in collect_tables(list(results.values())).items():
+        bundle.table(name, table)
+    quality_frame = pd.concat(quality, ignore_index=True) if quality else pd.DataFrame()
+    bundle.table("cluster_quality", quality_frame)
+    stability = [r for n, r in results.items() if n.startswith(("stability_", "mean_"))]
+    if len(stability) > 1:
+        compared = compare_trials(stability)
+        bundle.table("stability", compared)
+        bundle.figure(
+            "stability",
+            plots.control_diagnostics(
+                collect_tables(stability)["diagnostics"], compared
+            ),
+        )
+    predictions = [
+        r for r in results.values() if r.config["evaluation"]["mode"] == "prediction"
+    ]
+    if predictions:
+        bundle.table(
+            "prediction_bootstrap",
+            pd.concat(
+                [bootstrap_predictions(r, bootstrap) for r in predictions],
+                ignore_index=True,
+            ),
+        )
+        bundle.figure(
+            "prediction",
+            plots.prediction_controls(collect_tables(predictions)["evaluation"]),
+        )
+    bundle.finish(status="complete", study_status=state["status"])
+    completed = list(results)
+    pending = [
+        p.stem for p in (root / "configs").glob("*.json") if p.stem not in results
+    ]
+    coverage = dict(
+        completed=completed,
+        pending=pending,
+        study_status=state["status"],
+        missing_paper_inputs=[
+            "Other models and datasets for cross-model Figure 5 and full Table 1",
+            "Aligned per-token entropy/logprob for the two monitoring baselines",
+        ],
+        adaptations="Figures 6 and 9–12 and prediction/monitoring use Llama-MATH here, not paper Qwen runs.",
+        updated_at=time.time(),
+    )
+    save_json(dest / "coverage.json", coverage)
+    tables = "".join(
+        f'<li><a href="comparison/{p.name}">{p.name}</a></li>'
+        for p in sorted((dest / "comparison").glob("*.csv"))
+    )
+    qtable = ""
+    if len(quality_frame):
+        summary = quality_frame.groupby("job").agg(
+            silhouette=("silhouette", "mean"),
+            CH=("calinski_harabasz", "mean"),
+            DB=("davies_bouldin", "mean"),
+            min_K=("selected_k", "min"),
+            max_K=("selected_k", "max"),
+        )
+        qtable = (
+            '<h2>聚类比较</h2><p>跨层均值仅供概览；请结合逐层 CSV。Silhouette / CH 越高越好，DB 越低越好；不同方法的 ICL 和 silhouette 不能直接比较。匹配 K 的方法与独立选 K 的方法分行报告。</p><div class="scroll">'
+            + summary.to_html(float_format=lambda x: f"{x:.4f}")
+            + "</div>"
+        )
+    accuracy = overview["correct"] / overview["n"]
+    intro = f"""<!doctype html><meta charset="utf-8"><title>Llama MATH · HSS results</title><style>{CSS}</style><main><header><p class="muted">HIDDEN STATES AS STATES · REAL DATA REVIEW</p><h1>Llama-3.2-1B × MATH 5,000</h1><p>论文对应分析、聚类方法对照与逐题原文。保存时间 {time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}。</p><div class="metrics"><div class="metric">{overview["n"]:,} 道题</div><div class="metric">正确率 {accuracy:.2%}</div><div class="metric">{overview["truncated"]} 条达到长度上限</div><div class="metric">{len(completed)} 个实验完成</div></div></header>
+<p class="warn">这是单模型 MATH 分析。其他模型和数据集的原论文数值尚不能从这批数据复现。正确性来自 OpenAct 的数学答案评估；关联图是描述统计，预测性能只使用独立测试集。聚类为生成 token 的均值或 prompt 最后 token，不是逐 token 聚类。MFA rank=8 使用 GMM 选出的逐层 K，属于相同 K 对照。</p>
+<p><a href="#cases">查看原题与回答</a> · <a href="original_cases.parquet">下载原文与评估 Parquet</a> · <a href="coverage.json">复现范围/进度</a></p>
+<p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。</p>
+{qtable}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><ul>{"".join(galleries)}</ul>
+<h2>可下载指标</h2><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
+    (dest / "index.html").write_text(intro + VIEWER + "</main>")
+    return dict(path=str(dest / "index.html"), overview=overview, **coverage)

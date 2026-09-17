@@ -4,6 +4,7 @@ OpenAct 负责生成、采集和原始标签；HSS 负责读取激活、聚类�
 
 ## 先看哪些文件
 
+- [完整 Llama MATH 分析与逐题查看](math-analysis.zh-CN.md)：四种聚类方法、指标、原文浏览和分阶段执行。
 - [架构与公共接口](architecture.md)：模块边界、输入输出、结果格式、缓存和扩展方式。
 - [论文图表与补充实验](paper-artifacts.md)：Figure 1–12、Table 1–3、各类 reliability/robustness 检查的对应入口。
 - [数据目录](../configs/lambda/datasets.toml)：换数据位置优先修改这里，实验算法不需要改。
