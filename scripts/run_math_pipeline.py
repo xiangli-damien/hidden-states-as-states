@@ -8,7 +8,6 @@ import sys
 import time
 
 from hss.experiments.artifacts import save_json, lock
-from hss.viz.review import render_review
 
 
 if __name__ == "__main__":
@@ -19,6 +18,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root = Path(args.study).resolve()
     stages = ["core", "prediction", "reliability", "monitoring"]
+
+    def render():
+        # Fresh interpreter: a long fit may outlive a plotting-only code update.
+        subprocess.run(
+            [
+                sys.executable,
+                "scripts/render_math_review.py",
+                "--study",
+                str(root),
+                "--destination",
+                args.report,
+            ],
+            check=True,
+        )
+
     with lock(root / "pipeline.lock"):
         status = {"status": "running", "stages": {s: "pending" for s in stages}}
         try:
@@ -43,11 +57,11 @@ if __name__ == "__main__":
                     )
                 status["stages"][stage] = "complete"
                 save_json(root / "pipeline.json", status)
-                print(json.dumps(render_review(root, args.report)), flush=True)
+                render()
         except Exception as exc:
             status.update(status="failed", error=repr(exc), updated_at=time.time())
             save_json(root / "pipeline.json", status)
             raise
         status.update(status="complete", updated_at=time.time())
         save_json(root / "pipeline.json", status)
-        render_review(root, args.report)
+        render()
