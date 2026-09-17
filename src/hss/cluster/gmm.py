@@ -2,7 +2,7 @@
 """GMMModel with pure-numpy inference — no sklearn runtime dependency."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Dict, Optional, Tuple
 import warnings
 
@@ -127,6 +127,8 @@ class GMMModel(ClusterModel):
     precisions_cholesky_: np.ndarray
     covariance_type: str
     reg_covar: float
+    converged_: Optional[bool] = None
+    n_iter_: Optional[int] = None
 
     def n_clusters(self) -> int:
         return int(self.means_.shape[0])
@@ -207,6 +209,8 @@ class GMMModel(ClusterModel):
             'n_clusters': self.n_clusters(),
             'covariance_type': self.covariance_type,
             'reg_covar': float(self.reg_covar),
+            'converged': self.converged_,
+            'n_iter': self.n_iter_,
         }
 
     def state_arrays(self) -> Dict[str, np.ndarray]:
@@ -230,6 +234,8 @@ class GMMModel(ClusterModel):
             ),
             covariance_type=str(config.get('covariance_type', 'diag')),
             reg_covar=float(config.get('reg_covar', 1e-6)),
+            converged_=config.get('converged'),
+            n_iter_=config.get('n_iter'),
         )
 
 
@@ -694,7 +700,7 @@ def _fit_gmm_adaptive(
         prev_score: Optional[float] = None
         converged = False
 
-        for _ in range(max(1, int(max_iter))):
+        for iteration in range(max(1, int(max_iter))):
             nk, sum_x, sum_x2, score = _diag_sufficient_statistics_np(
                 X,
                 weights,
@@ -735,6 +741,7 @@ def _fit_gmm_adaptive(
             covariances,
             reg_covar=0.0 if adaptive_reg else reg_covar,
         )
+        model = replace(model, converged_=converged, n_iter_=iteration + 1)
         final_score = model.score(X)
         if final_score > best_score or best_model is None:
             best_score = final_score
@@ -967,6 +974,8 @@ def _fit_gmm_sklearn(
         precisions_cholesky_=np.asarray(gm.precisions_cholesky_, dtype=np.float64),
         covariance_type=str(covariance_type),
         reg_covar=float(reg_covar),
+        converged_=bool(gm.converged_),
+        n_iter_=int(gm.n_iter_),
     )
 
 

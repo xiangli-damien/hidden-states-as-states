@@ -261,6 +261,26 @@ def _supervised(root, cfg, data, states, vocab, meta, split):
     return summary, missing
 
 
+def fitting_split(meta, cfg):
+    """Single source of train/held-out indices for serial and parallel fitting."""
+    if cfg.evaluation.mode in ("prediction", "monitoring"):
+        split = grouped_split(meta, cfg.evaluation)
+    else:
+        split = {
+            "train": np.arange(len(meta)),
+            "validation": np.array([], dtype=int),
+            "test": np.array([], dtype=int),
+        }
+    train = split["train"]
+    if cfg.evaluation.fit_fraction < 1:
+        ids = np.unique(meta.iloc[train].group_id)
+        chosen = np.random.default_rng(cfg.seed).choice(
+            ids, max(2, int(len(ids) * cfg.evaluation.fit_fraction)), replace=False
+        )
+        train = train[np.isin(meta.iloc[train].group_id, chosen)]
+    return split, train
+
+
 def run_experiment(cfg, *, prepared=None, version=None):
     cfg.validate()
     version = version or source_version()
@@ -318,24 +338,7 @@ def run_experiment(cfg, *, prepared=None, version=None):
             meta = data.meta.copy()
             if cfg.evaluation.positive_label == 0:
                 meta["label"] = 1 - meta.label
-            if cfg.evaluation.mode in ("prediction", "monitoring"):
-                split = grouped_split(meta, cfg.evaluation)
-                train = split["train"]
-            else:
-                split = {
-                    "train": np.arange(len(meta)),
-                    "validation": np.array([], dtype=int),
-                    "test": np.array([], dtype=int),
-                }
-                train = split["train"]
-            if cfg.evaluation.fit_fraction < 1:
-                ids = np.unique(meta.iloc[train].group_id)
-                chosen = np.random.default_rng(cfg.seed).choice(
-                    ids,
-                    max(2, int(len(ids) * cfg.evaluation.fit_fraction)),
-                    replace=False,
-                )
-                train = train[np.isin(meta.iloc[train].group_id, chosen)]
+            split, train = fitting_split(meta, cfg)
             save_npz(root / "split.npz", **split, map_fit=train)
             meta.to_parquet(root / "rows.parquet", index=False)
             layers = data.layers()
