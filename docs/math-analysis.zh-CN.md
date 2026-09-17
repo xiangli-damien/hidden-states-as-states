@@ -33,6 +33,16 @@ CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS
 
 打开报告的 `index.html`。整个报告目录可以下载到本地，直接打开，无需服务器或第三方 JS。包含每题原文、完整模型输入（chat template）、回答、标准解答、抽取答案、标签和各方法的层间轨迹；文本使用 `textContent` 展示。模型输出不能执行网页脚本。图表为 PNG/SVG，指标为 CSV，原文另存 Parquet；每个图集有来源 trial 和输出哈希。
 
+可选 PDF 图集（需要 `reportlab`）：
+
+```bash
+python scripts/export_review_pdf.py \
+  --review results/llama32-math-20260917 \
+  --output output/pdf/llama32-math-figures.pdf
+```
+
+PDF 是当前图表的静态快照，带书签、指标摘要和来源哈希，使用已验证的 PNG；矢量 SVG 和逐题原文仍保留在 HTML 报告目录。远程 pipeline 每个阶段重建 HTML，下载及 PDF 导出可在需要时单独执行。
+
 ## 与论文的对应边界
 
 可生成默认状态图、占用/轨迹相似度/层变化、标签关联、ICL 图、prompt/response 正确性状态图、状态带、方法对照、稳定性以及单模型预测/监测表。
