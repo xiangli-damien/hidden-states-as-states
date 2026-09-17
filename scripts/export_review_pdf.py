@@ -48,6 +48,31 @@ def main():
         if sha(path) != norm["outputs"][path.name]:
             raise ValueError("Normalization figure checksum mismatch")
         images.append(("normalization", path, sha(path)))
+    # Start with the manuscript's reading order. Method-specific supplements
+    # follow, including diagnostics that must remain visible (e.g. MFA traces).
+    first = [
+        ("mean_gmm", "entropy_graph"),
+        ("mean_gmm", "geometry"),
+        ("comparison", "reliability_geometry"),
+        ("comparison", "stability"),
+        ("mean_gmm", "associations"),
+        ("selected_minibatch_kmeans", "entropy_graph"),
+        ("selected_minibatch_kmeans", "correctness_graph"),
+        ("mean_gmm", "selection"),
+        ("prompt_gmm", "correctness_graph"),
+        ("mean_gmm", "correctness_graph"),
+        ("mean_gmm", "correctness_bands"),
+        ("comparison", "prediction"),
+        ("comparison", "monitoring"),
+    ]
+    first_order = {pair: i for i, pair in enumerate(first)}
+    images.sort(
+        key=lambda item: (
+            first_order.get((item[0], item[1].stem), len(first)),
+            item[0],
+            item[1].stem,
+        )
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     width, height = landscape(A4)
     pdf = Canvas(str(output), pagesize=(width, height))
@@ -152,6 +177,7 @@ def main():
         height - 90,
     )
     for note in [
+        "Visual encoding: global IDs appear inside every node; curved edges encode transition counts. Weak edges are filtered for display only and retained mass is printed on each map. Normalized outgoing entropy uses the observed successor count. Correctness colors show deviation from the global rate on a shared scale. Full values, displayed-edge masks and resolved style parameters remain in CSV/manifest files.",
         "Method comparison: GMM uses diagonal covariance and ICL over K=2..80, with the smallest K in a 2% near-optimal band. The mean_* controls use those same per-layer K values. selected_kmeans and selected_minibatch_kmeans instead select their own K by sampled silhouette. Correctness labels never select clusters or K.",
         "Interpretation: correctness graphs describe completed responses. A state's outcome can reflect problem type, response length and truncation. Inspect state_outcomes.csv and the original responses before assigning a semantic interpretation. The paper's relative +/-30 percentage-point low-correctness tag cannot occur when overall accuracy is below 30%.",
         "Evaluation stages: prompt prediction refits on 40% training responses and evaluates on 60% held out. Prefix monitoring uses response-level 40/20/40 splits and a validation-calibrated 10% FAR target. Its K comes from prompt training data. Fixed-K seed/subsample refits test center and assignment stability, not K-selection stability.",
