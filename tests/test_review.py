@@ -49,3 +49,9 @@ def test_review_contains_real_cases_and_safe_script_data(tmp_path):
     render_review(study, tmp_path / "review", max_trajectories=10, bootstrap=5)
     assert inventory.stat().st_mtime_ns == stamp
     assert "<img" not in javascript({"x": "<img>"})
+    # A controller can lag behind an independently completed declared trial.
+    save_json(study / "study.json", {"status": "running", "jobs": {}})
+    recovered = render_review(
+        study, tmp_path / "review", max_trajectories=10, bootstrap=5
+    )
+    assert recovered["completed"] == ["mean_gmm"]

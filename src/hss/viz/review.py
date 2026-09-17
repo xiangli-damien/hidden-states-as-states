@@ -8,6 +8,7 @@ import html
 import json
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -23,10 +24,10 @@ from ..analysis.tables import (
     trajectory_similarity,
 )
 from ..data import prepare
-from ..experiments.artifacts import file_digest, save_json
+from ..experiments.artifacts import digest, file_digest, save_json
 from ..experiments.config import load
 from ..provenance import stage_version
-from ..results import Result
+from ..results import Result, ResultCatalog
 from . import plots
 from .artifacts import FigureBundle
 
@@ -41,6 +42,56 @@ def javascript(value):
         .replace("\u2028", "\\u2028")
         .replace("\u2029", "\\u2029")
     )
+
+
+def declared_results(root, state):
+    """Find completed declared trials even when a controller has not registered them.
+
+    Match the scientific config and recompute the exact identity from its saved
+    snapshot. This lookup never prepares features or fits a model.
+    """
+    from ..experiments.runner import trial_identity
+
+    results = {
+        name: Result(j["path"])
+        for name, j in state["jobs"].items()
+        if j["status"] == "complete"
+    }
+    catalogs = {}
+    for path in sorted((root / "configs").glob("*.json")):
+        if path.stem in results:
+            continue
+        cfg = load(path)
+        folder = cfg.execution.output_root
+        if folder not in catalogs:
+            catalogs[folder] = ResultCatalog(folder).results
+        matches = []
+        for result in catalogs[folder]:
+            if any(
+                result.config[k] != cfg.to_dict()[k]
+                for k in (
+                    "data",
+                    "seed",
+                    "cluster",
+                    "transform",
+                    "alignment",
+                    "evaluation",
+                )
+            ):
+                continue
+            version = state.get("source_version", result.summary["source_version"])
+            expected = digest(
+                trial_identity(cfg, SimpleNamespace(info=result.snapshot), version)
+            )
+            if expected == result.summary["trial_id"]:
+                matches.append(result)
+        if len(matches) > 1:
+            raise ValueError(
+                f"Multiple completed snapshots match {path}; resolve the study ledger explicitly"
+            )
+        if matches:
+            results[path.stem] = matches[0]
+    return results
 
 
 def export_cases(data, target):
@@ -179,11 +230,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
     cfg = load(root / "configs/mean_gmm.json")
     data = prepare(cfg.data, cfg.execution.cache_root)
     overview = export_cases(data, dest)
-    results = {
-        name: Result(j["path"])
-        for name, j in state["jobs"].items()
-        if j["status"] == "complete"
-    }
+    results = declared_results(root, state)
     for name, result in results.items():
         audit = result.validate()
         if not audit["valid"]:
