@@ -261,7 +261,11 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
                 paper_scope="Llama-MATH adaptation; no cross-model claims",
             )
         quality.append(pd.read_csv(bundle_root / "quality.csv").assign(job=name))
-        paths = sorted(bundle_root.glob("*.png"))
+        paths = sorted(
+            bundle_root / p
+            for p in json.loads(marker.read_text())["outputs"]
+            if p.endswith(".png")
+        )
         title = f"{name} · {r.summary['trial_id']}"
         figures = "".join(
             f'<details><summary>{html.escape(p.stem)} · <a href="{p.stem}.svg">SVG</a></summary><img loading="lazy" src="{p.name}" alt="{p.stem}"></details>'
