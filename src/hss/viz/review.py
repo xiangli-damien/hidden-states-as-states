@@ -523,7 +523,11 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             file_digest(dest / "normalization" / name) == checksum
             for name, checksum in norm["outputs"].items()
         ):
+            norm_mean = pd.read_csv(
+                dest / "normalization/summary.csv", index_col=0
+            ).loc["mean"]
             norm_plot = '<h2>最后一层 RMSNorm 诊断</h2><p>比较同一道题在前一 block、最后 block 的 pre-RMS 和 post-RMS 生成均值。图中是成对余弦相似度，不是重新聚类；均值归一化也不等于归一化后的 token 均值。</p><div class="card"><img src="normalization/paired_norm_geometry.png" alt="Paired final normalization geometry"></div><p><a href="normalization/paired_norm_geometry.csv">逐题数据</a> · <a href="normalization/summary.csv">汇总统计</a> · <a href="normalization/provenance.json">来源记录</a></p>'
+            norm_plot += f"<p>平均余弦：前一 block → 最后 pre-RMS {norm_mean['previous_block_vs_final_pre_rms']:.3f}；最后 pre-RMS → post-RMS {norm_mean['final_pre_rms_vs_final_post_rms']:.3f}。这是该模型该批回答的直接测量，不能单独解释语义或证明状态对应关系。</p>"
     pipeline_note = html.escape(
         json.dumps(coverage.get("pipeline", {}).get("stages", {}), ensure_ascii=False)
     )

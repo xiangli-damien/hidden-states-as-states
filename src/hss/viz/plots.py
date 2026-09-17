@@ -101,7 +101,7 @@ def em_convergence(table):
             axs[1].plot(part.iteration, delta.where(delta > 0), linewidth=1)
         axs[0].set(xlabel="EM iteration", ylabel="Mean log-likelihood gain")
         axs[1].set(
-            xlabel="EM iteration", ylabel="Absolute final-step change", yscale="log"
+            xlabel="EM iteration", ylabel="Absolute change per EM step", yscale="log"
         )
         axs[0].legend(ncol=4, fontsize=7)
         fig.suptitle(
