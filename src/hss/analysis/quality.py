@@ -17,6 +17,47 @@ from ..results.models import load_layer
 from ..data import CachedStates
 
 
+def prediction_quality(result):
+    """Held-out diagnostics including imbalance-aware baselines and PR-AUC."""
+    from sklearn.metrics import (
+        average_precision_score,
+        balanced_accuracy_score,
+        matthews_corrcoef,
+        roc_auc_score,
+        accuracy_score,
+        brier_score_loss,
+    )
+
+    records = []
+    frame = result.table("predictions.parquet")
+    for method, part in frame.groupby("method"):
+        y, scores = part.label.to_numpy(dtype=int), part.score.to_numpy()
+        threshold = 0 if method == "LinearSVM" else 0.5
+        prediction = scores >= threshold
+        both = len(np.unique(y)) == 2
+        records.append(
+            dict(
+                trial_id=result.summary["trial_id"],
+                cluster_method=result.config["cluster"]["method"],
+                predictor=method,
+                n_test=len(y),
+                positive_prevalence=float(y.mean()),
+                majority_accuracy=float(max(y.mean(), 1 - y.mean())),
+                auroc=float(roc_auc_score(y, scores)) if both else None,
+                average_precision=float(average_precision_score(y, scores))
+                if both
+                else None,
+                accuracy=float(accuracy_score(y, prediction)),
+                balanced_accuracy=float(balanced_accuracy_score(y, prediction)),
+                mcc=float(matthews_corrcoef(y, prediction)),
+                brier=float(brier_score_loss(y, scores))
+                if method != "LinearSVM"
+                else None,
+            )
+        )
+    return pd.DataFrame(records)
+
+
 def cluster_quality(result, cache_path, *, max_silhouette=2000, seed=42):
     data = CachedStates(cache_path)
     if data.info["key"] != result.summary["snapshot"]:

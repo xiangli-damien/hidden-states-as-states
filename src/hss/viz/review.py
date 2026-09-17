@@ -21,10 +21,10 @@ from ..analysis.tables import (
     compare_trials,
     bootstrap_predictions,
 )
-from ..analysis.quality import cluster_quality
+from ..analysis.quality import cluster_quality, prediction_quality
 from ..data import prepare
 from ..experiments.config import load
-from ..experiments.artifacts import save_json, file_digest, digest
+from ..experiments.artifacts import save_json, file_digest
 from ..provenance import stage_version
 from ..results import Result
 from .artifacts import FigureBundle
@@ -135,7 +135,7 @@ body{font:16px/1.6 system-ui,sans-serif;background:#f5f7fa;color:#172638;margin:
 main{max-width:1320px;margin:auto;padding:30px}h1{font-size:32px}h2{margin-top:38px}
 a{color:#165f9c}header,.card,details{background:white;border:1px solid #dbe2eb;border-radius:12px;padding:20px;margin:14px 0}
 .muted{color:#586b7d}.metrics{display:flex;gap:14px;flex-wrap:wrap}.metric{padding:14px 22px;background:#e8f1f8;border-radius:8px}
-table{border-collapse:collapse;max-width:100%;font-size:13px}th,td{padding:7px 10px;border-bottom:1px solid #dce3ea;text-align:left}
+table{border-collapse:collapse;max-width:100%;font-size:13px}th,td{padding:7px 10px;border-bottom:1px solid #dce3ea;text-align:left}th{white-space:nowrap}
 .scroll{overflow:auto}input,select,button{font:inherit;padding:8px;border:1px solid #b9c8d5;border-radius:6px;background:white;margin:4px}
 button{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace;background:#f5f7fa;padding:16px;border-radius:6px}
 img{width:100%;height:auto}summary{cursor:pointer;font-weight:600}.tag{display:inline-block;font-size:12px;background:#e8f1f8;border-radius:5px;padding:5px;margin:3px}
@@ -272,13 +272,34 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
     bundle = FigureBundle(
         dest / "comparison", results.values(), dict(bootstrap=bootstrap)
     )
+    cases = pd.read_parquet(dest / "original_cases.parquet")
+    for axis in ("category", "level", "finish_reason"):
+        if axis in cases:
+            table = (
+                cases.groupby(axis, dropna=False)
+                .is_correct.agg(["count", "sum", "mean"])
+                .reset_index()
+            )
+            bundle.table(
+                "correctness_by_" + axis,
+                table.rename(
+                    columns={"count": "n", "sum": "correct", "mean": "accuracy"}
+                ),
+            )
     for name, table in collect_tables(list(results.values())).items():
         bundle.table(name, table)
     quality_frame = pd.concat(quality, ignore_index=True) if quality else pd.DataFrame()
     bundle.table("cluster_quality", quality_frame)
     stability = [r for n, r in results.items() if n.startswith(("stability_", "mean_"))]
-    if len(stability) > 1:
-        compared = compare_trials(stability)
+    comparisons = []
+    for method in ("gmm", "kmeans", "minibatch_kmeans", "mfa"):
+        part = [r for r in stability if r.config["cluster"]["method"] == method]
+        if len(part) > 1:
+            comparisons.append(
+                compare_trials(part, all_pairs=True).assign(method=method)
+            )
+    if comparisons:
+        compared = pd.concat(comparisons, ignore_index=True)
         bundle.table("stability", compared)
         bundle.figure(
             "stability",
@@ -290,6 +311,10 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         r for r in results.values() if r.config["evaluation"]["mode"] == "prediction"
     ]
     if predictions:
+        bundle.table(
+            "prediction_quality",
+            pd.concat([prediction_quality(r) for r in predictions], ignore_index=True),
+        )
         bundle.table(
             "prediction_bootstrap",
             pd.concat(
@@ -317,6 +342,14 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         adaptations="Figures 6 and 9–12 and prediction/monitoring use Llama-MATH here, not paper Qwen runs.",
         updated_at=time.time(),
     )
+    pipeline_path = root / "pipeline.json"
+    if pipeline_path.exists():
+        coverage["pipeline"] = json.loads(pipeline_path.read_text())
+    coverage["protocol_differences"] = [
+        "MFA uses GMM-selected K; no independent MFA K optimum is claimed.",
+        "Monitoring uses K selected on prompt training data, not a full prefix ICL scan.",
+        "Fixed-K seed/subsample refits measure centers and assignment stability; they do not test K-selection stability.",
+    ]
     save_json(dest / "coverage.json", coverage)
     tables = "".join(
         f'<li><a href="comparison/{p.name}">{p.name}</a></li>'
@@ -330,17 +363,22 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             DB=("davies_bouldin", "mean"),
             min_K=("selected_k", "min"),
             max_K=("selected_k", "max"),
+            not_converged=("converged", lambda v: int(v.eq(False).sum())),
         )
         qtable = (
-            '<h2>聚类比较</h2><p>跨层均值仅供概览；请结合逐层 CSV。Silhouette / CH 越高越好，DB 越低越好；不同方法的 ICL 和 silhouette 不能直接比较。匹配 K 的方法与独立选 K 的方法分行报告。</p><div class="scroll">'
+            '<h2>聚类比较</h2><p>跨层均值仅供概览；请结合逐层 CSV。Silhouette / CH 越高越好，DB 越低越好；不同方法的 ICL 和 silhouette 不能直接比较。not_converged 表示明确未达到 EM 收敛条件的层数（KMeans 不使用这个标志）；这些结果不能称为已收敛。</p><div class="scroll">'
             + summary.to_html(float_format=lambda x: f"{x:.4f}")
             + "</div>"
         )
     accuracy = overview["correct"] / overview["n"]
+    pipeline_note = html.escape(
+        json.dumps(coverage.get("pipeline", {}).get("stages", {}), ensure_ascii=False)
+    )
     intro = f"""<!doctype html><meta charset="utf-8"><title>Llama MATH · HSS results</title><style>{CSS}</style><main><header><p class="muted">HIDDEN STATES AS STATES · REAL DATA REVIEW</p><h1>Llama-3.2-1B × MATH 5,000</h1><p>论文对应分析、聚类方法对照与逐题原文。保存时间 {time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}。</p><div class="metrics"><div class="metric">{overview["n"]:,} 道题</div><div class="metric">正确率 {accuracy:.2%}</div><div class="metric">{overview["truncated"]} 条达到长度上限</div><div class="metric">{len(completed)} 个实验完成</div></div></header>
 <p class="warn">这是单模型 MATH 分析。其他模型和数据集的原论文数值尚不能从这批数据复现。正确性来自 OpenAct 的数学答案评估；关联图是描述统计，预测性能只使用独立测试集。聚类为生成 token 的均值或 prompt 最后 token，不是逐 token 聚类。MFA rank=8 使用 GMM 选出的逐层 K，属于相同 K 对照。</p>
 <p><a href="#cases">查看原题与回答</a> · <a href="original_cases.parquet">下载原文与评估 Parquet</a> · <a href="coverage.json">复现范围/进度</a></p>
-<p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。</p>
+<p>运行状态：{html.escape(state["status"])}；当前已配置、等待完成：{html.escape(", ".join(pending) or "无")}。阶段：{pipeline_note}</p>
+<p class="small">稳定性采用固定 K 的 seed/子集 refit，检验中心与归属稳定性；前缀监测沿用仅在 prompt 训练组选择的 K。这两项为明确配置的扩展对照，不等同于重新扫描 K 的原论文实验。预测表提供多数类准确率、AUROC、PR-AUC、balanced accuracy 和 MCC，避免类别不均衡误导。</p>
 {qtable}<h2>图集</h2><p>状态图（Fig. 3 / 7 / 8 / 10 / 11）、占用与相似度（Fig. 4）、标签关联（Fig. 6）、选 K 曲线/曲面（Fig. 9）、正确性状态带（Fig. 12）。全部为真实数据；Qwen 图式在这里明确为 Llama 适配。</p><ul>{"".join(galleries)}</ul>
 <h2>可下载指标</h2><ul>{tables}</ul><p>每个图集均附 PNG、SVG、CSV 和带哈希的 manifest。采样只用于 silhouette；轨迹相似度使用 {max_trajectories:,} 条上限，导出实际参与的 sample ID。</p>"""
     (dest / "index.html").write_text(intro + VIEWER + "</main>")
