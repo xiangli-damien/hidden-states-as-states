@@ -348,7 +348,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         galleries.append(
             f'<li><a href="{name}/index.html">{html.escape(name)}</a> — K={min(x["k"] for x in r.summary["profile"])}–{max(x["k"] for x in r.summary["profile"])}, {len(np.unique(r.states))} observed global states</li>'
         )
-        if name.startswith(("mean_", "prompt_")):
+        if name.startswith(("mean_", "prompt_", "selected_")):
             trajectories[name] = dict(
                 trial_id=r.summary["trial_id"],
                 representation=r.config["data"]["representation"],
