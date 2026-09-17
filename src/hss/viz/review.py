@@ -275,7 +275,7 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
             f'<!doctype html><meta charset="utf-8"><title>{html.escape(title)}</title><style>{CSS}</style><main><a href="../index.html">← 总览</a><h1>{html.escape(title)}</h1><p>5,000 real MATH responses · all captured layers · raw features. Same-K control when fixed_k_map is set; MFA has no independent K search in this comparison.</p>{figures}</main>'
         )
         galleries.append(
-            f'<li><a href="{name}/index.html">{html.escape(name)}</a> — K={min(x["k"] for x in r.summary["profile"])}–{max(x["k"] for x in r.summary["profile"])}, {r.summary["n_global_states"]} global states</li>'
+            f'<li><a href="{name}/index.html">{html.escape(name)}</a> — K={min(x["k"] for x in r.summary["profile"])}–{max(x["k"] for x in r.summary["profile"])}, {len(np.unique(r.states))} observed global states</li>'
         )
         if name.startswith(("mean_", "prompt_")):
             trajectories[name] = dict(
@@ -318,7 +318,17 @@ def render_review(study, destination, *, max_trajectories=5000, bootstrap=1000):
         bundle.table(name, table)
     bundle.table(
         "protocol_inventory",
-        pd.DataFrame([dict(job=name, **r.metadata()) for name, r in results.items()]),
+        pd.DataFrame(
+            [
+                dict(
+                    job=name,
+                    observed_global_states=len(np.unique(r.states)),
+                    allocated_global_id_span=r.summary["n_global_states"],
+                    **r.metadata(),
+                )
+                for name, r in results.items()
+            ]
+        ),
     )
     protocols = bundle.path / "configurations.json"
     save_json(protocols, {name: r.config for name, r in results.items()})
