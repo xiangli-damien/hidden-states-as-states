@@ -4,7 +4,7 @@ Layer-wise state maps, Mixture of Factor Analyzers (MFA), and reproducible exper
 
 ## Start here
 
-[Architecture and reusable APIs](docs/architecture.md) · [Every paper figure/table and control](docs/paper-artifacts.md) · [Lambda workspace guide](docs/lambda.md)
+[中文使用指南](docs/quickstart.zh-CN.md) · [Architecture and reusable APIs](docs/architecture.md) · [Every paper figure/table and control](docs/paper-artifacts.md) · [Lambda workspace guide](docs/lambda.md)
 
 ```bash
 uv sync --locked --extra dev

@@ -38,7 +38,7 @@ OpenAct published Zarr + Parquet       Other collector: NPY + Parquet
 
 ## Data contract
 
-`CachedStates` contains float32 NPY matrices of shape `[rows, hidden_dim]`, one file per selected layer. `rows.parquet` records `sample_id`, response `group_id`, label, `token_end`, `n_tokens`, `is_final`, source and available type/difficulty/language metadata. Matrices and metadata always share row order. Models/revisions, layers and dimensions must agree across shards; duplicate responses, invalid labels, missing full-dataset coverage and nonfinite activations fail preparation.
+`CachedStates` contains float32 NPY matrices of shape `[rows, hidden_dim]`, one file per selected layer. `rows.parquet` records `sample_id`, response `group_id`, label, `token_end`, `n_tokens`, `is_final`, source and available type/difficulty/language metadata. Matrices and metadata always share row order. For subset runs, profile `relative_depth` normalizes the ordinal position in the selected-layer sequence; use the explicit layer IDs for absolute decoder depth. Main-paper cross-model jobs select all available layers. Models/revisions, layers and dimensions must agree across shards; duplicate responses, invalid labels, missing full-dataset coverage and nonfinite activations fail preparation.
 
 Representations are distinct:
 
