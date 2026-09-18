@@ -224,6 +224,45 @@ def analyse(cfg):
     render(cfg)
 
 
+def gamma_channel(cfg):
+    """Checkpoint-only choice: smallest absolute gamma coordinate, no label search."""
+    cc=load_config(cfg['channel_config']);fc=load_config(cfg['confidence_config']);root=Path(cfg['output_root'])
+    for name in cfg['datasets']:
+        data=ChannelData(cc,name);train,test,_=partitions(cfg,name,data.rows);y=data.rows.y.to_numpy(int)
+        cache=Path(cfg['cache_root'])/name
+        u=np.concatenate([np.load(cache/s/'means.npz')['u'] for s in data.info['shards']])[data._indices]
+        u2=np.concatenate([np.load(cache/s/'means.npz')['u2'] for s in data.info['shards']])[data._indices]
+        gamma=np.load(Path(fc['output_root'])/name/'readout_geometry.npz')['gamma'].astype(float)
+        k=int(np.argmin(abs(gamma)));median=float(np.median(abs(gamma)))
+        only=np.full_like(gamma,median);only[k]=gamma[k]
+        flattened=gamma.copy();flattened[k]=np.sign(gamma[k])*median
+        zero=gamma.copy();zero[k]=0
+        old=pd.read_parquet(Path(cfg['geometry_root'])/name/'samples.parquet')
+        np.testing.assert_array_equal(old.sample_id,data.rows.sample_id)
+        n=data.info['model']['n_layers']
+        previous_sum=(old.pre_ndr.to_numpy()*n-1)*old.pre_final_norm.to_numpy()
+        length=data.rows.n_tokens.to_numpy();edges=np.unique(np.quantile(length[train],np.linspace(0,1,11)))[1:-1]
+        bins=np.searchsorted(edges,length,side='right');records={}
+        for condition,g in [('actual',gamma),('uniform_gamma',np.full_like(gamma,median)),
+                            ('only_min_coordinate_suppressed',only),('min_coordinate_flattened',flattened),('min_coordinate_zero',zero)]:
+            norm=np.linalg.norm(u*g,axis=1);ndr=(previous_sum/norm+1)/n
+            records[condition]={'ndr':score_result(y,ndr,test,cfg,bins),'negative_norm':score_result(y,-norm,test,cfg,bins)}
+        fraction=u[:,k]**2/np.sum(u*u,axis=1);token_fraction=u2[:,k]/u2.sum(1)
+        result={'coordinate_zero_based':k,'selection':'argmin abs(checkpoint gamma), independent of correctness labels',
+                'gamma':float(gamma[k]),'median_abs_gamma':median,'conditions':records,
+                'correct_mean_direction_energy_fraction':float(fraction[y==1].mean()),
+                'incorrect_mean_direction_energy_fraction':float(fraction[y==0].mean()),
+                'correct_token_direction_energy_fraction':float(token_fraction[y==1].mean()),
+                'incorrect_token_direction_energy_fraction':float(token_fraction[y==0].mean()),
+                'code_sha256':file_digest(__file__),'not_decoder_intervention':True,
+                'interpretation':'Hypothesis generated after aggregate inspection; reuses holdout, no fresh confirmation.'}
+        prior=json.loads((root/name/'analysis.json').read_text())
+        np.testing.assert_allclose(records['actual']['ndr']['auc'],prior['conditions']['rms_gamma_ideal_ndr']['auc'],atol=1e-12)
+        save_json(root/name/'gamma_channel.json',result)
+        print(json.dumps({'dataset':name,**result}),flush=True)
+    render(cfg)
+
+
 def render(cfg):
     import matplotlib
     matplotlib.use('Agg')
@@ -268,6 +307,11 @@ def render(cfg):
         body+=f'<h2>{html.escape(NAMES[name])}</h2><img src="{name}/decomposition.png"><img src="{name}/gamma_energy.png">'+pd.DataFrame(records).to_html(index=False,float_format=lambda x:f'{x:.3f}')
         body+=f'<p>真实末层均值的理想公式重建：最大相对误差 {r["validation"]["max_ideal_vs_saved_relative_error"]:.4%}。</p>'
         body+=f'<p><a href="{name}/analysis.json">全部区间与对照</a> · <a href="{name}/samples.parquet">逐题数据</a> · <a href="{name}/coordinate_decomposition.parquet">坐标分解（描述性）</a></p>'
+        gp=root/name/'gamma_channel.json'
+        if gp.exists():
+            g=json.loads(gp.read_text());table=[{'Condition':k,'NDR AUROC':v['ndr']['auc']} for k,v in g['conditions'].items()]
+            body+=f'<h3>最小 |gamma| 坐标的单坐标对照：index {g["coordinate_zero_based"]}</h3><p>坐标由 checkpoint 权重独立确定，未按标签挑选。该假设在总体分析之后提出，仍属于已见验证集探索。</p>'+pd.DataFrame(table).to_html(index=False,float_format=lambda x:f'{x:.3f}')
+            body+=f'<p><a href="{name}/gamma_channel.json">完整单坐标结果与区间</a></p>'
     pd.DataFrame(summary).to_csv(root/'conditions.csv',index=False)
     (root/'protocol.md').write_text(Path('docs/rms-mechanism.zh-CN.md').read_text())
     body+='<p><a href="protocol.md">机制推导、候选解释与复现协议</a></p>'
