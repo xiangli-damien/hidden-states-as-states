@@ -107,6 +107,8 @@ def analyse(cfg):
         discovered=int(np.argmax(m['second'][train].mean(0)))
         k=2570 if name=='qwen2_math' else discovered
         center=pre[train].mean(0);np.save(out/'discovery_common_mean.npy',center)
+        token_center=np.average(pre[train],axis=0,weights=rows.n_tokens.to_numpy()[train])
+        np.save(out/'discovery_token_weighted_mean.npy',token_center)
         sq=np.sum(pre*pre,axis=1);e=m['second'].sum(1)
         v={'q_raw_mean':pre[:,k]**2/sq,'q_token_mean':m['q'][:,k],
            'q_energy_ratio':m['second'][:,k]/e,
@@ -116,6 +118,7 @@ def analyse(cfg):
            'rest_token_energy':(e-m['second'][:,k])/(dim-1),
            'raw_token_energy':e/dim,
            'global_centered_energy':centered_energy(pre,m['second'],center),
+           'token_weighted_centered_energy':centered_energy(pre,m['second'],token_center),
            'within_response_energy':(e-sq)/dim,
            'mean_centered_energy':np.mean((pre-center)**2,axis=1)}
         # Prefix excludes short responses; same train-only global mean is frozen.

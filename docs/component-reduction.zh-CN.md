@@ -34,6 +34,7 @@ u_t=x_t/sqrt(mean_j x_tj²+eps)。
 
 统一中心化：mu = discovery 题目 bar x 的平均，每题等权、与标签无关。
 E_centered = mean_t ||x_t−mu||² / D。
+另以 discovery 全 token 等权得到的 mu 重算，作为中心选择的敏感性对照。
 精确分解 E_centered = mean_t ||x_t−bar x||²/D + ||bar x−mu||²/D。
 即回答内变化 + 回答均值偏离公共均值。两者都不自动具有“语义内容”含义。
 first16 对照使用同一个冻结 mu；短于16 token 的回答缺失，不复制末 token。
