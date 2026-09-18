@@ -154,6 +154,22 @@ def render(cfg):
                 parts.append(image(name,filename,f"同一批 ≥16-token 验证题 n={lr['same_cohort_n']:,}。冻结方向失效但同层拟合成功，支持表示改变；两者都失败仍不能证明信息消失。prompt 状态在 causal decoder 中保持不变，不能由此断言 attention 回取。"))
             else:
                 parts.append('<p><strong>此数据的 token16 全层提取／分析尚在运行，本节图未完成。</strong></p>')
+            rp=out/'readout_check.json'
+            if rp.exists():
+                rd=json.loads(rp.read_text());frame=pd.DataFrame(rd['records'])
+                fig,axs=plt.subplots(1,3,figsize=(12,3.8),layout='constrained')
+                for ax,metric,label in zip(axs,['entropy_delta_mean','argmax_changed_fraction','kl_changed_to_matched_temperature_mean'],['Entropy change (nats)','Fraction with changed top-1','KL to matched-temperature control']):
+                    vrows=frame[frame.direction.eq('weakest_v')].sort_values('alpha')
+                    random=frame[frame.direction.ne('weakest_v')].groupby('alpha')[metric].agg(['mean','min','max'])
+                    ax.plot(vrows.alpha,vrows[metric],'o-',color='#287e93',label='Weakest-readout v')
+                    ax.plot(random.index,random['mean'],'o-',color='#ce774c',label='Norm-matched random')
+                    ax.fill_between(random.index,random['min'],random['max'],color='#ce774c',alpha=.15)
+                    ax.axvline(1,color='#aaa',ls='--');ax.set(xlabel='Projection scaling alpha (1 = unchanged)',ylabel=label)
+                    if metric=='kl_changed_to_matched_temperature_mean':ax.set_yscale('log')
+                axs[0].legend(fontsize=8)
+                filename=save(fig,out,'readout_check');files.append(out/filename)
+                parts.append(image(name,filename,'256 个发现集样本的直接读出计算，原始 pre-RMS 状态上的投影缩放。随机方向逐题匹配扰动范数；阴影是三个随机方向的范围，不是置信区间。部分改动幅度很大，详见 JSON。没有上游 block 重算、采样生成或正确率干预。'))
+                parts.append(f'<p><a href="{name}/readout_check.json">方向、幅度、匹配温度及样本 ID</a></p>')
             parts.append('<details><summary>展开完整数值、原始标量符号及模型选择</summary>'+table_html(pd.DataFrame(a['scalars']))+f'<p><a href="{name}/analysis.json">全部拟合、内部交叉验证与增量 CI</a> · <a href="{name}/predictions.parquet">逐题预测</a> · <a href="{name}/scalars.parquet">逐题标量</a></p></details></section>')
             examples(cfg,ds,out)
         transfer=json.loads((root/'transfer.json').read_text())
