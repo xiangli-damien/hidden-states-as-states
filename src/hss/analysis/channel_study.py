@@ -153,6 +153,16 @@ def auc_ci(y, score, seed, repeats=500):
     return [float(x) for x in np.quantile(vals, [.025,.975])]
 
 
+def paired_auc_delta_ci(y, first, second, seed, repeats=500):
+    rng = np.random.default_rng(seed)
+    groups = [np.flatnonzero(y==k) for k in (0,1)]
+    values = []
+    for _ in range(repeats):
+        take = np.concatenate([rng.choice(g,len(g),replace=True) for g in groups])
+        values.append(roc_auc_score(y[take],second[take])-roc_auc_score(y[take],first[take]))
+    return [float(x) for x in np.quantile(values,[.025,.975])]
+
+
 def probe_view(x, rows, table, train, test, cfg):
     """Fixed C/K, no test tuning. Channel rankings use discovery effects only."""
     y = rows.y.to_numpy(int)
@@ -161,6 +171,7 @@ def probe_view(x, rows, table, train, test, cfg):
     c = nuisance(rows, train, x)
     baseline = LogisticRegression(C=0.1, max_iter=1000).fit(c[train], y[train])
     score = baseline.decision_function(c[test])
+    baseline_score = score.copy()
     out.append({"kind": "nuisance_only", "k": 0, "auc": roc_auc_score(y[test],score),
                 "ci": auc_ci(y[test],score,cfg["seed"])})
     predictions["nuisance"] = score
@@ -171,13 +182,17 @@ def probe_view(x, rows, table, train, test, cfg):
         z = (x[:,indices]-mu)/sd
         aug = np.column_stack([c,z])
         augmented = LogisticRegression(C=0.1, max_iter=1000).fit(aug[train],y[train])
+        augmented_score = augmented.decision_function(aug[test])
         eigenvalues = np.linalg.eigvalsh(np.atleast_2d(np.cov(z[train],rowvar=False)))
         effective_rank = eigenvalues.sum()**2/max(float(eigenvalues@eigenvalues),1e-20)
         predictions[f"k{k}"] = score
+        predictions[f"augmented_k{k}"] = augmented_score
         out.append({"kind": "middle_channels", "k": k, "indices": indices.tolist(),
                     "auc": roc_auc_score(y[test],score), "ci": auc_ci(y[test],score,cfg["seed"]),
                     "covariance_effective_rank": float(effective_rank),
-                    "augmented_auc": roc_auc_score(y[test],augmented.decision_function(aug[test])),
+                    "augmented_auc": roc_auc_score(y[test],augmented_score),
+                    "delta_over_nuisance": roc_auc_score(y[test],augmented_score)-roc_auc_score(y[test],baseline_score),
+                    "delta_ci": paired_auc_delta_ci(y[test],baseline_score,augmented_score,cfg["seed"]),
                     "coef": model.coef_[0].tolist(), "intercept": float(model.intercept_[0]),
                     "train_mean": mu.tolist(), "train_std": sd.tolist()})
     return out, predictions
@@ -330,6 +345,30 @@ def transfer(cfg, name, table, train, test, output):
     save_json(output/"transfer.json",records)
 
 
+def compare_coordinates(root):
+    paths = [root/name/"channels.parquet" for name in ["llama32_math","llama32_mmlu"]]
+    if not all(p.exists() for p in paths):
+        return
+    source,target = [pd.read_parquet(p) for p in paths]
+    records=[]
+    for view in ["pre_prompt_last","pre_t1","pre_mean"]:
+        a,b = [f[f.view.eq(view)].set_index("channel") for f in [source,target]]
+        if a.empty or b.empty:
+            continue
+        for definition in ["replicated","controlled"]:
+            aa = set(a.index[a.middle & a[definition]])
+            bb = set(b.index[b.middle & b[definition]])
+            common = sorted(aa&bb)
+            same = [j for j in common if a.loc[j,"discovery_d"]*b.loc[j,"discovery_d"]>0]
+            records.append({"view":view,"definition":definition,"math_count":len(aa),
+                            "mmlu_count":len(bb),"overlap":len(common),"same_direction":len(same),
+                            "jaccard":len(common)/max(len(aa|bb),1),"same_direction_indices":same})
+        paired = a[["rms_percentile","discovery_d","test_d","replicated","controlled"]].join(
+            b[["rms_percentile","discovery_d","test_d","replicated","controlled"]],lsuffix="_math",rsuffix="_mmlu")
+        paired.to_csv(root/f"coordinate_comparison_{view}.csv")
+    save_json(root/"coordinate_overlap.json",records)
+
+
 def run(cfg):
     root = Path(cfg["output_root"])
     root.mkdir(parents=True,exist_ok=True)
@@ -408,3 +447,4 @@ def run(cfg):
         all_summaries.append(status)
     save_json(root/"analysis.json",{"config":cfg,"datasets":all_summaries,"analysis_sha256":version,
                                    "versions":runtime_versions(),"scope":"Observational; no causal interventions."})
+    compare_coordinates(root)
