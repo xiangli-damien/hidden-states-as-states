@@ -256,5 +256,9 @@ def render(cfg):
         body+=f'<p>真实末层均值的理想公式重建：最大相对误差 {r["validation"]["max_ideal_vs_saved_relative_error"]:.4%}。</p>'
         body+=f'<p><a href="{name}/analysis.json">全部区间与对照</a> · <a href="{name}/samples.parquet">逐题数据</a> · <a href="{name}/coordinate_decomposition.parquet">坐标分解（描述性）</a></p>'
     pd.DataFrame(summary).to_csv(root/'conditions.csv',index=False)
+    (root/'protocol.md').write_text(Path('docs/rms-mechanism.zh-CN.md').read_text())
+    body+='<p><a href="protocol.md">机制推导、候选解释与复现协议</a></p>'
     body+='<h2>因果边界</h2><p>本实验可以说明 RMS 和 gamma 的数学操作如何改变固定响应的指标，不能说明改变哪个量会让答案变正确。题目难度、词汇和回答结构可能同时影响这些几何量与正确性。将 v 从分母贡献中去掉，也是固定分子的一项算术对照，不是可直接等同于模型真实运行的干预。</p><p><a href="provenance.json">配置与代码版本</a> · <a href="conditions.csv">指标表</a></p>'
     (root/'index.html').write_text('<!doctype html><html lang="zh"><meta charset="utf-8"><title>RMS mechanism</title><style>body{max-width:1250px;margin:40px auto;padding:0 24px;font:16px/1.7 system-ui;color:#18333c}img{width:100%}table{border-collapse:collapse;width:100%}td,th{padding:7px;border-bottom:1px solid #ccd}a{color:#176e68}</style>'+body+'</html>')
+    save_json(root/'report_provenance.json',{'code_sha256':file_digest(__file__),'analysis_sha256':file_digest(root/'analysis.json'),
+              'figures':{str(p.relative_to(root)):file_digest(p) for p in sorted(root.glob('*/*.png'))}})
