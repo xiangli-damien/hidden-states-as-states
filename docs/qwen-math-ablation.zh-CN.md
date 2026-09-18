@@ -17,7 +17,7 @@
 1. GMM、KMeans：所有层逐个扫描整数 K=2…80。
 2. 固定每层 GMM 的 2% ICL 容差所选 K，做全部七个 MFA rank 对照。
 3. MFA 每个 rank 独立扫描 K=`2,4,8,16,32,64,80`；再围绕每种 ICL/BIC 容差选择的 K，各向左右加密 2 个整数，做 2 轮。固定 K 阶段已有拟合复用。
-4. 在搜索所得各策略选中的 K 上，用 seed=43、44 重拟合，保存两种分配的 ARI。
+4. 在搜索所得各策略选中的 K 上，用 seed=43、44 重拟合，保存两种分配的 ARI。这是种子扰动对照；MFA 每次运行使用连续三个初始化种子，因此不同运行的初始化集合有重叠，不把它们当作独立重复实验或用于独立重复置信区间。
 
 **MFA 是自适应加密搜索，不是 K=2…80 的全穷举，也不声称找到全局最优。** 每层已尝试的 K、未收敛/失败候选和实际选择都记录到 CSV。未收敛候选不定义最优 ICL，也不定义容差基准。
 
@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES='' OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 MKL_NUM_THREADS
 | `candidate_metrics.csv` | 所有候选，含未收敛/失败结果 |
 | `selection_ablation.csv` | 每层/方法/rank/准则/容差选择的 K |
 | `rank_ablation_matched_k.csv` | 固定同一 K 的 rank 对照 |
-| `seed_stability.csv` | 独立初始化种子对照的 ARI 和双方收敛状态 |
+| `seed_stability.csv` | 种子扰动对照的 ARI 和双方收敛状态 |
 | `trials/*` | 标准 HSS Result：全层 states.npy、模型、对齐和逐题元数据 |
 | `index.html`、`*.png` | 各阶段结束后更新的表格与消融图 |
 
