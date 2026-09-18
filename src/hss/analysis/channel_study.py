@@ -171,9 +171,12 @@ def probe_view(x, rows, table, train, test, cfg):
         z = (x[:,indices]-mu)/sd
         aug = np.column_stack([c,z])
         augmented = LogisticRegression(C=0.1, max_iter=1000).fit(aug[train],y[train])
+        eigenvalues = np.linalg.eigvalsh(np.atleast_2d(np.cov(z[train],rowvar=False)))
+        effective_rank = eigenvalues.sum()**2/max(float(eigenvalues@eigenvalues),1e-20)
         predictions[f"k{k}"] = score
         out.append({"kind": "middle_channels", "k": k, "indices": indices.tolist(),
                     "auc": roc_auc_score(y[test],score), "ci": auc_ci(y[test],score,cfg["seed"]),
+                    "covariance_effective_rank": float(effective_rank),
                     "augmented_auc": roc_auc_score(y[test],augmented.decision_function(aug[test])),
                     "coef": model.coef_[0].tolist(), "intercept": float(model.intercept_[0]),
                     "train_mean": mu.tolist(), "train_std": sd.tolist()})
@@ -216,6 +219,13 @@ def category_checks(x, rows, table, train, test, cfg, output, view):
     take = test[rows.first_token.to_numpy()[test] == dominant]
     model,mu,sd,score = scaled_fit(x,y,selected,train)
     sensitivities = []
+    individual = []
+    for channel in selected:
+        direction = np.sign(table.set_index("channel").loc[channel,"discovery_d"])
+        individual.append({"channel":int(channel),
+                           "test_auc_discovery_direction":roc_auc_score(y[test],direction*x[test,channel]),
+                           "rank_test_p":float(stats.mannwhitneyu(x[test[y[test]==1],channel],x[test[y[test]==0],channel],alternative="two-sided").pvalue)})
+    pd.DataFrame(individual).to_csv(output/f"individual_ranks_{view}.csv",index=False)
     for kind,indices in [("same_opening_token",take),
                          ("not_truncated_and_parsed",test[~rows.truncated.to_numpy()[test] & ~rows.parse_failed.to_numpy()[test]])]:
         if len(np.unique(y[indices])) < 2:
@@ -339,7 +349,9 @@ def run(cfg):
         split.loc[train,"partition"] = "discovery"
         split.to_parquet(destination/"samples.parquet",index=False)
         frames = []
-        for view,source,key,index in views(cfg,name):
+        # Freeze availability: extraction can finish while this analysis is running.
+        planned = list(views(cfg,name))
+        for view,source,key,index in planned:
             cache = destination/(view+".parquet")
             fingerprint = digest({"source":source.info,"analysis":version,"config":cfg,"view":view})
             marker = destination/(view+".json")
@@ -376,7 +388,7 @@ def run(cfg):
                             "clean_middle":int((middle.replicated & (middle.test_clean_q_global<cfg["fdr"]) & (middle.test_clean_d*middle.discovery_d>0)).sum())})
         pd.DataFrame(summary).to_csv(destination/"summary.csv",index=False)
         probes = {}
-        for view,source,key,index in views(cfg,name):
+        for view,source,key,index in planned:
             if view not in {"pre_prompt_last","pre_mean","pre_t1","post_t1"}:
                 continue
             x = source.array(key,index).astype(float)
