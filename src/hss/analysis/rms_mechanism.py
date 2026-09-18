@@ -255,7 +255,8 @@ def render(cfg):
                 group=bands[bands.correct==label]
                 ax.plot(group.gamma_abs_decile,100*group[field],'o-',color=color,label='Correct' if label else 'Incorrect')
             ax.set(title=title,xlabel='Coordinate decile: low to high |gamma|',ylabel='Mean energy fraction (%)')
-            ax.set_xticks(range(1,11));ax.legend();ax.set_ylim(bottom=0)
+            ax.set_xticks(range(1,11));ax.legend()
+        axes[0].set_ylim(0,108*bands[['token_direction_energy_fraction','mean_direction_energy_fraction']].to_numpy().max())
         fig.suptitle(NAMES[name]+' | RMS-only states; checkpoint-defined coordinate bins')
         for ext in ['png','svg']:fig.savefig(root/name/('gamma_energy.'+ext),dpi=160)
         plt.close(fig)
