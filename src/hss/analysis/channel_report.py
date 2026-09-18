@@ -85,7 +85,7 @@ def dataset_figures(cfg,name):
         ax.barh(y-.15,summary.loc[overview,"replicated_middle"],height=.28,color=COLORS[0],label="Replicated medium-amplitude channels")
         ax.barh(y+.15,summary.loc[overview,"controlled_middle"],height=.28,color=COLORS[1],label="Also passes nuisance controls")
         ax.set(yticks=y,yticklabels=[overview_labels[v] for v in overview],xlabel="Residual channels (not independent concepts)",title=name+" | held-out evidence")
-        ax.invert_yaxis(); ax.legend(loc="lower right",fontsize=8)
+        ax.invert_yaxis(); ax.legend(loc="upper center",bbox_to_anchor=(.5,-.22),fontsize=8,frameon=False)
         figures.append((save(fig,root,"counts"),"正误差异复现的通道数。中等幅度只用发现集定义；两侧 |d|≥0.2、同号且全局 FDR≤0.05。蓝色还通过题型、难度、首 token 等线性控制。"))
 
         fig,axs = plt.subplots(1,2,figsize=(11,4.2),layout="constrained")
@@ -177,7 +177,7 @@ def dataset_figures(cfg,name):
             fig,ax=plt.subplots(figsize=(8.8,3.8),layout="constrained")
             ax.errorbar(range(len(frozen)),frozen.auc,yerr=[frozen.auc-frozen.ci_low,frozen.ci_high-frozen.auc],fmt="o-",color=COLORS[1],capsize=4)
             ax.axhline(.5,color="#888",ls="--");ax.set(xticks=range(len(frozen)),xticklabels=frozen.position,xlabel="Generated token position",ylabel="Held-out AUROC",title="Does a frozen first-token readout remain useful?")
-            figures.append((save(fig,root,"temporal_readout"),"冻结 t1 发现集选出的 16 个通道、缩放和 probe 权重，在相同验证回答的后续位置直接读取；未重新训练或翻转方向。它检查同一读出方向是否持续可用，仍然不是因果传播实验。"))
+            figures.append((save(fig,root,"temporal_readout"),"冻结 t1 发现集选出的 16 个通道、缩放和 probe 权重，在相同验证回答的后续位置直接读取；未重新训练或翻转方向。last 包含 EOS 和截断回答的非 EOS 末 token，反向不能解释为正确性翻转。这仍然不是因果传播实验。"))
 
         updates=pd.read_csv(root/"prompt_layer_updates.csv")
         mat=updates.pivot(index="channel",columns="layer",values="correct_minus_wrong_update")
