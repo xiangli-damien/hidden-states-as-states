@@ -20,3 +20,14 @@ def test_mean_can_shrink_with_equal_token_norms():
     np.testing.assert_allclose(a['post_coherence'],1.)
     np.testing.assert_allclose(b['post_coherence'],1/np.sqrt(2))
 
+
+def test_post_norm_depends_on_gamma_weighted_direction_not_raw_radius():
+    x=np.array([[2.,1.],[1.,3.]])
+    g=np.array([2.,.5]);v=np.array([1.,0.])
+    a=token_factors(x,g,0.,v)
+    b=token_factors(x*np.array([[3.],[7.]]),g,0.,v)
+    np.testing.assert_allclose(a[1],b[1])
+    np.testing.assert_allclose(a[4],b[4])
+    expected=2*np.sum(x*x*g*g,axis=1)/np.sum(x*x,axis=1)
+    actual=np.sum((x/np.sqrt(np.mean(x*x,axis=1,keepdims=True))*g)**2,axis=1)
+    np.testing.assert_allclose(expected,actual)

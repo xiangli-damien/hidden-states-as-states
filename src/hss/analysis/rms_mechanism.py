@@ -179,6 +179,7 @@ def analyse(cfg):
         pframe=samples.loc[eligible,["prefix_"+c for c in ['post_mean_norm','mean_post_token_norm','post_coherence','u_mean_norm','mean_gain']]].rename(columns=lambda c:c.removeprefix('prefix_'))
         result['prefix']={'tokens':cfg['prefix_tokens'],'n':int(eligible.sum()),'test_n':len(pt),
                           'log_decomposition':boot_log_decomposition(pframe,y[eligible],cfg),
+                          'full_same_cohort_log_decomposition':boot_log_decomposition(samples.loc[eligible],y[eligible],cfg),
                           'negative_norm_auc':score_result(y,-samples.prefix_post_mean_norm.to_numpy(),pt,cfg,bins)}
         # How much does the coordinate placement of learned gamma matter?
         rng=np.random.default_rng(cfg['seed']);permutations=[]
@@ -193,6 +194,18 @@ def analyse(cfg):
         result['gamma_geometry']={'min':float(gamma.min()),'max':float(gamma.max()),'min_abs':float(abs(gamma).min()),
              'rms':float(np.sqrt(np.mean(gamma**2))),'gain_along_v':float(np.linalg.norm(gamma*v)),
              'gamma_sha256':file_digest(Path(fc['output_root'])/name/'readout_geometry.npz')}
+        bands=[]
+        # Checkpoint-defined bins, no label-selected coordinates.
+        for k,indices in enumerate(np.array_split(np.argsort(abs(gamma)),10)):
+            for label in [0,1]:
+                mu2=u[y==label]**2
+                mean_fraction=np.sum(mu2[:,indices],axis=1)/np.sum(mu2,axis=1)
+                token_fraction=u2[y==label][:,indices].sum(1)/u2[y==label].sum(1)
+                bands.append({'gamma_abs_decile':k+1,'correct':label,'coordinates':len(indices),
+                    'gamma_abs_min':float(abs(gamma[indices]).min()),'gamma_abs_max':float(abs(gamma[indices]).max()),
+                    'mean_direction_energy_fraction':float(mean_fraction.mean()),
+                    'token_direction_energy_fraction':float(token_fraction.mean())})
+        result['gamma_energy_bands']=bands
         signed_contribution=(ideal[y==1]**2).mean(0)-(ideal[y==0]**2).mean(0)
         coord=pd.DataFrame({'coordinate':np.arange(len(gamma)),'gamma':gamma,'v':v,'difference_mean_post_squared_component':signed_contribution,
            'correct_mean_u_squared_component':np.mean(u[y==1]**2,axis=0),'incorrect_mean_u_squared_component':np.mean(u[y==0]**2,axis=0),
@@ -226,12 +239,12 @@ def render(cfg):
         for ax,fields,title in [(axes[0],['post_mean_norm','mean_post_token_norm','post_coherence'],'Amplitude + token coherence'),
                                 (axes[1],['post_mean_norm','u_mean_norm','mean_gain'],'RMS-only mean + gamma gain')]:
             for j,(scope,offset,color) in enumerate([('log_decomposition_all',-.1,'#297e77'),('prefix',.1,'#b86632')]):
-                d=r[scope] if scope!='prefix' else r['prefix']['log_decomposition']
+                d=r['prefix']['full_same_cohort_log_decomposition'] if scope!='prefix' else r['prefix']['log_decomposition']
                 a=np.array([d[k]['log_correct_minus_incorrect'] for k in fields]);ci=np.array([d[k]['ci'] for k in fields])
                 ax.errorbar(np.arange(3)+offset,a,yerr=[a-ci[:,0],ci[:,1]-a],fmt='o',capsize=4,color=color,label='Full response' if j==0 else 'First 16 tokens')
             ax.set_xticks(np.arange(3),['Total']+(['Token amplitude','Coherence'] if ax==axes[0] else ['RMS-only mean','Gamma gain']))
             ax.axhline(0,color='gray',ls='--');ax.set_title(title);ax.set_ylabel('Mean log difference: correct - incorrect');ax.legend()
-        fig.suptitle(NAMES[name]+' | 95% question bootstrap intervals')
+        fig.suptitle(NAMES[name]+f" | same {r['prefix']['n']:,} questions; 95% bootstrap intervals")
         for ext in ['png','svg']:fig.savefig(root/name/('decomposition.'+ext),dpi=160)
         plt.close(fig)
         records=[]
