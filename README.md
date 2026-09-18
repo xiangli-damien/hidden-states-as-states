@@ -106,6 +106,7 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 - [Paper methods, coverage and unresolved conditions](docs/reproduction.md)
 - [Lambda installation, performance, storage and large grids](docs/lambda.md)
 - [MFA implementation](docs/mfa.md)
+- [Residual-channel correctness study: held-out effects, transfer and temporal checks](docs/channel-study.zh-CN.md)
 
 ## Plot without refitting
 
