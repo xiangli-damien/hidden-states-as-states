@@ -70,6 +70,8 @@ bootstrap 固定已拟合模型，不含重新训练不确定性。所有区间�
 以及每题等权 / 每 token 等权两种聚合。ties 的 argmax 取最低索引。
 对 prompt_last、回答均值、t16 画全部层的绝对值与占比；slot0 为 embedding，
 末 slot 替换为 raw pre-RMS，避免把最后一次 norm 当作 block 写入。
+最后一个 block 的 signed / absolute 坐标增量及 q 增量先逐题相减，再对
+正误均值差做问题 bootstrap，保留层间配对。这是位置诊断，不是组件干预。
 逐层观测不能区分 attention 和 MLP，更不能证明“确定时主动写入”。
 
 当前没有全 prompt 各位置及 attention map，不能把大坐标直接命名为 attention sink。

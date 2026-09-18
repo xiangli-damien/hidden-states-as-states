@@ -81,7 +81,7 @@ def prediction_tests(values,rows,pre,train,test,cfg,out):
 
 
 def layer_statistics(cfg,fc,data,name,k,train,test,out):
-    y=data.rows.y.to_numpy(int);records=[]
+    y=data.rows.y.to_numpy(int);records=[];updates={}
     # Every displayed final layer is pre-RMS, including the cached t16.
     for view in ['prompt_last','mean','t16']:
         states=data.array(view) if view!='t16' else None
@@ -92,6 +92,13 @@ def layer_statistics(cfg,fc,data,name,k,train,test,out):
             else: x=states[:,layer].astype(float)
             valid=np.isfinite(x).all(1);take=test[valid[test]]
             energy=np.sum(x*x,axis=1);q=x[:,k]**2/np.maximum(energy,1e-30)
+            if layer==layers-2:
+                previous_coordinate=x[:,k].copy();previous_q=q.copy()
+            if layer==layers-1:
+                updates[view]={metric:group_summary(a[take],y[take],cfg) for metric,a in {
+                    'signed_coordinate_update':x[:,k]-previous_coordinate,
+                    'absolute_coordinate_update':np.abs(x[:,k])-np.abs(previous_coordinate),
+                    'q_update':q-previous_q}.items()}
             for label in [0,1]:
                 ii=take[y[take]==label]
                 for metric,a in [('absolute',np.abs(x[:,k])),('signed',x[:,k]),('q',q)]:
@@ -99,7 +106,7 @@ def layer_statistics(cfg,fc,data,name,k,train,test,out):
                                     'mean':float(a[ii].mean()),'se':float(a[ii].std(ddof=1)/np.sqrt(len(ii))),'n':len(ii)})
         del states
     frame=pd.DataFrame(records);frame.to_parquet(out/'layers.parquet',index=False)
-    return frame
+    return updates
 
 
 def analyse(cfg):
@@ -204,7 +211,7 @@ def analyse(cfg):
                           'q_token_auc':result['scalar_results']['q_token_mean']['auc'],
                           'centered_auc':result['scalar_results']['global_centered_energy']['auc'],
                           'contrasts':result['prediction_tests']['contrasts']}),flush=True)
-        layer_statistics(cfg,fc,data,name,k,train,test,out)
+        result['terminal_block_updates']=layer_statistics(cfg,fc,data,name,k,train,test,out)
         save_json(out/'analysis.json',result);results[name]=result
         del m,u,pre,token
     save_json(root/'analysis.json',results)
@@ -274,6 +281,10 @@ def render(cfg):
         plt.close(fig)
         body+=f'<h2>{html.escape(NAMES[name])}</h2><p>坐标 {r["coordinate"]}；按 discovery 的 raw RMS 排名第 {int(r["target_ranking"]["discovery_rms_rank"])}。Qwen 固定检验 2570；Llama 用 discovery 中 RMS 最大的坐标，未按正误选择。</p>'
         for stem in ['reduction','raw_energy','positions','layers']:body+=f'<img src="{name}/{stem}.png">'
+        updates=[{'View':view,'Quantity':metric,'Correct':v['correct_mean'],'Incorrect':v['incorrect_mean'],
+                  'Difference':v['difference'],'95% CI':str(np.round(v['difference_ci'],4))}
+                 for view,metrics in r['terminal_block_updates'].items() for metric,v in metrics.items()]
+        body+='<h3>最终 block 的逐题增量（RMSNorm 之前）</h3><p>先对每道题求末层减上一层，再比较正误。该区间保留层间配对，属于观测定位，不证明功能上的因果性。</p>'+pd.DataFrame(updates).to_html(index=False,float_format=lambda x:f'{x:.4f}')
         table=[]
         for k,v in r['scalar_results'].items():
             g=v['groups_test'];table.append({'Metric':k,'Sign':v['sign'],'AUROC':v['auc'],'CI':str(np.round(v['ci'],4)),

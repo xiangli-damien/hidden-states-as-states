@@ -27,3 +27,25 @@ def test_fraction_invariant_but_raw_energy_changes_with_token_scaling():
     a=raw_moments(x);b=raw_moments(x*np.array([[7.],[2.]]))
     np.testing.assert_allclose(a['q'],b['q'])
     assert not np.allclose(a['second'],b['second'])
+
+
+def test_layer_diagnostic_uses_pre_norm_and_paired_terminal_updates(tmp_path,monkeypatch):
+    import pandas as pd
+    from hss.analysis import component_reduction as study
+    states=np.ones((4,3,2));states[:,-1]=999.  # Deliberately misleading post-norm slot.
+    pre=np.array([[3.,2.],[3.,2.],[5.,2.],[5.,2.]])
+    raw=states.copy();raw[:,-1]=pre
+    class Data:
+        rows=pd.DataFrame({'y':[0,0,1,1]})
+        info={'model':{'n_layers':3}}
+        def array(self,view):
+            return pre if view.startswith('pre_') else states
+    monkeypatch.setattr(study,'layer_array',lambda cfg,data,name,layer:raw[:,layer])
+    cfg={'seed':2,'bootstrap':20}
+    result=study.layer_statistics(cfg,{},Data(),'synthetic',0,np.array([],dtype=int),np.arange(4),tmp_path)
+    for view in ['prompt_last','mean','t16']:
+        v=result[view]['absolute_coordinate_update']
+        assert v['correct_mean']==4. and v['incorrect_mean']==2.
+        np.testing.assert_allclose(v['difference_ci'],[2.,2.])
+    table=pd.read_parquet(tmp_path/'layers.parquet')
+    assert table[(table.layer==2)&(table.metric=='absolute')]['mean'].max()==5.
