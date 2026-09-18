@@ -57,7 +57,9 @@ def test_end_to_end_mfa_prediction_export_and_resume(tmp_path):
         ),
         evaluation=EvaluationConfig(mode="prediction", methods=["HSS-NB", "Logistic"]),
         execution=ExecutionConfig(
-            cache_root=str(tmp_path / "cache"), output_root=str(tmp_path / "out")
+            cache_root=str(tmp_path / "cache"),
+            output_root=str(tmp_path / "out"),
+            min_available_gib=0,
         ),
     )
     result = run_experiment(cfg)
@@ -78,7 +80,9 @@ def test_monitoring_records_missing_output_baselines_without_future_leakage(tmp_
         cluster=ClusterConfig(method="kmeans", k=2, n_init=1, max_iter=10),
         evaluation=EvaluationConfig(mode="monitoring"),
         execution=ExecutionConfig(
-            cache_root=str(tmp_path / "cache"), output_root=str(tmp_path / "out")
+            cache_root=str(tmp_path / "cache"),
+            output_root=str(tmp_path / "out"),
+            min_available_gib=0,
         ),
     )
     result = run_experiment(cfg)

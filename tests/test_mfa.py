@@ -58,3 +58,41 @@ def test_rank_zero_is_diagonal_gaussian_and_chunking_is_invariant():
     np.testing.assert_allclose(a.means_[0], X.mean(0), atol=1e-10)
     np.testing.assert_allclose(a.noise_[0], X.var(0), atol=1e-10)
     np.testing.assert_allclose(a.score_samples(X), b.score_samples(X), atol=1e-10)
+
+
+def test_continuation_reproduces_uninterrupted_fit_without_mutating_checkpoint():
+    rng = np.random.default_rng(32)
+    X = (
+        rng.normal(size=(90, 2)) @ rng.normal(size=(2, 9))
+        + rng.normal(size=(90, 9)) * 0.1
+    )
+    saved = []
+    a = fit_mfa(
+        X,
+        2,
+        rank=2,
+        n_init=1,
+        max_iter=7,
+        tol=0,
+        init_method="svd",
+        checkpoint=lambda m, r: saved.append(m),
+        checkpoint_interval=3,
+    )
+    before = a.means_.copy()
+    b = fit_mfa(X, 2, rank=2, n_init=1, max_iter=13, tol=0, initial_model=a)
+    direct = fit_mfa(X, 2, rank=2, n_init=1, max_iter=13, tol=0, init_method="svd")
+    np.testing.assert_array_equal(a.means_, before)
+    np.testing.assert_allclose(b.history_, direct.history_, atol=1e-10)
+    np.testing.assert_allclose(b.score_samples(X), direct.score_samples(X), atol=1e-10)
+    assert len(saved[-1].history_) == 7
+    assert np.min(np.diff(direct.history_)) > -1e-8
+    assert np.isclose(direct.score(X), direct.history_[-1])
+
+
+def test_svd_initialization_preserves_full_input_and_finite_small_clusters():
+    X = np.random.default_rng(31).normal(size=(20, 12))
+    original = X.copy()
+    m = fit_mfa(X, 8, rank=5, n_init=1, max_iter=4, init_method="svd")
+    np.testing.assert_array_equal(X, original)
+    assert m.means_.shape == (8, 12)
+    assert np.isfinite(m.score(X))

@@ -160,6 +160,10 @@ def fit_mfa(
     chunk_size=1024,
     backend="cpu",
     device="auto",
+    init_method="random",
+    initial_model=None,
+    checkpoint=None,
+    checkpoint_interval=25,
 ):
     """Fit without storing N x K x D tensors or a full feature covariance.
 
@@ -168,6 +172,8 @@ def fit_mfa(
     """
     if backend not in ("cpu", "gpu"):
         raise ValueError("MFA backend must be explicitly cpu or gpu")
+    if init_method not in ("random", "svd") or checkpoint_interval < 1:
+        raise ValueError("Invalid MFA initialization/checkpoint interval")
     X = np.asarray(X)
     if X.ndim != 2 or not 1 <= k <= len(X) or not 0 <= rank < X.shape[1]:
         raise ValueError("Require 1 <= k <= N and 0 <= rank < D")
@@ -179,31 +185,74 @@ def fit_mfa(
     kernel = _Kernel(backend, device)
     xp = kernel.xp
     n, d = X.shape
+    if initial_model is not None and (
+        n_init != 1
+        or initial_model.loadings_.shape != (k, d, rank)
+        or initial_model.reg_covar != reg_covar
+    ):
+        raise ValueError("MFA continuation requires one compatible initial model")
     best, best_score = None, -np.inf
     for restart in range(n_init):
         rng = np.random.default_rng(seed + restart)
-        km = KMeans(n_clusters=k, n_init=1, random_state=seed + restart).fit(X)
-        means = np.asarray(km.cluster_centers_, dtype=np.float64)
-        variance = np.maximum(np.var(X, axis=0, dtype=np.float64), reg_covar)
-        noise = np.stack(
-            [
-                np.maximum(
-                    np.var(X[km.labels_ == j], axis=0, dtype=np.float64), reg_covar
-                )
-                if (km.labels_ == j).sum() > 1
-                else variance
-                for j in range(k)
-            ]
-        )
-        loadings = (
-            rng.normal(size=(k, d, rank))
-            * np.sqrt(noise[:, :, None] / max(rank, 1))
-            * 0.1
-        )
-        weights = np.bincount(km.labels_, minlength=k).clip(1) / n
+        if initial_model is None:
+            km = KMeans(n_clusters=k, n_init=1, random_state=seed + restart).fit(X)
+            means = np.asarray(km.cluster_centers_, dtype=np.float64)
+            variance = np.maximum(np.var(X, axis=0, dtype=np.float64), reg_covar)
+            noise = np.stack(
+                [
+                    (
+                        np.maximum(
+                            np.var(X[km.labels_ == j], axis=0, dtype=np.float64),
+                            reg_covar,
+                        )
+                        if (km.labels_ == j).sum() > 1
+                        else variance
+                    )
+                    for j in range(k)
+                ]
+            )
+            loadings = (
+                rng.normal(size=(k, d, rank))
+                * np.sqrt(noise[:, :, None] / max(rank, 1))
+                * 0.1
+            )
+            if init_method == "svd" and rank:
+                from sklearn.utils.extmath import randomized_svd
+
+                # Initialize covariance factors; X is never projected or scaled.
+                for j in range(k):
+                    part = np.asarray(X[km.labels_ == j], dtype=np.float64) - means[j]
+                    q = min(rank, len(part) - 1, d - 1)
+                    if q < 1:
+                        continue
+                    _, singular, vt = randomized_svd(
+                        part, n_components=q, n_iter=3, random_state=seed + restart + j
+                    )
+                    eigen = singular**2 / len(part)
+                    residual = max((noise[j].sum() - eigen.sum()) / (d - q), reg_covar)
+                    loadings[j] = 0
+                    loadings[j, :, :q] = vt.T * np.sqrt(np.maximum(eigen - residual, 0))
+                    noise[j] = np.maximum(
+                        noise[j] - (loadings[j] ** 2).sum(1), reg_covar
+                    )
+            weights = np.bincount(km.labels_, minlength=k).clip(1) / n
+        else:
+            weights, means, loadings, noise = (
+                initial_model.weights_.copy(),
+                initial_model.means_.copy(),
+                initial_model.loadings_.copy(),
+                initial_model.noise_.copy(),
+            )
         w, mu, W, psi = map(kernel.array, (weights, means, loadings, noise))
-        history, converged = [], False
-        for iteration in range(max_iter):
+        # The saved parameters correspond to the last E-step. Re-evaluate it,
+        # replacing its recorded value, before applying the next M-step.
+        history = list(initial_model.history_[:-1]) if initial_model is not None else []
+        if initial_model is not None and (
+            initial_model.converged_ or len(initial_model.history_) >= max_iter
+        ):
+            return initial_model
+        converged = False
+        for iteration in range(len(history), max_iter):
             inv = 1 / psi
             posterior, covz, logdet = [], [], []
             for j in range(k):
@@ -251,8 +300,24 @@ def fit_mfa(
             if not np.isfinite(ll):
                 raise FloatingPointError("Nonfinite MFA likelihood")
             history.append(ll)
-            if len(history) > 1 and abs(history[-1] - history[-2]) < tol:
-                converged = True
+            converged = len(history) > 1 and abs(history[-1] - history[-2]) < tol
+            if checkpoint is not None and (
+                iteration % checkpoint_interval == 0
+                or converged
+                or iteration == max_iter - 1
+            ):
+                checkpoint(
+                    MFAModel(
+                        *(kernel.numpy(v).copy() for v in (w, mu, W, psi)),
+                        reg_covar=reg_covar,
+                        history_=list(history),
+                        converged_=converged,
+                        backend_=backend,
+                        chunk_size=chunk_size,
+                    ),
+                    restart,
+                )
+            if converged:
                 break
             # Keep returned parameters paired with the likelihood actually measured.
             if iteration == max_iter - 1:
@@ -276,6 +341,10 @@ def fit_mfa(
             backend_=backend,
             chunk_size=chunk_size,
         )
-        if history[-1] > best_score:
+        if (
+            best is None
+            or (model.converged_ and not best.converged_)
+            or (model.converged_ == best.converged_ and history[-1] > best_score)
+        ):
             best, best_score = model, history[-1]
     return best

@@ -30,6 +30,8 @@ This creates 27 trials. K-selection scans are inside each trial. Explicit fixed 
 
 One-factor perturbations can use JSON `grid.variants`, a list of objects with dotted keys, instead of a Cartesian product. Duplicate resolved configs are removed. Execution limits are properties of the invocation and cannot be grid axes.
 
+For audited mixture studies, `cluster.require_convergence=true` excludes nonconverged candidates from both the minimum and the parsimony window. `cluster.selection_criterion="icl"` or `"bic"` changes selection without refitting. `cluster.save_candidate_assignments=true` retains nearest-center and posterior labels for every candidate. `cluster.mfa_init="svd"` initializes each component's covariance factors from its initial cluster; it does not project or normalize fitting inputs. MFA candidates checkpoint individual restarts for exact continuation. See [Qwen MATH ablation](qwen-math-ablation.zh-CN.md) for the staged rank/K protocol and its search limits.
+
 ```bash
 # Use a coarse, explicitly changed search during exploratory work.
 hss sweep configs/mfa_grid.toml \

@@ -38,6 +38,10 @@ class ClusterConfig:
     init_method: str = "kmeans++"
     parsimony_tolerance: float = 0.02
     assignment: str = "nearest"
+    selection_criterion: str = "icl"
+    require_convergence: bool = False
+    save_candidate_assignments: bool = False
+    mfa_init: str = "random"
 
 
 @dataclass
@@ -151,6 +155,10 @@ class Experiment:
             raise ValueError("KMeans control uses CPU; choose backend=cpu")
         if c.assignment not in ("nearest", "posterior"):
             raise ValueError("assignment must be nearest or posterior")
+        if c.selection_criterion not in ("icl", "bic"):
+            raise ValueError("selection_criterion must be icl or bic")
+        if c.mfa_init not in ("random", "svd"):
+            raise ValueError("mfa_init must be random or svd")
         if c.k_min < 1 or c.k_max < c.k_min or (c.k is not None and c.k < 1):
             raise ValueError("Invalid component range")
         if c.k_values is not None and (

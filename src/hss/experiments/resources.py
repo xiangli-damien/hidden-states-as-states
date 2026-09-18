@@ -46,6 +46,9 @@ def storage_entries(cfg, data):
                 "k_max",
                 "parsimony_tolerance",
                 "assignment",
+                "selection_criterion",
+                "require_convergence",
+                "save_candidate_assignments",
             )
         },
         "transform": asdict(cfg.transform),

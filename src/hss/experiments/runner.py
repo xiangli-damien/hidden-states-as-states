@@ -504,12 +504,14 @@ def run_experiment(cfg, *, prepared=None, version=None):
                     "relative_depth": j / max(1, len(layers) - 1),
                     "k": scan["selected"]["k"],
                     "criterion": scan["selected"].get("criterion"),
-                    "criterion_name": "negative_silhouette"
-                    if cfg.cluster.method in ("kmeans", "minibatch_kmeans")
-                    else "icl",
-                    "self_transition": float((states[:, j] == states[:, j - 1]).mean())
-                    if j
-                    else None,
+                    "criterion_name": (
+                        "negative_silhouette"
+                        if cfg.cluster.method in ("kmeans", "minibatch_kmeans")
+                        else cfg.cluster.selection_criterion
+                    ),
+                    "self_transition": (
+                        float((states[:, j] == states[:, j - 1]).mean()) if j else None
+                    ),
                 }
                 for j, (layer, scan) in enumerate(zip(layers, scans))
             ]

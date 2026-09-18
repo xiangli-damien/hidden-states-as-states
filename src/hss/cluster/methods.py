@@ -31,7 +31,11 @@ def fit_method(method, X, k, seed, parameters):
         from .kmeans import KMeansModel
 
         estimator = KMeans if method == "kmeans" else MiniBatchKMeans
+        fitted = estimator(k, random_state=seed, **parameters).fit(X)
         return KMeansModel(
-            estimator(k, random_state=seed, **parameters).fit(X).cluster_centers_
+            fitted.cluster_centers_,
+            n_iter_=int(fitted.n_iter_),
+            converged_=bool(fitted.n_iter_ < parameters.get("max_iter", 300)),
+            inertia_=float(fitted.inertia_),
         )
     raise ValueError(f"Unknown clustering method: {method}")
