@@ -53,13 +53,13 @@ def examples(cfg,ds,out):
     selected['full_direction_score']=p.pre_prompt_last__full_direction.iloc[wanted].to_numpy()
     lookup={}
     for shard in selected.shard.unique():
-        frame=pd.read_parquet(Path(ds['path'])/shard/'data.parquet',columns=['sample_id','prompt_text','response_text'])
+        frame=pd.read_parquet(Path(ds['path'])/shard/'data.parquet',columns=['sample_id','prompt_text','response_text','ground_truth'])
         lookup.update({r['sample_id']:r for r in frame.to_dict('records')})
     parts=['<h1>按首 token 熵选择的验证题实例</h1><p>每类选熵最低和最高的各五题；这是有意选出的极端案例，不能用其比例估计准确率。</p><a href="../index.html">返回报告</a>']
     for r in selected.to_dict('records'):
         text=lookup[r['sample_id']]
         title=f"{r['sample_id']} | {'正确' if r['y'] else '错误'} | H={r['prompt_last_entropy']:.3f} | margin={r['prompt_last_logit_margin']:.3f} | w·h+b={r['full_direction_score']:.3f}"
-        parts.append(f'<details><summary>{html.escape(title)}</summary><pre>{html.escape(text["prompt_text"])}</pre><pre>{html.escape(text["response_text"])}</pre></details>')
+        parts.append(f'<details><summary>{html.escape(title)}</summary><h3>题目</h3><pre>{html.escape(text["prompt_text"])}</pre><h3>模型原始回答</h3><pre>{html.escape(text["response_text"])}</pre><h3>数据集参考答案</h3><pre>{html.escape(str(text["ground_truth"]))}</pre></details>')
     (out/'examples.html').write_text('<!doctype html><meta charset="utf-8"><style>body{max-width:1050px;margin:35px auto;font:16px/1.7 system-ui}details{padding:15px;border-bottom:1px solid #ddd}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f7fa;padding:15px}summary{cursor:pointer}</style>'+''.join(parts))
 
 

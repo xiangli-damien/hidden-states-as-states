@@ -28,6 +28,7 @@ hss = "hss.cli:main"
 
 [project.optional-dependencies]
 gpu = ["torch>=2.2"]
+readout = ["torch>=2.2", "safetensors>=0.4.5"]
 dev = [
   "pytest>=7.0",
   "pytest-xdist",

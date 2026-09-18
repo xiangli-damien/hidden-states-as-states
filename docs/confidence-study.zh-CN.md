@@ -43,6 +43,8 @@
 
 ## 运行
 
+额外依赖为 PyTorch 和 safetensors（只用于在 CPU 读取权重）；可用 `uv sync --extra readout` 安装。本轮没有加载 decoder 到 GPU。
+
 ```bash
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage scalars
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage analyse
@@ -51,3 +53,5 @@ OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 .venv/bin/python scripts/study_confiden
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage layer-analysis
 .venv/bin/python scripts/study_confidence.py --stage report
 ```
+
+可选的 `--stage readout-check` 是256个发现题的直接读出／匹配温度检查，不能替代上游 block 干预或采样正确率。`--stage audit` 独立核对样本身份、保存系数、AUROC 与方向能量。
