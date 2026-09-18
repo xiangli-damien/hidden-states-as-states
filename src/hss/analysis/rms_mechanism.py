@@ -235,7 +235,7 @@ def render(cfg):
     body+='<p>AUROC 使用原冻结 60% 分区，已见验证集上的探索性后续。bootstrap 以问题为单位，固定分数方向。prefix16 只取至少16 token 的回答，控制 token 数量；仍不控制题目难度和内容。gamma 打乱仅为坐标权重敏感性，不能当作回答正确率实验。</p>'
     summary=[]
     for name,r in results.items():
-        fig,axes=plt.subplots(1,2,figsize=(11,4.5),layout='constrained')
+        fig,axes=plt.subplots(1,2,figsize=(11,4.5),layout='constrained',sharey=True)
         for ax,fields,title in [(axes[0],['post_mean_norm','mean_post_token_norm','post_coherence'],'Amplitude + token coherence'),
                                 (axes[1],['post_mean_norm','u_mean_norm','mean_gain'],'RMS-only mean + gamma gain')]:
             for j,(scope,offset,color) in enumerate([('log_decomposition_all',-.1,'#297e77'),('prefix',.1,'#b86632')]):
