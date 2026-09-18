@@ -16,7 +16,7 @@ from hss.experiments.artifacts import save_json,file_digest
 
 LABELS = {'entropy':'Entropy','logit_margin':'Top-1 / top-2 logit margin',
     'top1_probability':'Top-1 probability','rms':'Pre-RMS vector RMS',
-    'v_min_projection':'Weakest-readout projection (candidate)',
+    'v_min_projection':'Projection on weakest-readout v',
     'low_readout_fraction':'Bottom 1% subspace norm fraction',
     'v_min_absolute':'Absolute weakest-readout projection',
     'full_direction':'Full-dimensional L2 probe','channels16':'Historical 16 channels'}
@@ -83,14 +83,14 @@ def render(cfg):
                 precision=json.loads(pp.read_text())
                 entropy=next(r for r in precision['scalars'] if r['metric']=='policy_entropy')
                 parts.append(f'<p><strong>精度／解码策略审计：</strong>采用 BF16 舍入及原生 repetition penalty={precision["effective_repetition_penalty"]:g} 后，首 token 一致率 {precision["agreement"]["policy_argmax"]:.2%}；相应熵 AUROC={entropy["auc"]:.3f}。Teacher-forced 状态与 generate prefill 仍有数值差异，原始生成首步 logits 未保存，不能声称完全重放原始分布。<a href="{name}/precision.json">完整敏感性结果</a></p>')
-            fig,axs=plt.subplots(1,2,figsize=(13,4.6),layout='constrained')
+            fig,axs=plt.subplots(1,2,figsize=(13,4.6),layout='constrained',sharex=True)
             for ax,pos in zip(axs,['prompt_last','t1']):
                 records=[r for metric in LABELS for r in a['scalars'] if r['position']==pos and r['metric']==metric]
                 forest(ax,records,[LABELS[r['metric']] for r in records])
                 ax.set_title('Prompt-last → first token' if pos=='prompt_last' else 'After token 1 → second token')
             filename=save(fig,out,'scalars');files.append(out/filename)
             parts.append(image(name,filename,'每个标量的符号仅由发现集确定；原始符号 AUROC 同时存于表格。首 token 熵与首个 token 读入后的熵是两个不同预测位置。v_min 只是新构造的候选。'))
-            fig,axs=plt.subplots(1,2,figsize=(13,4.4),layout='constrained')
+            fig,axs=plt.subplots(1,2,figsize=(13,4.4),layout='constrained',sharex=True)
             for ax,view in zip(axs,['pre_prompt_last','pre_t1']):
                 pairs=a['views'][view]['incremental']
                 labels=[]
@@ -111,6 +111,7 @@ def render(cfg):
             fig,axs=plt.subplots(1,2,figsize=(11,4.1),layout='constrained')
             axs[0].semilogy(np.arange(len(sv)),np.maximum(sv,1e-15),color='#287e93')
             axs[0].set(xlabel='Singular index (smallest first)',ylabel='Singular value',title='Centered, RMS-weight-folded head')
+            axs[0].text(.03,.95,f'Minimum = {sv[0]:.3f}\nSecond / minimum = {sv[1]/sv[0]:.2f}',transform=axs[0].transAxes,va='top',fontsize=9)
             g=v['geometry'];keys=['cosine_v_min','cosine_entropy_regression']+(['cosine_difficulty'] if 'cosine_difficulty' in g else [])
             labels=['Weakest-readout candidate','Entropy regression']+(['Difficulty regression'] if 'cosine_difficulty' in g else [])
             axs[1].barh(range(len(keys)),[g[k] for k in keys],color='#287e93')
@@ -142,16 +143,16 @@ def render(cfg):
             parts.append(image(name,filename,'分桶边界仅由发现集确定。该图检查熵与整题正确率的关系是否单调；首 token 的输出确定性不必等于答案确定性。'))
             lp=out/'layers.json'
             if lp.exists():
-                lr=json.loads(lp.read_text());fig,axs=plt.subplots(1,2,figsize=(12,4.3),layout='constrained')
+                lr=json.loads(lp.read_text());fig,axs=plt.subplots(1,2,figsize=(12,4.3),layout='constrained',sharey=True)
                 for ax,pos in zip(axs,['prompt_last','t16']):
                     for method,color in [('frozen_prompt_last','#287e93'),('frozen_t1','#cf744b'),('layer_specific_probe','#6954a1')]:
                         records=[r for r in lr['records'] if r['position']==pos and r['method']==method]
                         x=[r['layer'] for r in records];y=[r['auc'] for r in records]
-                        ax.plot(x,y,'o-',ms=3,color=color,label=method)
+                        ax.plot(x,y,'o-',ms=3,color=color,label={'frozen_prompt_last':'Frozen prompt-last probe','frozen_t1':'Frozen token-1 probe','layer_specific_probe':'Probe fitted at this layer'}[method])
                         ax.fill_between(x,[r['ci'][0] for r in records],[r['ci'][1] for r in records],color=color,alpha=.1)
-                    ax.axhline(.5,color='#aaa',ls='--');ax.set(xlabel='Decoder block output (final = pre-RMS)',ylabel='Held-out AUROC',title=pos);ax.legend(fontsize=8)
+                    ax.axhline(.5,color='#aaa',ls='--');ax.set(xlabel='Decoder block output (final = pre-RMS)',ylabel='Held-out AUROC',title='Prompt-last (predicts token 1)' if pos=='prompt_last' else 'After generated token 16');ax.legend(fontsize=8)
                 filename=save(fig,out,'layers');files.append(out/filename)
-                parts.append(image(name,filename,f"同一批 ≥16-token 验证题 n={lr['same_cohort_n']:,}。冻结方向失效但同层拟合成功，支持表示改变；两者都失败仍不能证明信息消失。prompt 状态在 causal decoder 中保持不变，不能由此断言 attention 回取。"))
+                parts.append(image(name,filename,f"同一批 ≥16-token 验证题 n={lr['same_cohort_n']:,}；t16 指读入第16个生成 token 后的状态，预测的是第17个 token。冻结方向失效但同层拟合成功，支持表示改变；两者都失败仍不能证明信息消失。prompt 状态在 causal decoder 中保持不变，不能由此断言 attention 回取。"))
             else:
                 parts.append('<p><strong>此数据的 token16 全层提取／分析尚在运行，本节图未完成。</strong></p>')
             rp=out/'readout_check.json'
@@ -161,14 +162,19 @@ def render(cfg):
                 for ax,metric,label in zip(axs,['entropy_delta_mean','argmax_changed_fraction','kl_changed_to_matched_temperature_mean'],['Entropy change (nats)','Fraction with changed top-1','KL to matched-temperature control']):
                     vrows=frame[frame.direction.eq('weakest_v')].sort_values('alpha')
                     random=frame[frame.direction.ne('weakest_v')].groupby('alpha')[metric].agg(['mean','min','max'])
+                    # Alpha=1 is the exact identity, not an interpolation across a gap.
+                    identity=np.nan if metric=='kl_changed_to_matched_temperature_mean' else 0.
+                    vrows=pd.concat([vrows,pd.DataFrame([{'alpha':1.,metric:identity}])]).sort_values('alpha')
+                    random.loc[1.]=identity;random=random.sort_index()
                     ax.plot(vrows.alpha,vrows[metric],'o-',color='#287e93',label='Weakest-readout v')
                     ax.plot(random.index,random['mean'],'o-',color='#ce774c',label='Norm-matched random')
                     ax.fill_between(random.index,random['min'],random['max'],color='#ce774c',alpha=.15)
                     ax.axvline(1,color='#aaa',ls='--');ax.set(xlabel='Projection scaling alpha (1 = unchanged)',ylabel=label)
-                    if metric=='kl_changed_to_matched_temperature_mean':ax.set_yscale('log')
+                    if metric=='kl_changed_to_matched_temperature_mean':
+                        ax.set_yscale('log');ax.text(.5,.02,'KL(alpha=1) = 0 (exact)',transform=ax.transAxes,ha='center',fontsize=8)
                 axs[0].legend(fontsize=8)
                 filename=save(fig,out,'readout_check');files.append(out/filename)
-                parts.append(image(name,filename,'256 个发现集样本的直接读出计算，原始 pre-RMS 状态上的投影缩放。随机方向逐题匹配扰动范数；阴影是三个随机方向的范围，不是置信区间。部分改动幅度很大，详见 JSON。没有上游 block 重算、采样生成或正确率干预。'))
+                parts.append(image(name,filename,'256 个发现集样本的直接读出计算，原始 pre-RMS 状态上的投影缩放。α=1 为解析恒等对照；log-KL 图在零值处断开。随机方向逐题匹配扰动范数；阴影是三个随机方向的范围，不是置信区间。部分改动幅度很大，详见 JSON。没有上游 block 重算、采样生成或正确率干预。'))
                 parts.append(f'<p><a href="{name}/readout_check.json">方向、幅度、匹配温度及样本 ID</a></p>')
             parts.append('<details><summary>展开完整数值、原始标量符号及模型选择</summary>'+table_html(pd.DataFrame(a['scalars']))+f'<p><a href="{name}/analysis.json">全部拟合、内部交叉验证与增量 CI</a> · <a href="{name}/predictions.parquet">逐题预测</a> · <a href="{name}/scalars.parquet">逐题标量</a></p></details></section>')
             examples(cfg,ds,out)
