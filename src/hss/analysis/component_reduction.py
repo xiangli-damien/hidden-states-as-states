@@ -146,6 +146,13 @@ def analyse(cfg):
             result['scalar_results'][key]=scalar_summary(a,y,test,cfg,bins,sign)
             valid=test[np.isfinite(a[test])]
             result['spearman_with_ndr'][key]=float(spearmanr(a[valid],v['ndr'][valid]).statistic)
+        ndr_draws=auc_samples(y[test],v['ndr'][test],cfg['seed'],cfg['bootstrap'])
+        result['paired_scalar_minus_ndr']={}
+        for key in ['q_token_mean','q_raw_mean','q_energy_ratio','q_rms_mean','global_centered_energy','within_response_energy']:
+            sign=result['scalar_results'][key]['sign']
+            delta=auc_samples(y[test],sign*v[key][test],cfg['seed'],cfg['bootstrap'])-ndr_draws
+            result['paired_scalar_minus_ndr'][key]={'delta':result['scalar_results'][key]['auc']-result['scalar_results']['ndr']['auc'],
+                                                   'ci':np.quantile(delta,[.025,.975]).tolist()}
         sample=rows.assign(partition=saved.partition.to_numpy(),**v)
         sample.to_parquet(out/'samples.parquet',index=False)
         ranking=pd.DataFrame({'coordinate':np.arange(dim),'gamma':gamma,
