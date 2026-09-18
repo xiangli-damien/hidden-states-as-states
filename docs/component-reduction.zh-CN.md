@@ -57,6 +57,7 @@ NDR = mean_l ||bar h_l|| / ||bar h_L||。末层 norm 不是 NDR。
 
 q_token、三种 raw q 联合、NDR，各自以及联合做 L2 logistic：固定三次 log/logit
 特征，在 discovery 内四折选择 C，标准化只使用每个训练折。
+同样检验中心化能量与 NDR 的联合增益，避免仅凭相近 AUROC 推断等价。
 对同一验证题做配对 bootstrap 比较增益。controls 包括题型、难度、prompt
 长度、raw 回答均值 RMS、回答长度；后二者为生成后诊断，不是提前预测。
 只检验此函数类下的补充预测能力，不证明全部信息等价。

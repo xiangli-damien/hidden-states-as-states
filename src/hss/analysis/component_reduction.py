@@ -43,6 +43,7 @@ def prediction_tests(values,rows,pre,train,test,cfg,out):
     # q_all contains raw-only fractions. RMS-mean q is a separate diagnostic.
     q=poly_log(values['q_token_mean'],True)
     n=poly_log(values['ndr'])
+    centered=poly_log(values['global_centered_energy'])
     qr=np.column_stack([poly_log(values[k],True) for k in ['q_token_mean','q_raw_mean','q_energy_ratio']])
     controls,names=control_features(rows,pre,train)
     controls=np.column_stack([controls,np.log1p(rows.n_tokens.to_numpy(float))])
@@ -50,7 +51,10 @@ def prediction_tests(values,rows,pre,train,test,cfg,out):
     designs={'q_token':q,'q_raw_family':qr,'ndr':n,'q_token+ndr':np.c_[q,n],
              'q_raw_family+ndr':np.c_[qr,n],
              'controls':controls,'controls+q_raw_family':np.c_[controls,qr],
-             'controls+ndr':np.c_[controls,n],'controls+q_raw_family+ndr':np.c_[controls,qr,n]}
+             'controls+ndr':np.c_[controls,n],'controls+q_raw_family+ndr':np.c_[controls,qr,n],
+             'centered':centered,'centered+ndr':np.c_[centered,n],
+             'controls+centered':np.c_[controls,centered],
+             'controls+centered+ndr':np.c_[controls,centered,n]}
     results={};draws={};pred=rows[['sample_id','y']].copy()
     for label,x in designs.items():
         fit=tuned_fit(x,y,train,cfg);score=fit['score'];pred[label]=score
@@ -63,7 +67,10 @@ def prediction_tests(values,rows,pre,train,test,cfg,out):
     for base,full in [('q_token','q_token+ndr'),('ndr','q_token+ndr'),
                       ('q_raw_family','q_raw_family+ndr'),('ndr','q_raw_family+ndr'),
                       ('controls+q_raw_family','controls+q_raw_family+ndr'),
-                      ('controls+ndr','controls+q_raw_family+ndr')]:
+                      ('controls+ndr','controls+q_raw_family+ndr'),
+                      ('centered','centered+ndr'),('ndr','centered+ndr'),
+                      ('controls+centered','controls+centered+ndr'),
+                      ('controls+ndr','controls+centered+ndr')]:
         ci=np.quantile(draws[full]-draws[base],[.025,.975]).tolist()
         contrasts[full+' minus '+base]={'delta':results[full]['auc']-results[base]['auc'],
                                       'ci':ci,'within_equivalence_band':bool(ci[0]>-cfg['equivalence_auc'] and ci[1]<cfg['equivalence_auc'])}
