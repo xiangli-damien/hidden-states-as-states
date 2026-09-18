@@ -53,7 +53,7 @@ G 衡量 gamma 对响应均值方向的增益。两个分解分别回答：单 t
 - 测量已有 v 在每个 token 的能量比例，及仅从 RMS 分母平方和中移除 v 能量的算术对照。该对照保持分子固定，是路径敏感性，不是一次合法的完整 decoder 状态替换。
 - 复用已冻结 40/60 分区，区间按问题 bootstrap 1000次。属于已见验证集上的探索性分析。
 
-复现：依次运行 `scripts/study_rms_mechanism.py --stage extract`、`--stage analyse`；`--stage report` 只重新绘制报告。配置为 `configs/rms_mechanism.toml`。
+复现：依次运行 `scripts/study_rms_mechanism.py --stage extract`、`--stage analyse`、`--stage gamma-channel`；`--stage report` 只重新绘制报告。配置为 `configs/rms_mechanism.toml`。单坐标对照独立选择 checkpoint 中最小 |gamma| 坐标，保存于 gamma_channel.json。
 
 ## 5. 目前能识别什么因果关系
 
