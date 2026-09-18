@@ -247,17 +247,33 @@ def render(cfg):
         fig.suptitle(NAMES[name]+f" | same {r['prefix']['n']:,} questions; 95% bootstrap intervals")
         for ext in ['png','svg']:fig.savefig(root/name/('decomposition.'+ext),dpi=160)
         plt.close(fig)
+        bands=pd.DataFrame(r['gamma_energy_bands'])
+        fig,axes=plt.subplots(1,2,figsize=(11,4.2),layout='constrained',sharey=True)
+        for ax,field,title in zip(axes,['token_direction_energy_fraction','mean_direction_energy_fraction'],
+                                 ['Individual token directions','Response mean direction']):
+            for label,color in [(1,'#287348'),(0,'#bd553d')]:
+                group=bands[bands.correct==label]
+                ax.plot(group.gamma_abs_decile,100*group[field],'o-',color=color,label='Correct' if label else 'Incorrect')
+            ax.set(title=title,xlabel='Coordinate decile: low to high |gamma|',ylabel='Mean energy fraction (%)')
+            ax.set_xticks(range(1,11));ax.legend();ax.set_ylim(bottom=0)
+        fig.suptitle(NAMES[name]+' | RMS-only states; checkpoint-defined coordinate bins')
+        for ext in ['png','svg']:fig.savefig(root/name/('gamma_energy.'+ext),dpi=160)
+        plt.close(fig)
         records=[]
         for condition in ['raw','gamma_only','rms_only','rms_gamma_ideal','rms_gamma_actual']:
             record={'Condition':condition}
             for metric in ['ndr','coe_r','coe_c','negative_final_norm']:record[metric]=r['conditions'][condition+'_'+metric]['auc']
             records.append(record);summary.append({'dataset':name,**record})
-        body+=f'<h2>{html.escape(NAMES[name])}</h2><img src="{name}/decomposition.png">'+pd.DataFrame(records).to_html(index=False,float_format=lambda x:f'{x:.3f}')
+        body+=f'<h2>{html.escape(NAMES[name])}</h2><img src="{name}/decomposition.png"><img src="{name}/gamma_energy.png">'+pd.DataFrame(records).to_html(index=False,float_format=lambda x:f'{x:.3f}')
         body+=f'<p>真实末层均值的理想公式重建：最大相对误差 {r["validation"]["max_ideal_vs_saved_relative_error"]:.4%}。</p>'
         body+=f'<p><a href="{name}/analysis.json">全部区间与对照</a> · <a href="{name}/samples.parquet">逐题数据</a> · <a href="{name}/coordinate_decomposition.parquet">坐标分解（描述性）</a></p>'
     pd.DataFrame(summary).to_csv(root/'conditions.csv',index=False)
     (root/'protocol.md').write_text(Path('docs/rms-mechanism.zh-CN.md').read_text())
     body+='<p><a href="protocol.md">机制推导、候选解释与复现协议</a></p>'
+    findings=Path('docs/rms-mechanism-findings.zh-CN.md')
+    if findings.exists():
+        (root/'findings.md').write_text(findings.read_text())
+        body+='<p><a href="findings.md">本轮解释：哪些机制得到支持、哪些仍未知</a></p>'
     body+='<h2>因果边界</h2><p>本实验可以说明 RMS 和 gamma 的数学操作如何改变固定响应的指标，不能说明改变哪个量会让答案变正确。题目难度、词汇和回答结构可能同时影响这些几何量与正确性。将 v 从分母贡献中去掉，也是固定分子的一项算术对照，不是可直接等同于模型真实运行的干预。</p><p><a href="provenance.json">配置与代码版本</a> · <a href="conditions.csv">指标表</a></p>'
     (root/'index.html').write_text('<!doctype html><html lang="zh"><meta charset="utf-8"><title>RMS mechanism</title><style>body{max-width:1250px;margin:40px auto;padding:0 24px;font:16px/1.7 system-ui;color:#18333c}img{width:100%}table{border-collapse:collapse;width:100%}td,th{padding:7px;border-bottom:1px solid #ccd}a{color:#176e68}</style>'+body+'</html>')
     save_json(root/'report_provenance.json',{'code_sha256':file_digest(__file__),'analysis_sha256':file_digest(root/'analysis.json'),
