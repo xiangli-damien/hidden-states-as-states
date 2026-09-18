@@ -187,11 +187,13 @@ def render(cfg):
     intro='<h1>输出置信度能否解释正确性信号？</h1><p class="lead">首 token 分布、全维方向、跨数据集与跨层读出。所有结果来自已保存的 OpenAct 激活，CPU 计算。</p>'
     intro+='<aside><strong>先明确证据边界</strong><ul><li>这是对已查看过的验证集的后续探索，不是新的独立确认。</li><li>v 沿用 terminal-readout 实际工作分支的最弱读出方向定义，在各模型上重算。原项目 Qwen2.5-0.5B 的观察不能自动推广到当前模型；置信度功能仍待验证。</li><li>熵之外没有增益，不等于信息完全相同；有增益，也不等于超越完整输出分布。</li><li>因果采样干预尚未运行；本报告不声称找到维护或写入机制。</li></ul></aside>'
     intro+='<h2>主要结果：prompt-last</h2>'+table_html(overview)+'<p>所有 AUROC 的正向只在发现集确定。新 probe 使用全部维度，不筛选中等幅度通道。nuisance 包含题型、难度、prompt 长度和 RMS。</p>'
+    intro+='<p><strong>判读：</strong>单一首 token 熵不足以替代残差读出；在题型、难度等控制之上，目前尚未确认额外收益。这两点可以同时成立。冻结方向的时间衰减也不等于信息消失，见逐层重新拟合的对照。<a href="findings.md">阅读完整结论与下一步</a>。</p>'
     intro+=f'<h2>跨数据集：冻结源数据上的符号与模型</h2>{image(".",filename,"MMLU 已按完整 prompt 去重；没有用目标标签重新选择方向或符号。")}'
     nav=' · '.join(f'<a href="#{n}">{label}</a>' for n,label in DATA_NAMES.items())
     css='body{font:16px/1.65 system-ui;color:#203246;background:#f4f7fa;max-width:1320px;margin:36px auto;padding:0 24px}h1{font-size:36px}h2{margin-top:32px}.lead{font-size:19px;color:#526273}aside,section{background:white;border:1px solid #dce4eb;border-radius:12px;padding:24px;margin:22px 0}aside{border-left:5px solid #287e93}img{width:100%;height:auto}figure{margin:24px 0}figcaption{color:#516477;font-size:14px}a{color:#176b87}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid #dce4eb;white-space:nowrap}.table{overflow:auto}summary{cursor:pointer;font-weight:600}nav{position:sticky;top:0;padding:14px;background:#f4f7faf2;z-index:2}'
     page='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>置信度与正确性方向 · OpenAct/HSS</title><style>'+css+'</style><nav>'+nav+'</nav>'+intro+''.join(parts)+'<footer><a href="protocol.md">完整协议与条件性因果方案</a> · <a href="analysis.json">分析来源</a> · <a href="transfer.json">全部迁移指标</a></footer></html>'
     (root/'index.html').write_text(page)
     (root/'protocol.md').write_text(Path('docs/confidence-study.zh-CN.md').read_text())
+    (root/'findings.md').write_text(Path('docs/confidence-findings.zh-CN.md').read_text())
     save_json(root/'report_provenance.json',{'code_sha256':file_digest(__file__),
         'figures':{str(p.relative_to(root)):file_digest(p) for p in files},'n_figures':len(files)})
