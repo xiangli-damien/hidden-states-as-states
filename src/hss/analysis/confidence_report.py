@@ -123,6 +123,9 @@ def render(cfg):
                 audit=json.loads(ap.read_text())
                 correlations=audit['pre_prompt_last']['projection_correlations']['correctness_w']
                 parts.append('<p>原始坐标角度与样本分布上的读出相关性不同。以下给出验证题的 Pearson 相关；它们仍是关联指标。</p>'+table_html(pd.DataFrame([correlations]))+f'<p><a href="{name}/audit.json">身份、方向重建及精度子集独立核验</a></p>')
+                energy=audit['pre_prompt_last'].get('weakest_direction_energy')
+                if energy:
+                    parts.append(f'<p>v 承载 prompt-last RMS-only 状态总能量的 <strong>{energy["rms_only"]["total_energy_fraction"]:.2%}</strong>，承载中心化变化能量的 {energy["rms_only"]["centered_energy_fraction"]:.2%}。有一个弱方向，不等于本任务在该方向储存大量状态能量。</p>')
             s=pd.read_parquet(out/'scalars.parquet');rows=pd.read_parquet(out/'samples.parquet')
             tr=rows.partition.eq('discovery');te=rows.partition.eq('confirmation')
             fig,ax=plt.subplots(figsize=(7,3.8),layout='constrained')

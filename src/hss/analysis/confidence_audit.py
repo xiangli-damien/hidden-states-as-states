@@ -49,6 +49,15 @@ def run(cfg):
             corr.to_csv(out/(view+'_projection_correlations.csv'))
             results[view]={'projection_correlations':corr.to_dict(),
                 'channel_vs_entropy_only':paired(y[test],-scalars.prompt_last_entropy.to_numpy()[test],predictions[view+'__channels16'].to_numpy()[test],cfg)}
+            energy={}
+            for rep,values in [('raw',x[test].astype(float)),('rms_only',x[test]/scalars[pos+'_rms'].to_numpy()[test,None])]:
+                mean=values.mean(0); projected=values@g['v_min']
+                total=float(np.mean(np.sum(values*values,axis=1)))
+                mean_energy=float(mean@mean);v_total=float(np.mean(projected**2));v_mean=float(projected.mean()**2)
+                energy[rep]={'total_energy_fraction':v_total/total,
+                    'mean_energy_fraction':v_mean/max(mean_energy,1e-30),
+                    'centered_energy_fraction':(v_total-v_mean)/max(total-mean_energy,1e-30)}
+            results[view]['weakest_direction_energy']=energy
         agreement=precision.policy_argmax.to_numpy()==rows.first_token.to_numpy()
         cohort=test[agreement[test]]
         entropy=-scalars.prompt_last_entropy.to_numpy()[cohort]
