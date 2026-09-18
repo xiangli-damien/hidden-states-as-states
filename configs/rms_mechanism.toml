@@ -7,8 +7,7 @@ cache_root = "/home/ubuntu/hss-rms-mechanism-cache"
 datasets = ["qwen2_math", "llama32_math", "llama32_mmlu"]
 seed = 20260918
 bootstrap = 1000
-workers = 2
+workers = 4
 prefix_tokens = 16
 gamma_permutations = 20
 batch_size = 128
-
