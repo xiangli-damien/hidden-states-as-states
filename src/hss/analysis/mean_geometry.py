@@ -192,7 +192,20 @@ def render(root, results):
                           "Difference":s["difference"],"Cohen d":s["cohen_d"]})
     pd.DataFrame(tables).to_csv(root/"headline.csv", index=False)
     pd.DataFrame(norms).to_csv(root/"final_norms.csv", index=False)
-    intro = """<h1>NDR / CoE：把末层换成 pre-RMSNorm 后</h1>
+    lead = '<section style="border-left:5px solid #277c77;padding:4px 18px;background:#edf5f4"><h2>关键结果（post → pre）</h2>'
+    for name, r in results.items():
+        s = r['scores']; pre = r['pre']['final_norm']; post = r['post']['final_norm']
+        changes = '；'.join(f"{metric.upper()}：{s['post_'+metric]['auc']:.3f} → {s['pre_'+metric]['auc']:.3f}" for metric in METRICS[:3])
+        lead += (f"<p><b>{html.escape(NAMES[name])}，{r['n']:,} 题：</b>{changes}。"
+                 f"末层正确/错误均值范数：{post['correct_mean']:.2f} / {post['incorrect_mean']:.2f} → "
+                 f"{pre['correct_mean']:.2f} / {pre['incorrect_mean']:.2f}。pre 范数均值差的 95% CI："
+                 f"[{pre['difference_ci'][0]:.2f}, {pre['difference_ci'][1]:.2f}]。</p>")
+        ratio = r['pre']['last_to_previous_norm_ratio']
+        lead += (f"<p>真正末层 block 更新后，范数相对前一层的样本内比值，正确/错误组均值为 "
+                 f"{ratio['correct_mean']:.3f} / {ratio['incorrect_mean']:.3f}；"
+                 f"全部样本发生净收缩的比例为 {100*r['pre']['fraction_last_norm_contracts']:.2f}%。</p>")
+    lead += '</section>'
+    intro = '<h1>NDR / CoE：把末层换成 pre-RMSNorm 后</h1>' + lead + """
 <p>只使用已采集的完整 response hidden mean。embedding 和中间层保持不变，仅把最后一层 post-RMS 均值替换为 pre-RMS 均值。无需重新生成。</p>
 <p><b>公式：</b>NDR = 所有层（含 embedding）的向量范数平均 / 最后一层范数；CoE-R、CoE-C 严格按稿件公式 3、4。三个分数均固定“越高越正确”，不根据测试结果翻转符号。</p>
 <p>范数指 ||mean_t(h_t)||，不是 mean_t(||h_t||)。pre 与 post 分别先逐 token 读取，再各自求均值；没有把均值输入 RMSNorm。包括所有已保存的生成 token（含 EOS 等特殊 token），不含 prompt。</p>
@@ -205,8 +218,13 @@ def render(root, results):
     for name, r in results.items():
         body += f'<h2>{html.escape(NAMES[name])}</h2><img src="{name}/norms.png"><img src="{name}/auc.png">'
         body += f'<p><a href="{name}/samples.parquet">逐题分数</a> · <a href="{name}/analysis.json">完整统计</a> · <a href="{name}/norm_profiles.csv">各层范数</a></p>'
+    if (root/'validation.json').exists():
+        body += '<p><a href="validation.json">原始张量／独立公式核验</a></p>'
     body += '<p><a href="protocol.md">协议与复现</a> · <a href="provenance.json">数据与代码版本</a> · <a href="headline.csv">AUROC 表</a> · <a href="final_norms.csv">范数表</a></p>'
     (root/"index.html").write_text('<!doctype html><html lang="zh"><meta charset="utf-8"><title>NDR / CoE pre-norm</title><style>body{max-width:1320px;margin:40px auto;padding:0 24px;font:16px/1.65 system-ui;color:#182b38}h1,h2{color:#174b54}img{width:100%;margin:12px 0}table{border-collapse:collapse;font-size:14px;width:100%}th,td{padding:8px;border-bottom:1px solid #ccd5da;text-align:left}tr:nth-child(even){background:#f4f7f8}a{color:#176872}</style>'+body+'</html>')
+    save_json(root/'report_provenance.json',{'report_source_sha256':file_digest(Path(__file__)),
+              'analysis_sha256':file_digest(root/'analysis.json'),
+              'figures':{str(p.relative_to(root)):file_digest(p) for p in sorted(root.glob('*/*.png'))}})
 
 
 def run(cfg):
@@ -267,4 +285,3 @@ def run(cfg):
     protocol = Path("docs/mean-geometry.zh-CN.md")
     (root/"protocol.md").write_text(protocol.read_text())
     render(root, results)
-
