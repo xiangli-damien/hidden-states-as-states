@@ -148,7 +148,7 @@ def render(cfg):
     overview=pd.DataFrame(heads)
     overview.to_csv(root/'headline.csv',index=False)
     intro='<h1>输出置信度能否解释正确性信号？</h1><p class="lead">首 token 分布、全维方向、跨数据集与跨层读出。所有结果来自已保存的 OpenAct 激活，CPU 计算。</p>'
-    intro+='<aside><strong>先明确证据边界</strong><ul><li>这是对已查看过的验证集的后续探索，不是新的独立确认。</li><li>terminal-readout 没有提供唯一、已验证的 v。本报告的 v_min 是权重定义的新候选，不能提前称为置信度方向。</li><li>熵之外没有增益，不等于信息完全相同；有增益，也不等于超越完整输出分布。</li><li>因果采样干预尚未运行；本报告不声称找到维护或写入机制。</li></ul></aside>'
+    intro+='<aside><strong>先明确证据边界</strong><ul><li>这是对已查看过的验证集的后续探索，不是新的独立确认。</li><li>v 沿用 terminal-readout 实际工作分支的最弱读出方向定义，在各模型上重算。原项目 Qwen2.5-0.5B 的观察不能自动推广到当前模型；置信度功能仍待验证。</li><li>熵之外没有增益，不等于信息完全相同；有增益，也不等于超越完整输出分布。</li><li>因果采样干预尚未运行；本报告不声称找到维护或写入机制。</li></ul></aside>'
     intro+='<h2>主要结果：prompt-last</h2>'+table_html(overview)+'<p>所有 AUROC 的正向只在发现集确定。新 probe 使用全部维度，不筛选中等幅度通道。nuisance 包含题型、难度、prompt 长度和 RMS。</p>'
     intro+=f'<h2>跨数据集：冻结源数据上的符号与模型</h2>{image(".",filename,"MMLU 已按完整 prompt 去重；没有用目标标签重新选择方向或符号。")}'
     nav=' · '.join(f'<a href="#{n}">{label}</a>' for n,label in DATA_NAMES.items())

@@ -15,4 +15,5 @@ equivalence_auc = 0.01
 layer_position = 16
 layer_workers = 4
 layer_datasets = ["llama32_math", "qwen2_math", "llama32_mmlu"]
-reference_commit = "092aca658b554d4625ca9287dc2f75369bddfcdb"
+reference_commit = "0ac9b89ee6318cfbd3a1107f76c5a3f68a5d71ca"
+reference_branch = "codex/pilot-infrastructure"

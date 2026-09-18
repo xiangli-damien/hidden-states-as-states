@@ -16,9 +16,11 @@
 
 ## terminal-readout 的定义核对
 
-参考仓库 `xiangli-damien/terminal-readout`，commit `092aca658b554d4625ca9287dc2f75369bddfcdb`，只包含方案，没有验证过的单一 v 或本模型的 v 权重。其引用的 [Confidence Regulation Neurons](https://arxiv.org/html/2406.16254) 讨论低奇异值子空间。
+参考仓库 `xiangli-damien/terminal-readout` 的实际工作分支 `codex/pilot-infrastructure`，commit `0ac9b89ee6318cfbd3a1107f76c5a3f68a5d71ca`，`docs/readout_geometry_zh.md`、`src/terminal_readout/readout_geometry.py` 和 amendment008。最初只读到旧 main `092aca6`，随后通过用户指出的本地 Codex 项目找到已完成的几何实验，纠正了“没有定义 v”的初始判断。两者记录均保留；计算公式没有因此变化。
 
-因此新增的是**明确标注的候选**，不冒充原项目已发现的方向。设原生 head 为 W、RMSNorm 权重为 gamma；softmax 去掉公共 logit 后的 pre-RMS 有效线性矩阵为 A=(W-mean_vocab(W)) diag(gamma)。
+原项目在 Qwen2.5-0.5B 上发现单一最弱读出方向，并记为 v；尚未证明它有通用置信度功能。本轮在各个新模型自己的 head 中重算相同定义的方向，不能将 896 维原模型向量原样搬到 2048/3584 维新模型。其引用的 [Confidence Regulation Neurons](https://arxiv.org/html/2406.16254) 讨论低奇异值子空间。
+
+本轮 v 是**同定义、各模型重算的对应方向**；其“置信度方向”功能仍是候选解释。设原生 head 为 W、RMSNorm 权重为 gamma；softmax 去掉公共 logit 后的 pre-RMS 有效线性矩阵为 A=(W-mean_vocab(W)) diag(gamma)。
 
 - `v_min`：A 最小奇异值的单位右奇异向量；最大绝对坐标取正确定符号，完全不使用题目标签。报告底部谱与 eigengap。
 - `low_readout_fraction`：pre-RMS 状态落在底部 floor(0.01 D) 个右奇异向量的范数比例。补充 signed projection、绝对 projection 和低子空间能量。该子空间不自动等于置信度。

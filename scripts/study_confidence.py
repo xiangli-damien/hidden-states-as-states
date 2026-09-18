@@ -6,7 +6,7 @@ from hss.analysis.channel_data import load_config
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config', default='configs/confidence_study.toml')
-    p.add_argument('--stage', required=True, choices=['scalars','analyse','layers','layer-analysis','precision','report'])
+    p.add_argument('--stage', required=True, choices=['scalars','analyse','layers','layer-analysis','precision','audit','report'])
     args = p.parse_args()
     cfg = load_config(args.config)
     if args.stage in ['scalars', 'layers']:
@@ -17,6 +17,9 @@ def main():
         run(cfg)
     elif args.stage == 'layer-analysis':
         from hss.analysis.confidence_layers import run
+        run(cfg)
+    elif args.stage == 'audit':
+        from hss.analysis.confidence_audit import run
         run(cfg)
     elif args.stage == 'report':
         from hss.analysis.confidence_report import render
