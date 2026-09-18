@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 from hss.analysis.channel_data import ChannelData
-from hss.analysis.channel_study import split_rows
+from hss.analysis.channel_study import split_rows, auc_ci
+from sklearn.metrics import roc_auc_score
 from hss.experiments.artifacts import save_json, file_digest
 
 
@@ -159,6 +160,24 @@ def dataset_figures(cfg,name):
                 ax.set(xticks=range(len(positions)),xticklabels=positions,yticks=range(len(values)),yticklabels=values.index,xlabel="Generated token position",ylabel="t1-selected channel",title=title)
                 fig.colorbar(im,ax=ax,shrink=.8)
             figures.append((save(fig,root,"temporal"),f"始终用同一批 ≥64-token 的验证回答（n={frame.n.iloc[0]:,}）。保持同号不等于数值直接传播；last 可能为 EOS，与固定早期位置的语义不同。"))
+            trained=next(p for p in probes["pre_t1"] if p["k"]==16)
+            chosen=np.asarray(trained["indices"],int)
+            token_data=ChannelData(cfg,name,"tokens")
+            _,test=split_rows(token_data.rows,cfg)
+            cohort=test[token_data.rows.n_tokens.to_numpy()[test]>=max(cfg["token_positions"])]
+            yy=token_data.rows.y.to_numpy(int)[cohort]
+            readout=[]
+            for i,position in enumerate(token_data.info["positions"]):
+                values=token_data.array("pre",i)[cohort][:,chosen].astype(float)
+                z=(values-np.asarray(trained["train_mean"]))/np.asarray(trained["train_std"])
+                score=z@np.asarray(trained["coef"])+trained["intercept"]
+                ci=auc_ci(yy,score,cfg["seed"])
+                readout.append({"position":str(position),"auc":roc_auc_score(yy,score),"ci_low":ci[0],"ci_high":ci[1],"n":len(cohort)})
+            frozen=pd.DataFrame(readout);frozen.to_csv(root/"temporal_readout.csv",index=False)
+            fig,ax=plt.subplots(figsize=(8.8,3.8),layout="constrained")
+            ax.errorbar(range(len(frozen)),frozen.auc,yerr=[frozen.auc-frozen.ci_low,frozen.ci_high-frozen.auc],fmt="o-",color=COLORS[1],capsize=4)
+            ax.axhline(.5,color="#888",ls="--");ax.set(xticks=range(len(frozen)),xticklabels=frozen.position,xlabel="Generated token position",ylabel="Held-out AUROC",title="Does a frozen first-token readout remain useful?")
+            figures.append((save(fig,root,"temporal_readout"),"冻结 t1 发现集选出的 16 个通道、缩放和 probe 权重，在相同验证回答的后续位置直接读取；未重新训练或翻转方向。它检查同一读出方向是否持续可用，仍然不是因果传播实验。"))
 
         updates=pd.read_csv(root/"prompt_layer_updates.csv")
         mat=updates.pivot(index="channel",columns="layer",values="correct_minus_wrong_update")
@@ -231,4 +250,7 @@ def render(cfg):
     protocol=Path(__file__).resolve().parents[3]/"docs"/"channel-study.zh-CN.md"
     (root/"protocol.md").write_text(protocol.read_text())
     save_json(root/"manifest.json",manifest)
+    save_json(root/"report_provenance.json",{"report_sha256":file_digest(Path(__file__)),
+                "analysis_json_sha256":file_digest(root/"analysis.json"),
+                "temporal_readout":"Freeze pre_t1 discovery-selected k=16 weights; same test cohort >=64 tokens; 500 stratified bootstrap draws."})
     print(str(root/"index.html"),flush=True)
