@@ -13,6 +13,6 @@ c_grid = [0.0001, 0.001, 0.01, 0.1, 1.0]
 inner_folds = 4
 equivalence_auc = 0.01
 layer_position = 16
-layer_workers = 2
+layer_workers = 4
 layer_datasets = ["llama32_math", "qwen2_math", "llama32_mmlu"]
 reference_commit = "092aca658b554d4625ca9287dc2f75369bddfcdb"

@@ -4,6 +4,8 @@ from scipy.special import softmax
 from hss.analysis.confidence_data import distribution_scalars, head_geometry
 from hss.analysis.confidence_study import fit_fixed, control_features, cosine
 from hss.analysis.confidence_precision import penalize
+from hss.analysis.confidence_bootstrap import auc_samples
+from sklearn.metrics import roc_auc_score
 
 
 def test_full_vocabulary_entropy_margin_and_extreme_logits():
@@ -54,3 +56,15 @@ def test_repetition_penalty_uses_unique_prompt_ids_and_sign():
     result=penalize(z,[[0,0,1],[2]],2.)
     np.testing.assert_array_equal(result,[[1.,-4.,4.],[3.,6.,-18.]])
     np.testing.assert_array_equal(z,[[2.,-2.,4.],[3.,6.,-9.]])
+
+
+def test_fast_bootstrap_matches_literal_resampling_with_score_ties():
+    y=np.array([0,0,1,0,1,1,0,1])
+    s=np.array([.2,.2,.3,.4,.8,.1,.1,.8])
+    fast=auc_samples(y,s,7,80)
+    rng=np.random.default_rng(7);groups=[np.flatnonzero(y==k) for k in [0,1]]
+    expected=[]
+    for _ in range(80):
+        idx=np.concatenate([rng.choice(g,len(g),replace=True) for g in groups])
+        expected.append(roc_auc_score(y[idx],s[idx]))
+    np.testing.assert_allclose(fast,expected,atol=1e-14)

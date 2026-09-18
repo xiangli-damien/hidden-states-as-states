@@ -107,6 +107,7 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 - [Lambda installation, performance, storage and large grids](docs/lambda.md)
 - [MFA implementation](docs/mfa.md)
 - [Residual-channel correctness study: held-out effects, transfer and temporal checks](docs/channel-study.zh-CN.md)
+- [Confidence scalars, full-dimensional directions, and cross-layer follow-up](docs/confidence-study.zh-CN.md)
 
 ## Plot without refitting
 

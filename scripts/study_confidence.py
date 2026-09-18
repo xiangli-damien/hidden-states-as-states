@@ -15,6 +15,9 @@ def main():
     elif args.stage == 'precision':
         from hss.analysis.confidence_precision import run
         run(cfg)
+    elif args.stage == 'layer-analysis':
+        from hss.analysis.confidence_layers import run
+        run(cfg)
     elif args.stage == 'report':
         from hss.analysis.confidence_report import render
         render(cfg)

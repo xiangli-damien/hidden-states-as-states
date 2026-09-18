@@ -7,6 +7,7 @@
 - 首 token 的 logits 使用 **prompt-last post-RMS** 状态和采集所用、固定 revision 的原生 LM head。t1 状态预测第二个生成 token。保存两者，分别分析。
 - 完整词表熵（nats）、top1-top2 logit margin、概率 margin、top1 概率；不使用生成过程平均熵充当首 token 熵。
 - CPU float32 重建；检查重建 argmax 与实际首 token，报告 BF16 舍入的影响，不以未经验证的完全等同为前提。
+- 精度审计额外将 head logits 四舍五入回 BF16，并应用实际继承的 repetition penalty。Qwen2 checkpoint 默认 penalty=1.05；本轮报告原生分布与该生成策略的敏感性，不修改在跑采集。Teacher-forced 与 generate prefill 的数值差异仍可能导致不一致，原始 generate 首步 logits 没有被保存。
 - 新主分析不做 medium-magnitude 筛选。旧 K16 仅作为固定的历史比较器，坐标来自旧实验 discovery 排序。
 - 预生成 nuisance：题型、难度、log(prompt 长度)、log(RMS)。诊断 nuisance 另外加入首 token 身份（未来变量，不称作预生成预测器）。
 - 所有标准化和参数拟合只用 discovery。L2 logistic 的 C 在 discovery 内四折选择，网格 1e-4 到 1；重新在全部 discovery 拟合。验证集不参与挑选。
@@ -43,6 +44,7 @@
 ```bash
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage scalars
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage analyse
+OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage precision
 OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 .venv/bin/python scripts/study_confidence.py --stage layers
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 .venv/bin/python scripts/study_confidence.py --stage layer-analysis
 .venv/bin/python scripts/study_confidence.py --stage report
