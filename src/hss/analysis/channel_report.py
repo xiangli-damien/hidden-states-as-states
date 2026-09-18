@@ -204,7 +204,7 @@ def dataset_figures(cfg,name):
 
 def render(cfg):
     root=Path(cfg["output_root"])
-    sections=[];manifest={};overall=[]
+    sections=[];manifest={};overall=[];headlines=[];persistence=[];increments=[]
     for ds in cfg["datasets"]:
         name=ds["name"]
         if not (root/name/"status.json").exists():
@@ -223,6 +223,19 @@ def render(cfg):
         content.append('<h3>“中等幅度”的定义改变时，计数是否稳定？</h3><p>以下是同一组已校正统计的描述性阈值敏感性检查，主要定义仍为 20–95 百分位。</p>'+table_html(sensitivity[sensitivity.view.eq(topview)]))
         counts=summary.loc[[v for v in ["pre_prompt_last","pre_t1","post_t1","pre_mean"] if v in summary.index]].reset_index()
         counts.insert(0,"dataset",name);overall.append(counts)
+        if "pre_t1" in probes:
+            first=next(p for p in probes["pre_t1"] if p["k"]==16)
+            base=next(p for p in probes["pre_t1"] if p["k"]==0)
+            last_counts=summary.loc["pre_t1"]
+            headlines.append({"数据组合":name,"独立问题":status["n"],"复现通道":int(last_counts.replicated_middle),
+                              "受控后复现":int(last_counts.controlled_middle),"16通道 AUROC":round(first["auc"],3),
+                              "AUROC 95% CI":f'{first["ci"][0]:.3f}–{first["ci"][1]:.3f}'})
+            increments.append({"数据组合":name,"nuisance AUROC":base["auc"],"增加16通道 AUROC":first["augmented_auc"],
+                               "增益 95% CI":f'{first["delta_ci"][0]:+.3f}–{first["delta_ci"][1]:+.3f}'})
+        if (root/name/"temporal_readout.csv").exists():
+            readout=pd.read_csv(root/name/"temporal_readout.csv",dtype={"position":str}).set_index("position")
+            persistence.append({"数据组合":name,"t1 AUROC":readout.loc["1","auc"],"t2 AUROC":readout.loc["2","auc"],
+                                "t16 AUROC":readout.loc["16","auc"],"t64 AUROC":readout.loc["64","auc"],"同一批验证题":int(readout.loc["1","n"])})
         sensitivity_path=root/name/"sensitivity_pre_t1.json"
         if sensitivity_path.exists():
             sensitivities=json.loads(sensitivity_path.read_text())
@@ -235,17 +248,27 @@ def render(cfg):
         sections.append("\n".join(content))
     combined=pd.concat(overall,ignore_index=True)
     combined.to_csv(root/"overview.csv",index=False)
+    findings='<section><h2>先看结论与证据</h2><h3>1. 首个生成 token 已存在正误相关差异</h3><p>以下只比较最后 block、最终 RMSNorm 之前的中等幅度通道。所有数字来自独立验证，多个通道不等于多个独立概念。</p>'+table_html(pd.DataFrame(headlines))
+    findings+='<h3>2. 这是否超出了题型、难度等信息？</h3><p>相关信号不一定带来额外预测收益。下表比较同一批验证题，增益区间跨 0 时，不能确认有稳定的额外收益。</p>'+table_html(pd.DataFrame(increments))
+    findings+='<h3>3. 同一组首 token 信号是否沿生成过程保持？</h3><p>冻结首 token 的选择、缩放和权重，不在后面重新寻找通道。对全部位置使用同一批足够长的回答；0.5 代表随机排序。</p>'+table_html(pd.DataFrame(persistence))
+    transfer_path=root/"llama32_math"/"transfer.json"
+    if transfer_path.exists():
+        transfer=json.loads(transfer_path.read_text())
+        frozen=[{"视图":t["view"],"MATH AUROC":t["source_test_auc"],"直接转移 MMLU AUROC":t["target_test_auc"],"MMLU 95% CI":f'{t["target_ci"][0]:.3f}–{t["target_ci"][1]:.3f}'} for t in transfer if t["mode"]=="raw"]
+        findings+='<h3>4. 是否存在跨题集统一的坐标？</h3><p>下面冻结 Llama MATH 的 16 通道 probe，直接测试 MMLU。数据集内能读出与跨数据集能转移是两件事。另一模型 Qwen 的同号数字不代表相同神经元。</p>'+table_html(pd.DataFrame(frozen))
+    findings+='<h3>5. 怎样写入和维持？当前证据还不够</h3><p>逐层图定位的是残差总更新与正误差异的关联。现有数据没有 attention/MLP 内部输出，也没有执行干预。下一步需要同题不同正确性轨迹、模块输出分解及带随机/等范数对照的 activation patching；方案见完整协议。</p></section>'
+    save_json(root/"headline_findings.json",{"first_token":headlines,"incremental":increments,"persistence":persistence})
     cross=''
     if (root/"coordinate_overlap.json").exists():
         overlap=pd.DataFrame(json.loads((root/"coordinate_overlap.json").read_text())).drop(columns="same_direction_indices")
         cross='<section><h2>Llama MATH 与 MMLU：是否是同一批位置？</h2><p>两边各自的独立验证都成立，才计算交集；同时列出同号的数量。它与冻结 MATH probe 的跨任务转移是不同检验。</p>'+table_html(overlap)+'</section>'
-    intro='''<header><div class="eyebrow">OPENACT / HSS · OBSERVATIONAL STUDY</div><h1>正确与错误之间，哪些残差通道有差异？</h1><p>两个模型、三个完整模型×数据集组合，独立发现与验证。先确认现象，再检验跨题型、跨数据集和时间保持。</p></header>
+    intro='''<header><div class="eyebrow">OPENACT / HSS · OBSERVATIONAL STUDY</div><h1>中等幅度残差通道中的正误相关信号</h1><p>两个模型、三个完整模型×数据集组合，独立发现与验证。先确认现象，再检验跨题型、跨数据集和时间保持。</p></header>
 <div class="note"><strong>证据边界：</strong>本报告研究 residual channel，不是 MLP neuron。可读出正误相关信息不等于存储“真值”，也不证明该通道决定正确性。首生成 token 状态位于它被输入模型之后；prompt-last 才用于预测该 token。当前没有执行因果干预。</div>
 <section><h2>检验标准</h2><p>先按完整 prompt 去重，再做 40% 发现 / 60% 验证。MATH 无重复；MMLU 14,042 条保留 13,937 个独立 prompt。中等幅度 = 发现集通道 RMS 的 20–95 百分位，并排除极端峰值。两边 |Cohen’s d|≥0.2、同号且所有层/位置的 BH-FDR≤0.05，才记为“复现”。“受控”另要求题型、难度、prompt 长度、首 token 和向量 RMS 控制后复现。<a href="protocol.md">完整协议与机制实验设计</a></p>
 <p>这些是当前数据上的新研究，不是对原论文“真实性神经元”的复现。回顾均值含完整答案；不得作为生成前预测。计数中的多个坐标可能编码同一低维方向。</p></section>'''
     nav='<nav>'+"".join(f'<a href="#{html.escape(d["name"])}">{html.escape(d["name"])}</a>' for d in cfg["datasets"])+ '</nav>'
     css='''body{margin:0;background:#f4f6f8;color:#233140;font:16px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px}h1{font-size:38px;line-height:1.2;max-width:900px}h2{font-size:25px;border-bottom:1px solid #dce3e9;padding-bottom:12px}h3{margin-top:32px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;color:#287e93}header p{font-size:18px;color:#556779}section{background:white;padding:28px;border:1px solid #e2e7ed;border-radius:14px;margin:26px 0;scroll-margin-top:60px}.note{padding:20px 24px;background:#e7f0f4;border-left:4px solid #287e93;border-radius:6px;margin:28px 0}nav{position:sticky;top:0;background:#f4f6f8ed;padding:14px 0;display:flex;gap:24px;z-index:5;backdrop-filter:blur(8px)}a{color:#17667d;text-decoration:none}a:hover{text-decoration:underline}.cards{display:flex;gap:25px;flex-wrap:wrap}.cards div{flex:1;background:#f6f8fa;padding:14px;border-radius:9px;min-width:120px;font-size:13px}.cards b{display:block;font-size:24px}figure{margin:28px 0 40px}figure img{width:100%;height:auto;border:1px solid #e4e8ed;border-radius:7px}figcaption{font-size:14px;color:#5d6c7b;padding:9px 2px}.table{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px 10px;border-bottom:1px solid #e3e8ee}th{background:#f3f6f8;white-space:nowrap}.downloads{font-size:14px}footer{font-size:13px;color:#617180}'''
-    page=f'<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>残差通道与正确性 · OpenAct / HSS</title><style>{css}</style><main>{intro}{nav}<section><h2>完整结果概览</h2>{table_html(combined)}</section>{cross}'+"\n".join(sections)+'<footer>本报告保留全部计划视图、源数据身份、逐题划分、模型参数和统计表。代码与原始 collector 分离；原始 Zarr 未修改。<a href="analysis.json">分析配置 / 版本</a> · <a href="manifest.json">图表校验值</a></footer></main></html>'
+    page=f'<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>残差通道与正确性 · OpenAct / HSS</title><style>{css}</style><main>{intro}{nav}{findings}<section><details><summary><strong>完整结果概览：pre/post RMS 与 prompt/生成均值</strong></summary>{table_html(combined)}</details></section>{cross}'+"\n".join(sections)+'<footer>本报告保留全部计划视图、源数据身份、逐题划分、模型参数和统计表。代码与原始 collector 分离；原始 Zarr 未修改。<a href="analysis.json">分析配置 / 版本</a> · <a href="manifest.json">图表校验值</a></footer></main></html>'
     (root/"index.html").write_text(page)
     protocol=Path(__file__).resolve().parents[3]/"docs"/"channel-study.zh-CN.md"
     (root/"protocol.md").write_text(protocol.read_text())
