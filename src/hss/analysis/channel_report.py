@@ -210,7 +210,7 @@ def render(cfg):
         if not (root/name/"status.json").exists():
             continue
         figures,status,summary,stats,probes=dataset_figures(cfg,name)
-        cards=f'<div class="cards"><div><b>{status["n"]:,}</b>问题</div><div><b>{status["correct"]/status["n"]:.1%}</b>正确率</div><div><b>{status["train"]:,} / {status["test"]:,}</b>发现 / 验证</div><div><b>{status["model"]["hidden_dim"]:,}</b>残差通道 / 层</div></div>'
+        cards=f'<div class="cards"><div><b>{status["n"]:,}</b>独立 prompt（原始 {status.get("original_n",status["n"]):,} 条）</div><div><b>{status["correct"]/status["n"]:.1%}</b>正确率</div><div><b>{status["train"]:,} / {status["test"]:,}</b>发现 / 验证</div><div><b>{status["model"]["hidden_dim"]:,}</b>残差通道 / 层</div></div>'
         content=[f'<section id="{name}"><h2>{name}</h2>',cards]
         for filename,caption in figures:
             content.append(tag_image(name,filename,caption))
@@ -241,7 +241,7 @@ def render(cfg):
         cross='<section><h2>Llama MATH 与 MMLU：是否是同一批位置？</h2><p>两边各自的独立验证都成立，才计算交集；同时列出同号的数量。它与冻结 MATH probe 的跨任务转移是不同检验。</p>'+table_html(overlap)+'</section>'
     intro='''<header><div class="eyebrow">OPENACT / HSS · OBSERVATIONAL STUDY</div><h1>正确与错误之间，哪些残差通道有差异？</h1><p>两个模型、三个完整模型×数据集组合，独立发现与验证。先确认现象，再检验跨题型、跨数据集和时间保持。</p></header>
 <div class="note"><strong>证据边界：</strong>本报告研究 residual channel，不是 MLP neuron。可读出正误相关信息不等于存储“真值”，也不证明该通道决定正确性。首生成 token 状态位于它被输入模型之后；prompt-last 才用于预测该 token。当前没有执行因果干预。</div>
-<section><h2>检验标准</h2><p>40% 发现 / 60% 验证；中等幅度 = 发现集通道 RMS 的 20–95 百分位，并排除极端峰值。两边 |Cohen’s d|≥0.2、同号且所有层/位置的 BH-FDR≤0.05，才记为“复现”。“受控”另要求题型、难度、prompt 长度、首 token 和向量 RMS 控制后复现。<a href="protocol.md">完整协议与机制实验设计</a></p>
+<section><h2>检验标准</h2><p>先按完整 prompt 去重，再做 40% 发现 / 60% 验证。MATH 无重复；MMLU 14,042 条保留 13,937 个独立 prompt。中等幅度 = 发现集通道 RMS 的 20–95 百分位，并排除极端峰值。两边 |Cohen’s d|≥0.2、同号且所有层/位置的 BH-FDR≤0.05，才记为“复现”。“受控”另要求题型、难度、prompt 长度、首 token 和向量 RMS 控制后复现。<a href="protocol.md">完整协议与机制实验设计</a></p>
 <p>这些是当前数据上的新研究，不是对原论文“真实性神经元”的复现。回顾均值含完整答案；不得作为生成前预测。计数中的多个坐标可能编码同一低维方向。</p></section>'''
     nav='<nav>'+"".join(f'<a href="#{html.escape(d["name"])}">{html.escape(d["name"])}</a>' for d in cfg["datasets"])+ '</nav>'
     css='''body{margin:0;background:#f4f6f8;color:#233140;font:16px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px}h1{font-size:38px;line-height:1.2;max-width:900px}h2{font-size:25px;border-bottom:1px solid #dce3e9;padding-bottom:12px}h3{margin-top:32px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;color:#287e93}header p{font-size:18px;color:#556779}section{background:white;padding:28px;border:1px solid #e2e7ed;border-radius:14px;margin:26px 0;scroll-margin-top:60px}.note{padding:20px 24px;background:#e7f0f4;border-left:4px solid #287e93;border-radius:6px;margin:28px 0}nav{position:sticky;top:0;background:#f4f6f8ed;padding:14px 0;display:flex;gap:24px;z-index:5;backdrop-filter:blur(8px)}a{color:#17667d;text-decoration:none}a:hover{text-decoration:underline}.cards{display:flex;gap:25px;flex-wrap:wrap}.cards div{flex:1;background:#f6f8fa;padding:14px;border-radius:9px;min-width:120px;font-size:13px}.cards b{display:block;font-size:24px}figure{margin:28px 0 40px}figure img{width:100%;height:auto;border:1px solid #e4e8ed;border-radius:7px}figcaption{font-size:14px;color:#5d6c7b;padding:9px 2px}.table{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px 10px;border-bottom:1px solid #e3e8ee}th{background:#f3f6f8;white-space:nowrap}.downloads{font-size:14px}footer{font-size:13px;color:#617180}'''

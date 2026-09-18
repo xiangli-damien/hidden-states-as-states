@@ -7,6 +7,7 @@ Missing late positions stay NaN, never silently repeat a response's last token.
 
 from concurrent.futures import ThreadPoolExecutor
 import json
+import hashlib
 from pathlib import Path
 import shutil
 import time
@@ -31,6 +32,36 @@ def source_identity(path):
     required = ["manifest.json", "data.parquet", "labels/correctness.parquet",
                 "_SUCCESS", "_COPY_VERIFIED.json"]
     return {name: file_digest(path / name) for name in required}
+
+
+def canonical_questions(frame):
+    """Choose a canonical prompt occurrence without inspecting correctness labels."""
+    keys = frame.prompt_text.astype(str).str.replace(r"\s+", " ", regex=True).str.strip()
+    hashed = keys.map(lambda value: hashlib.sha256(value.encode()).hexdigest())
+    return pd.DataFrame({"sample_id":frame.sample_id.astype(str), "prompt_sha256":hashed,
+                         "canonical_question":~hashed.duplicated(keep="first")})
+
+
+def prepare_question_identity(cfg):
+    for ds in cfg["datasets"]:
+        root = Path(cfg["cache_root"])/ds["name"]
+        summary_marker = root/"summary"/"_SUCCESS.json"
+        if not summary_marker.exists():
+            continue
+        info = json.loads(summary_marker.read_text())
+        key = digest({"sources":info["source_keys"],"rule":"normalized_prompt_first_occurrence_v1"})
+        marker = root/"question_identity.json"
+        if marker.exists() and json.loads(marker.read_text())["key"] == key:
+            continue
+        frames = [pd.read_parquet(Path(ds["path"])/shard/"data.parquet",columns=["sample_id","prompt_text","ground_truth"]) for shard in info["shards"]]
+        frame = pd.concat(frames,ignore_index=True)
+        identities = canonical_questions(frame)
+        conflicts = pd.DataFrame({"prompt":identities.prompt_sha256,"gold":frame.ground_truth.astype(str)}).groupby("prompt").gold.nunique()
+        identities.to_parquet(root/"question_identity.parquet",index=False)
+        save_json(marker,{"key":key,"original_n":len(frame),"unique_prompts":int(identities.canonical_question.sum()),
+                          "duplicate_extra_rows":int((~identities.canonical_question).sum()),
+                          "duplicate_groups_with_conflicting_gold":int((conflicts>1).sum()),
+                          "rule":"First occurrence in sorted published shard/row order, independent of labels."})
 
 
 def read_rows(path, z):
@@ -159,10 +190,19 @@ class ChannelData:
         self.root = Path(cfg["cache_root"]) / name / phase
         self.info = json.loads((self.root / "_SUCCESS.json").read_text())
         self.rows = pd.read_parquet(self.root / "rows.parquet")
+        self.raw_n = len(self.rows)
+        self._indices = np.arange(self.raw_n)
+        identity_path = self.root.parent/"question_identity.parquet"
+        if identity_path.exists():
+            identity = pd.read_parquet(identity_path).set_index("sample_id").loc[self.rows.sample_id]
+            self._indices = np.flatnonzero(identity.canonical_question.to_numpy(bool))
+            self.rows = self.rows.iloc[self._indices].reset_index(drop=True)
+            self.rows["prompt_sha256"] = identity.prompt_sha256.iloc[self._indices].to_numpy()
+            self.info["question_identity"] = json.loads((self.root.parent/"question_identity.json").read_text())
 
     def array(self, name, index=None):
         arrays = []
         for shard in self.info["shards"]:
             a = np.load(self.root / shard / f"{name}.npy", mmap_mode="r", allow_pickle=False)
             arrays.append(np.asarray(a if index is None else a[:, index, :]))
-        return np.concatenate(arrays)
+        return np.concatenate(arrays)[self._indices]

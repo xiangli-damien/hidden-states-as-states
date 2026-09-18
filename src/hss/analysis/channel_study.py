@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from hss.analysis.channel_data import ChannelData
+from hss.analysis.channel_data import ChannelData, prepare_question_identity
 from hss.experiments.artifacts import digest, file_digest, save_json, runtime_versions
 
 
@@ -370,6 +370,7 @@ def compare_coordinates(root):
 
 
 def run(cfg):
+    prepare_question_identity(cfg)
     root = Path(cfg["output_root"])
     root.mkdir(parents=True,exist_ok=True)
     version = file_digest(Path(__file__))
@@ -441,6 +442,7 @@ def run(cfg):
         transfer(cfg,name,table,train,test,destination)
         layer_updates(cfg,name,table,train,test,destination)
         status = {"name":name,"n":len(rows),"correct":int(rows.y.sum()),"train":len(train),"test":len(test),
+                  "original_n":data.raw_n,"question_identity":data.info.get("question_identity"),
                   "truncated":int(rows.truncated.sum()),"parse_failed":int(rows.parse_failed.sum()),
                   "views":len(frames),"model":data.info["model"],"split_seed":cfg["seed"]}
         save_json(destination/"status.json",status)
