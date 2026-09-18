@@ -68,6 +68,15 @@ def dataset_figures(cfg,name):
     labels = ["Prompt / pre-RMS","Prompt / post-RMS","Token 1 / pre-RMS","Token 1 / post-RMS","Mean / pre-RMS","Mean / post-RMS"]
     overview_labels = dict(zip(overview,labels))
     overview = [v for v in overview if v in summary.index]
+    sensitivity=[]
+    for view in overview:
+        part=stats[stats.view.eq(view)]
+        for low,high in [(.1,.99),(.2,.95),(.4,.9)]:
+            keep=part.rms_percentile.between(low,high) & (part.peak_to_median_rms<cfg["massive_ratio"])
+            sensitivity.append({"view":view,"low_rms_percentile":low,"high_rms_percentile":high,
+                                "eligible":int(keep.sum()),"replicated":int((keep&part.replicated).sum()),
+                                "controlled":int((keep&part.controlled).sum())})
+    pd.DataFrame(sensitivity).to_csv(root/"amplitude_sensitivity.csv",index=False)
     figures=[]
     with plt.rc_context(STYLE):
         fig,ax = plt.subplots(figsize=(9,4.4),layout="constrained")
@@ -191,6 +200,8 @@ def render(cfg):
         chosen=stats[stats.view.eq(topview)&stats.middle].sort_values("discovery_control_p").head(16)
         content.append('<h3>发现集选出的 16 个位置（0-based）</h3><p>按发现集受控信号排序，不按测试表现挑选。下表不是“已证实的正确性神经元”。</p>')
         content.append(table_html(chosen[["channel","rms_percentile","discovery_d","test_d","test_control_r","test_control_q_global","replicated","controlled"]]))
+        sensitivity=pd.read_csv(root/name/"amplitude_sensitivity.csv")
+        content.append('<h3>“中等幅度”的定义改变时，计数是否稳定？</h3><p>以下是同一组已校正统计的描述性阈值敏感性检查，主要定义仍为 20–95 百分位。</p>'+table_html(sensitivity[sensitivity.view.eq(topview)]))
         counts=summary.loc[[v for v in ["pre_prompt_last","pre_t1","post_t1","pre_mean"] if v in summary.index]].reset_index()
         counts.insert(0,"dataset",name);overall.append(counts)
         sensitivity_path=root/name/"sensitivity_pre_t1.json"
