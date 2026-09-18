@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.special import softmax
 from hss.analysis.confidence_data import distribution_scalars, head_geometry
 from hss.analysis.confidence_study import fit_fixed, control_features, cosine
+from hss.analysis.confidence_precision import penalize
 
 
 def test_full_vocabulary_entropy_margin_and_extreme_logits():
@@ -46,3 +47,10 @@ def test_pregeneration_nuisance_does_not_consume_opening_tokens():
     _,diagnostic=control_features(rows,x,train,True)
     assert not any('first_token' in s for s in names)
     assert any('first_token' in s for s in diagnostic)
+
+
+def test_repetition_penalty_uses_unique_prompt_ids_and_sign():
+    z=np.array([[2.,-2.,4.],[3.,6.,-9.]])
+    result=penalize(z,[[0,0,1],[2]],2.)
+    np.testing.assert_array_equal(result,[[1.,-4.,4.],[3.,6.,-18.]])
+    np.testing.assert_array_equal(z,[[2.,-2.,4.],[3.,6.,-9.]])
