@@ -6,6 +6,7 @@ from hss.analysis.confidence_study import fit_fixed, control_features, cosine
 from hss.analysis.confidence_precision import penalize
 from hss.analysis.confidence_bootstrap import auc_samples
 from sklearn.metrics import roc_auc_score
+from hss.analysis.confidence_readout_check import intervention
 
 
 def test_full_vocabulary_entropy_margin_and_extreme_logits():
@@ -68,3 +69,13 @@ def test_fast_bootstrap_matches_literal_resampling_with_score_ties():
         idx=np.concatenate([rng.choice(g,len(g),replace=True) for g in groups])
         expected.append(roc_auc_score(y[idx],s[idx]))
     np.testing.assert_allclose(fast,expected,atol=1e-14)
+
+
+def test_readout_intervention_identity_and_exact_null_temperature_control():
+    rng=np.random.default_rng(13);h=rng.normal(size=(7,3));v=np.array([0.,0.,1.])
+    w=rng.normal(size=(12,3));w[:,2]=0;gamma=np.array([.4,2.,1.5])
+    base,changed,temp,modified=intervention(h,v,v,0.,w,gamma,1e-5)
+    direct=(modified/np.sqrt(np.mean(modified**2,axis=1,keepdims=True)+1e-5)*gamma)@w.T
+    np.testing.assert_allclose(changed,direct,atol=1e-12)
+    np.testing.assert_allclose(changed,temp,atol=1e-12)
+    np.testing.assert_array_equal(base.argmax(1),changed.argmax(1))

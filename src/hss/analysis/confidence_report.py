@@ -78,6 +78,11 @@ def render(cfg):
                 'nuisance + 熵':models['nuisance_entropy']['auc'],
                 '再加16通道增益':f"{delta['delta']:+.3f} [{delta['ci'][0]:+.3f}, {delta['ci'][1]:+.3f}]"})
             parts.append(f'<section id="{name}"><h2>{DATA_NAMES[name]}</h2><p>分析 {a["n"]:,} 题，发现 {a["train_n"]:,} / 验证 {a["test_n"]:,}。首 token FP32 重建 argmax 一致率 {meta["first_token_argmax_agreement"]:.2%}；不一致 {meta["mismatch_n"]} 题。<a href="{name}/scalars.json">精度与模型记录</a> · <a href="{name}/examples.html">查看题目和原始回答</a></p>')
+            pp=out/'precision.json'
+            if pp.exists():
+                precision=json.loads(pp.read_text())
+                entropy=next(r for r in precision['scalars'] if r['metric']=='policy_entropy')
+                parts.append(f'<p><strong>精度／解码策略审计：</strong>采用 BF16 舍入及原生 repetition penalty={precision["effective_repetition_penalty"]:g} 后，首 token 一致率 {precision["agreement"]["policy_argmax"]:.2%}；相应熵 AUROC={entropy["auc"]:.3f}。Teacher-forced 状态与 generate prefill 仍有数值差异，原始生成首步 logits 未保存，不能声称完全重放原始分布。<a href="{name}/precision.json">完整敏感性结果</a></p>')
             fig,axs=plt.subplots(1,2,figsize=(13,4.6),layout='constrained')
             for ax,pos in zip(axs,['prompt_last','t1']):
                 records=[r for metric in LABELS for r in a['scalars'] if r['position']==pos and r['metric']==metric]
@@ -113,6 +118,11 @@ def render(cfg):
             axs[1].axvline(0,color='#aaa');axs[1].invert_yaxis()
             filename=save(fig,out,'geometry');files.append(out/filename)
             parts.append(image(name,filename,f"难度方向以更高 level 为正；因此负余弦也可表示对齐。题型为多类，w 落在题型系数子空间的范数比例为 {g['category_subspace_w_fraction']:.3f}。谱上低值并不自动证明置信度功能。"))
+            ap=out/'audit.json'
+            if ap.exists():
+                audit=json.loads(ap.read_text())
+                correlations=audit['pre_prompt_last']['projection_correlations']['correctness_w']
+                parts.append('<p>原始坐标角度与样本分布上的读出相关性不同。以下给出验证题的 Pearson 相关；它们仍是关联指标。</p>'+table_html(pd.DataFrame([correlations]))+f'<p><a href="{name}/audit.json">身份、方向重建及精度子集独立核验</a></p>')
             s=pd.read_parquet(out/'scalars.parquet');rows=pd.read_parquet(out/'samples.parquet')
             tr=rows.partition.eq('discovery');te=rows.partition.eq('confirmation')
             fig,ax=plt.subplots(figsize=(7,3.8),layout='constrained')
@@ -139,6 +149,8 @@ def render(cfg):
                     ax.axhline(.5,color='#aaa',ls='--');ax.set(xlabel='Decoder block output (final = pre-RMS)',ylabel='Held-out AUROC',title=pos);ax.legend(fontsize=8)
                 filename=save(fig,out,'layers');files.append(out/filename)
                 parts.append(image(name,filename,f"同一批 ≥16-token 验证题 n={lr['same_cohort_n']:,}。冻结方向失效但同层拟合成功，支持表示改变；两者都失败仍不能证明信息消失。prompt 状态在 causal decoder 中保持不变，不能由此断言 attention 回取。"))
+            else:
+                parts.append('<p><strong>此数据的 token16 全层提取／分析尚在运行，本节图未完成。</strong></p>')
             parts.append('<details><summary>展开完整数值、原始标量符号及模型选择</summary>'+table_html(pd.DataFrame(a['scalars']))+f'<p><a href="{name}/analysis.json">全部拟合、内部交叉验证与增量 CI</a> · <a href="{name}/predictions.parquet">逐题预测</a> · <a href="{name}/scalars.parquet">逐题标量</a></p></details></section>')
             examples(cfg,ds,out)
         transfer=json.loads((root/'transfer.json').read_text())
