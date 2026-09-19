@@ -30,6 +30,16 @@ from hss.provenance import stage_version
 class AcceleratedStudy(ClusterStudy):
     """MFA alone uses CUDA; GMM/KMeans and score/ICL evaluation remain on CPU."""
 
+    def report(self):
+        super().report()
+        page = self.root / "index.html"
+        body = page.read_text().replace(" · CPU</p>", " · MFA EM on GPU</p>")
+        body = body.replace("<h2>Ablation results</h2>",
+            "<p>Completed CPU fits are retained with their original provenance; "
+            "new MFA fits continue in float64 on GPU. Scientific parameters are unchanged. "
+            "<a href='migration.json'>Execution migration receipt</a></p><h2>Ablation results</h2>")
+        page.write_text(body)
+
     def run_tasks(self, phase, tasks):
         cpu = [t for t in tasks if t["method"] != "mfa"]
         gpu = [t for t in tasks if t["method"] == "mfa"]
