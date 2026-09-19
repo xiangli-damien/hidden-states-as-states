@@ -170,7 +170,9 @@ def render(root):
         exploration_sha256=file_digest(root / "exploration.json"),
         template_sha256=file_digest(template), renderer_sha256=file_digest(Path(__file__))))
     payload = json.dumps(report, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
-    (root / "index.html").write_text(template.read_text().replace("__CLUSTER_DATA__", payload))
+    distance_link = '<a href="distance.html">06 中心距离分析</a>' if (root / 'distance.html').exists() else ''
+    page = template.read_text().replace("__CLUSTER_DATA__", payload).replace('__DISTANCE_LINK__', distance_link)
+    (root / "index.html").write_text(page)
     export_figure(report, root)
     emit("render_complete", path=str(root / "index.html"))
 

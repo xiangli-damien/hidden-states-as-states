@@ -7,7 +7,7 @@
 <header><div class="eyebrow">Representation geometry / Frozen fits</div><h1>从一个簇，看见它由什么构成</h1>
 <p>Qwen2-7B-Instruct × MATH · 5,000 条 · 最后一层 post-RMS · 原始 3,584 维生成均值</p>
 <p class="muted">从整体地图到簇画像，再到簇内变化方向和原始回答。默认比较固定 K = 21；另保留各方法已选 K 的结果。</p>
-<nav><a href="#map">01 结构地图</a><a href="#portrait">02 簇画像</a><a href="#geometry">03 簇内方向</a><a href="#agreement">04 方法对照</a><a href="#examples">05 原始样本</a></nav>
+<nav><a href="#map">01 结构地图</a><a href="#portrait">02 簇画像</a><a href="#geometry">03 簇内方向</a><a href="#agreement">04 方法对照</a><a href="#examples">05 原始样本</a>__DISTANCE_LINK__</nav>
 <div class="notice">聚类使用原始 hidden mean，没有额外 normalization 或降维。PCA / t-SNE 仅用于展示。所有画像均为同批样本的描述统计；正确率差异不能直接解释成“正确性状态”或因果机制。</div></header>
 <section id="map"><h2>01 / 同一批题，多种结构视角</h2>
 <div class="controls"><label>聚类方法<select id="method" class="wide-select"></select></label><label>共享投影<select id="embedding"></select></label><label>点的颜色<select id="color"><option value="cluster">簇编号</option><option value="correct">正确 / 错误</option><option value="category">题型</option><option value="level">MATH 难度</option><option value="tokens">生成长度（log）</option></select></label><label>选择簇<select id="cluster"></select></label><label>其他簇<select id="focus"><option value="all">全部显示</option><option value="dim">淡化其他簇</option><option value="only">只看当前簇</option></select></label><button id="resetZoom">重置视角</button></div>
