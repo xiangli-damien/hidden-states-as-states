@@ -27,7 +27,7 @@ def correlation(x, y):
     return float(r) if np.isfinite(r) else None
 
 
-def conditional_models(meta, scores, labels, norm):
+def conditional_models(meta, scores, labels, norm, numeric_configs=None):
     """Cross-fit labels only; clusters themselves were fitted on all samples.
 
     These are conditional/transductive checks, NOT a held-out cluster pipeline.
@@ -45,6 +45,8 @@ def conditional_models(meta, scores, labels, norm):
         configs['plus_mahalanobis'] = ['length', 'norm', 'mahalanobis']
     if 'parallel' in scores:
         configs['plus_factor_parts'] = ['length', 'norm', 'parallel', 'perpendicular']
+    if numeric_configs is not None:
+        configs = numeric_configs
     y = meta.label.to_numpy()
     folds = list(StratifiedKFold(5, shuffle=True, random_state=42).split(frame, y))
     fold_ids = np.zeros(len(y), dtype=int)
@@ -185,7 +187,9 @@ def render(root):
     data = json.loads((root/'distances.json').read_text())
     template = Path(__file__).parents[1]/'src/hss/reporting/templates/cluster_distances.html'
     payload = json.dumps(data, ensure_ascii=False, allow_nan=False).replace('<', '\\u003c')
-    (root/'distance.html').write_text(template.read_text().replace('__DATA__', payload))
+    angle_link = ' · <a href="angles.html">长度、norm 与角度补偿</a>' if (root/'angles.html').exists() else ''
+    page = template.read_text().replace('__DATA__', payload).replace('__ANGLE_LINK__', angle_link)
+    (root/'distance.html').write_text(page)
     save_json(root/'distance_render_manifest.json', dict(
         data_sha256=file_digest(root/'distances.json'), template_sha256=file_digest(template),
         renderer_sha256=file_digest(Path(__file__))))

@@ -41,3 +41,28 @@ def cluster_percentiles(values, labels):
         idx = np.flatnonzero(labels == label)
         result[idx] = (rankdata(values[idx], method="average") - .5) / len(idx)
     return result
+
+
+def radial_angular_distances(X, centers):
+    """Exact law-of-cosines decomposition around the representation origin.
+
+    Unit-direction chord is a diagnostic only; it never changes fitted inputs.
+    An angle is undefined for a zero vector, so reject rather than invent it.
+    """
+    X, centers = np.asarray(X, dtype=float), np.asarray(centers, dtype=float)
+    if X.shape != centers.shape or X.ndim != 2:
+        raise ValueError('One center per sample is required')
+    r, s = np.linalg.norm(X, axis=1), np.linalg.norm(centers, axis=1)
+    if np.any(r == 0) or np.any(s == 0):
+        raise ValueError('Cannot define angles for zero vectors')
+    unit_difference = X/r[:, None] - centers/s[:, None]
+    chord2 = np.clip(np.square(unit_difference).sum(1), 0, 4)
+    theta = 2*np.arcsin(np.sqrt(chord2)/2)
+    radial2 = (r-s)**2
+    angular2 = r*s*chord2
+    distance2 = np.square(X-centers).sum(1)
+    return dict(norm=r, center_norm=s, angle=theta, chord=np.sqrt(chord2),
+                radial=np.sqrt(radial2), angular=np.sqrt(angular2),
+                euclidean=np.sqrt(distance2),
+                angular_fraction=np.divide(angular2, distance2, out=np.zeros_like(angular2), where=distance2>0),
+                identity_error=np.abs(distance2-radial2-angular2))
