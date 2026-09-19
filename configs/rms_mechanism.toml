@@ -1,0 +1,13 @@
+channel_config = "configs/channel_study.toml"
+confidence_config = "configs/confidence_study.toml"
+prior_root = "/lambda/nfs/dami/hss/channel-study-20260918"
+geometry_root = "/lambda/nfs/dami/hss/mean-geometry-20260918"
+output_root = "/lambda/nfs/dami/hss/rms-mechanism-20260918"
+cache_root = "/home/ubuntu/hss-rms-mechanism-cache"
+datasets = ["qwen2_math", "llama32_math", "llama32_mmlu"]
+seed = 20260918
+bootstrap = 1000
+workers = 4
+prefix_tokens = 16
+gamma_permutations = 20
+batch_size = 128

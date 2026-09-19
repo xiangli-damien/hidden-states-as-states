@@ -7,6 +7,8 @@ from .auto_k import select_k_gmm, select_k_kmeans
 from .base import BatchFactory, ClusterModel, _materialize
 from .gmm import _fit_gmm, _gmm_kwargs_from_params
 from .kmeans import _fit_kmeans
+from .mfa import fit_mfa
+from .metrics import compute_icl
 
 
 def fit_cluster(
@@ -21,6 +23,19 @@ def fit_cluster(
     params: Dict[str, Any],
 ) -> ClusterModel:
     m = method.lower()
+    if m == 'mfa':
+        X = _materialize(factory)
+        if k is not None:
+            return fit_mfa(X, k, seed, **params)
+        candidates = []
+        for components in range(max(1, k_range[0]), min(k_range[1], len(X) - 1) + 1):
+            model = fit_mfa(X, components, seed, **params)
+            candidates.append((compute_icl(model, X, icl_mode), components, model))
+        if not candidates:
+            raise ValueError('No valid MFA candidate k')
+        best = min(x[0] for x in candidates)
+        return min((x for x in candidates if x[0] <= best + tolerance * max(abs(best), 1.)),
+                   key=lambda x: x[1])[2]
     if m == 'kmeans':
         X = _materialize(factory)
         if k is not None:

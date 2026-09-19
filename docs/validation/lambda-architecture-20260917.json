@@ -1,0 +1,129 @@
+{
+  "code_commit": "377063496ee90774485a1f5511da5c51594dc238",
+  "date_utc": "2026-09-17",
+  "local_tests": {
+    "passed": 27,
+    "skipped": 1,
+    "seconds": 15.02
+  },
+  "lambda_cpu_tests": {
+    "passed": 27,
+    "skipped": 1,
+    "seconds": 41.0,
+    "cuda_visible_devices": ""
+  },
+  "wheel": "hss_core-0.4.0-py3-none-any.whl built; new public modules present",
+  "real_openact": {
+    "scope": "Real OpenAct: first published 100 MATH responses, layers 0/8/final, K=2, CPU, 6 iterations. Engineering smoke only.",
+    "runtime": {
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.9.1",
+      "pandas": "3.0.5",
+      "zarr": "2.18.7",
+      "torch": "2.14.0",
+      "matplotlib": "3.11.2",
+      "pyarrow": "25.0.1"
+    },
+    "source": "/lambda/nfs/dami/openact/runs/math_full_20260916/llama32",
+    "prepare_first_seconds": 0.7322421479912009,
+    "prepare_warm_seconds": 0.039025441990816034,
+    "three_method_sweep_seconds": 4.916830732996459,
+    "resume_seconds": 0.45616309699835256,
+    "prompt_prediction_seconds": 1.614322221998009,
+    "full_checksum_audit_seconds": 0.20540851401165128,
+    "report_seconds": 6.277215326001169,
+    "paper_figure_seconds": 2.514221464007278,
+    "status": "complete",
+    "data_cache": {
+      "path": "/home/ubuntu/hss-cache/data/4307981bd37338fad6332a7b",
+      "bytes": 2457600,
+      "n_samples": 100
+    },
+    "trials": [
+      {
+        "id": "69c9564c452450a5c0df45d3",
+        "path": "/lambda/nfs/dami/hss/validation/real-20260917/trials/69c9564c452450a5c0df45d3",
+        "seconds": 0.8691773299942724
+      },
+      {
+        "id": "52a2556150b0af4d551fc7aa",
+        "path": "/lambda/nfs/dami/hss/validation/real-20260917/trials/52a2556150b0af4d551fc7aa",
+        "seconds": 0.887878028996056
+      },
+      {
+        "id": "7bb527e31b43d487f71bc3df",
+        "path": "/lambda/nfs/dami/hss/validation/real-20260917/trials/7bb527e31b43d487f71bc3df",
+        "seconds": 0.6572070639958838
+      }
+    ],
+    "prediction_trial": "71106292a4e0eab1ab9a1296",
+    "audit": "complete",
+    "resume_cache_hits": 3,
+    "report": "/lambda/nfs/dami/hss/validation/real-20260917/report",
+    "figures": "complete"
+  },
+  "full_math_loading": {
+    "scope": "Full Llama-3.2 MATH aggregate loading only, no fitting or generation",
+    "n_samples": 5000,
+    "n_layers": 17,
+    "hidden_dim": 2048,
+    "array_bytes": 696320000,
+    "prepare_seconds": 34.11003360999166,
+    "warm_prepare_seconds": 0.4322585329937283,
+    "cache": "/home/ubuntu/hss-cache/data/3b2f5317459064a8a6942477",
+    "same_cache": true
+  },
+  "synthetic": {
+    "status": "complete",
+    "scope": "synthetic protocol validation, not numerical paper reproduction",
+    "seconds": 303.63866653198784,
+    "trials": 69,
+    "jobs": 46,
+    "figures": {
+      "figure_01": "rendered",
+      "figure_02": "rendered",
+      "figure_03": "rendered",
+      "figure_04": "rendered",
+      "figure_05": "rendered",
+      "figure_06": "rendered",
+      "figure_07": "rendered",
+      "figure_08": "rendered",
+      "figure_09": "rendered",
+      "figure_10": "rendered",
+      "figure_11": "rendered",
+      "figure_12": "rendered",
+      "table_01": "rendered",
+      "table_02": "rendered",
+      "table_03": "rendered"
+    },
+    "controls": {
+      "reliability_trends": "rendered",
+      "reliability_centers": "rendered",
+      "preprocessing_control": "rendered",
+      "pca_control": "rendered",
+      "alignment_control": "rendered",
+      "kmeans_control": "rendered",
+      "global_clustering_control": "rendered",
+      "granularity_control": "rendered",
+      "token_granularity_control": "rendered",
+      "rms_control": "rendered",
+      "mfa_control": "rendered",
+      "preprocessing_prediction_control": "rendered",
+      "pca_prediction_control": "rendered",
+      "alignment_prediction_control": "rendered",
+      "method_prediction_control": "rendered",
+      "seed_prediction_control": "rendered",
+      "monitoring_far_scope_control": "rendered"
+    },
+    "audit": "complete",
+    "path": "/lambda/nfs/dami/hss/validation/synthetic-20260917"
+  },
+  "scope_notes": [
+    "No full K=2..80 paper experiment or new generation was launched.",
+    "Synthetic inputs are labeled SYNTHETIC_NOT_MODEL_ACTIVATIONS and every result figure is marked as a subset.",
+    "Short smoke iteration caps produce convergence warnings; structural/protocol validation is not proof of fit convergence.",
+    "Warm prepare times open mmap caches and validate source metadata; they do not scan every activation value."
+  ]
+}

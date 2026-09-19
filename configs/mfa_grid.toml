@@ -1,0 +1,11 @@
+extends = "base.toml"
+name = "llama32_math_mfa"
+
+[cluster]
+method = "mfa"
+rank = 8
+
+[grid]
+"cluster.rank" = [4, 8, 16, 32]
+"seed" = [42, 43, 44]
+"alignment.threshold" = [0.4, 0.6, 0.7]

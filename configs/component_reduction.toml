@@ -1,0 +1,15 @@
+channel_config = "configs/channel_study.toml"
+confidence_config = "configs/confidence_study.toml"
+prior_root = "/lambda/nfs/dami/hss/channel-study-20260918"
+rms_root = "/lambda/nfs/dami/hss/rms-mechanism-20260918"
+rms_cache = "/home/ubuntu/hss-rms-mechanism-cache"
+cache_root = "/home/ubuntu/hss-component-cache"
+output_root = "/lambda/nfs/dami/hss/component-reduction-20260918"
+datasets = ["qwen2_math", "llama32_math", "llama32_mmlu"]
+seed = 20260918
+workers = 4
+bootstrap = 1000
+prefix_tokens = 16
+inner_folds = 4
+c_grid = [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+equivalence_auc = 0.01

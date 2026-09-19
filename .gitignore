@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+.venv
 .venv/
 venv/
 ENV/
@@ -41,11 +42,15 @@ coverage.xml
 *.tmp
 *.temp
 .cache/
+tmp/
 
 # ── Data & experiment outputs (keep paths if you commit small fixtures) ─
 runs/
 outputs/
+output/
 results/
+!src/hss/results/
+!src/hss/results/*.py
 wandb/
 mlruns/
 lightning_logs/

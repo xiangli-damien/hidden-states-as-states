@@ -1,0 +1,10 @@
+extends = "base.toml"
+name = "qwen2_math_monitoring"
+
+[data]
+paths = ["/lambda/nfs/dami/openact/runs/math_full_20260916/qwen2"]
+expected_model = "Qwen/Qwen2-7B-Instruct"
+representation = "prefix"
+
+[evaluation]
+mode = "monitoring"

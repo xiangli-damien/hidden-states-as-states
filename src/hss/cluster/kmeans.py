@@ -14,6 +14,9 @@ from .base import ClusterModel
 @dataclass(frozen=True)
 class KMeansModel(ClusterModel):
     centers_: np.ndarray
+    n_iter_: int | None = None
+    converged_: bool | None = None
+    inertia_: float | None = None
 
     def n_clusters(self) -> int:
         return int(self.centers_.shape[0])
@@ -45,6 +48,9 @@ class KMeansModel(ClusterModel):
             "kind": "kmeans",
             "n_clusters": self.n_clusters(),
             "soft_assignment": "inverse_distance_normalized",
+            "n_iter": self.n_iter_,
+            "converged": self.converged_,
+            "inertia": self.inertia_,
         }
 
     def state_arrays(self) -> Dict[str, np.ndarray]:
@@ -56,7 +62,12 @@ class KMeansModel(ClusterModel):
         config: Dict[str, Any],
         arrays: Dict[str, np.ndarray],
     ) -> "KMeansModel":
-        return cls(centers_=f32(arrays["centers"]))
+        return cls(
+            centers_=f32(arrays["centers"]),
+            n_iter_=config.get("n_iter"),
+            converged_=config.get("converged"),
+            inertia_=config.get("inertia"),
+        )
 
 
 def _fit_kmeans(

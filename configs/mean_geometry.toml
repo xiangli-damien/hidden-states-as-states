@@ -1,0 +1,10 @@
+# Paper equations 2, 3, 4, 7: all generated tokens, embedding + all blocks.
+channel_config = "configs/channel_study.toml"
+prior_root = "/lambda/nfs/dami/hss/channel-study-20260918"
+output_root = "/lambda/nfs/dami/hss/mean-geometry-20260918"
+seed = 20260918
+bootstrap = 1000
+length_bins = 10
+batch_size = 128
+datasets = ["llama32_math", "qwen2_math", "llama32_mmlu"]
+paper_sha256 = "dd09bb8d335bb84f8097ad55343e7231aaacc48fe4094087233310901e8ede2f"

@@ -1,0 +1,12 @@
+extends = "base.toml"
+name = "llama32_math_cuda"
+
+[cluster]
+backend = "gpu"
+device = "cuda:0"
+
+[execution]
+# Explicit GPU mode never silently falls back to CPU. A device lock serializes
+# mixture fits from this package; it cannot reserve GPU capacity from other apps.
+workers = 1
+threads_per_worker = 2

@@ -1,0 +1,18 @@
+# Optional render-only overrides: HSS_FIGURE_STYLE=configs/figures.toml
+# All nodes remain visible. Edge filtering affects display only, not statistics.
+[publication]
+graph_width = 13.6
+layer_spacing = 1.25
+state_spacing = 0.50
+min_radius = 0.105
+max_radius = 0.215
+node_fontsize = 6.5
+edge_min_count = 10
+edge_min_probability = 0.02
+edge_max_per_source = 5
+edge_min_width = 0.35
+edge_max_width = 2.8
+edge_min_alpha = 0.08
+edge_max_alpha = 0.44
+curve = 0.35
+correctness_limit = 0.75

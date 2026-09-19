@@ -1,0 +1,9 @@
+extends = "base.toml"
+name = "llama32_math_prediction_extension"
+
+[data]
+representation = "prompt_last"
+
+[evaluation]
+mode = "prediction"
+methods = ["HSS-NB", "LDA", "GaussianNB", "Logistic", "LinearSVM", "MLP"]

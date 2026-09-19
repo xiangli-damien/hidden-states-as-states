@@ -1,0 +1,32 @@
+{
+  "code_commit": "9439a3b",
+  "tests": {
+    "passed": 33,
+    "skipped": 1,
+    "skip_reason": "local CUDA unavailable"
+  },
+  "trial_source_version": "3d01b24d193431c8380c566d",
+  "configured_experiments_complete": 34,
+  "pending": [],
+  "verified_figure_bundle_artifacts": 270,
+  "rendered_figures": 70,
+  "normalization_figure_preserved": 1,
+  "pdf_pages": 73,
+  "pdf_sha256": "48cf9c81a035a0b5527615cfbcfabd5909078921bfc7a06540d0d369f1e1a753",
+  "report_path_on_lambda": "/lambda/nfs/dami/hss/reports/llama32-math-20260917-publication",
+  "manifests_sha256": {
+    "prompt_minibatch_kmeans/manifest.json": "84ac4ea1c430e4070e6765a741b1bc704cd79c651eebb869d4714ee5ce503578",
+    "selected_minibatch_kmeans/manifest.json": "1b15ab0fc475ec24afcbeae9bfc46cb592a2153b0ff6a250b9bebf83cb8a90fe",
+    "mean_gmm/manifest.json": "e78208a08c3b1cbbdfa0507da7f02f1cb74150edbe2bb9f0ef3c78f8ea95ad8c",
+    "mean_kmeans/manifest.json": "f213f705d699ed0831d5101cd876820e4881daf2e45c25797dc9d346d8ff1495",
+    "prompt_kmeans/manifest.json": "91408be00bde7404f63fdf82b089ae015908ebcd738c6e40da7e5ffac51d639d",
+    "mean_mfa/manifest.json": "fe274e1c9e147330815dd4b1bd53e0d515def10112be02d17b731a0c983515b2",
+    "selected_kmeans/manifest.json": "367da09b2cd8628d5c62693ec11a5234d0a8c2013f0f6632d80d8c2c267cd8af",
+    "prompt_gmm/manifest.json": "9c3c7c93402b9f18d2390d2e2a32a79042a0581ed21a7b4bd5bb22b09e8f2bf1",
+    "comparison/manifest.json": "894474a38b2607819b063288c84121875896447e658415ea32b1e5caa08ab3be",
+    "mean_minibatch_kmeans/manifest.json": "98c39eb5eafcd1575d695abf8628b0a800534e6df86009e9cd804da7a316affe",
+    "prompt_mfa/manifest.json": "bf53d26eacb3a56c9f9c68b33f6f857a2bfaaa9820234a933842f7c643982742"
+  },
+  "html_links_valid": true,
+  "visual_review": "All 73 PDF pages reviewed in contact sheets; cover, guide and main plots reviewed at readable resolution; paper.html viewed in browser."
+}
