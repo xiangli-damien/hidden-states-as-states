@@ -434,6 +434,11 @@ def run_experiment(cfg, *, prepared=None, version=None):
                             if fixed_k
                             else cfg
                         )
+                        if cfg.cluster.rank_by_layer is not None:
+                            if str(layer) not in cfg.cluster.rank_by_layer:
+                                raise ValueError(f"Missing factor rank for layer {layer}")
+                            layer_cfg = replace(layer_cfg, cluster=replace(
+                                layer_cfg.cluster, rank=cfg.cluster.rank_by_layer[str(layer)]))
                         model, scan = fit_candidates(
                             fitted_X,
                             layer_cfg,

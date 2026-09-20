@@ -23,6 +23,7 @@ class ClusterConfig:
     k_max: int = 80
     k_values: list[int] | None = None
     rank: int = 8
+    rank_by_layer: dict[str, int] | None = None
     covariance_type: str = "diag"
     reg_covar: float = 1e-6
     n_init: int = 2
@@ -159,6 +160,12 @@ class Experiment:
             raise ValueError("selection_criterion must be icl or bic")
         if c.mfa_init not in ("random", "svd"):
             raise ValueError("mfa_init must be random or svd")
+        if c.rank_by_layer is not None:
+            if c.method != "mfa" or e.mode == "global_control" or not c.rank_by_layer:
+                raise ValueError("rank_by_layer requires per-layer MFA")
+            if any(not str(k).isdigit() or not isinstance(v, int) or v < 0
+                   for k, v in c.rank_by_layer.items()):
+                raise ValueError("Invalid per-layer factor ranks")
         if c.k_min < 1 or c.k_max < c.k_min or (c.k is not None and c.k < 1):
             raise ValueError("Invalid component range")
         if c.k_values is not None and (
