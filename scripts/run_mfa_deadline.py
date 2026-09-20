@@ -145,6 +145,11 @@ class Study:
             strict_candidates=len(strict),covered_units=sum(x is not None for x in selected.values()),
             total_units=len(self.units),new_fits=sum(r.get('origin')!='imported' for r in self.records.values()),
             failed=len(self.failures),ram_available_gib=psutil.virtual_memory().available/1024**3)
+        if self.phase=='finished':
+            remaining=sum(len(json.loads(p.read_text()).get('remaining',[])) for p in (self.root/'phases').glob('*.json'))
+            status.update(unrun_planned_tasks=remaining,deadline_met=time.time()<=self.deadline,
+                status=('complete_with_budget_limits' if remaining or self.failures else 'complete')
+                if status['covered_units']==len(self.units) else 'finished_with_missing_layers')
         save_json(self.root/'study.json',status)
         return status
 
@@ -176,6 +181,10 @@ class Study:
                 if len(subset)==len(self.snapshots[view].layers()):paths[view]=self.export(view,subset)
             save_json(self.root/'latest_exports.json',paths)
             self.figures(frame,chosen)
+            with (self.root/'index.html').open('a') as f:
+                f.write('<h2>Reusable HSS results</h2><ul>'+''.join(
+                    f'<li><a href="{Path(path).relative_to(self.root)}/">{view} HSS artifacts</a></li>'
+                    for view,path in paths.items())+'</ul>')
 
     def figures(self,frame,chosen):
         import matplotlib;matplotlib.use('Agg')
