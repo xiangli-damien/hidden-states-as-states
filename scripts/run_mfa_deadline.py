@@ -36,6 +36,47 @@ from hss.results.store import seal_result
 from hss.transform.projection import Projection
 from hss.types import AlignSpec
 
+RANKS = (4, 8, 16)
+# Every layer/rank gets the same grid, independent of the GMM reference K.
+COARSE_K = (2, 8, 16, 32, 64, 80)
+
+
+def record_protocol(root, protocol, *, revise_search=False):
+    path = root / 'protocol.json'
+    if path.exists():
+        old = json.loads(path.read_text())
+        if old != protocol:
+            changed = sorted(k for k in old.keys() | protocol.keys() if old.get(k) != protocol.get(k))
+            allowed = {'schema_version', 'screen_ranks_per_layer', 'search', 'phases', 'driver_sha256'}
+            if not revise_search or set(changed) - allowed:
+                raise ValueError(f'Protocol changed ({changed}); only an explicit search-only revision may reuse this directory')
+            key = digest(old)
+            save_json(root / 'protocol_history' / f'{key}.json', old)
+            save_json(root / 'protocol_history' / f'{key}_revision.json', dict(
+                at=dt.datetime.now(dt.timezone.utc).isoformat(), changed=changed,
+                old_protocol=key, new_protocol=digest(protocol),
+                reason='User requested independent K search for every layer and rank; no pruning ranks at GMM K.',
+                retained='Completed fits, data, optimizer, precision, strict-fit criteria and original deadline unchanged.'))
+            # Historical queue manifests must not be mistaken for current search coverage.
+            for manifest in (root / 'phases').glob('*.json'):
+                target = root / 'protocol_history' / f'{key}_phases' / manifest.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(manifest, target)
+                manifest.unlink()
+    save_json(path, protocol)
+
+
+def ranked_k_options(rows):
+    """Distinct K candidates for one rank; screens propose, strict fits decide."""
+    rows = sorted((r for r in rows if r.get('status') == 'complete'
+                   and np.isfinite(r.get('icl', np.nan))), key=lambda r: r['icl'])
+    seen = set()
+    result = []
+    for row in rows:
+        if row['k'] not in seen:
+            seen.add(row['k']); result.append(row)
+    return result
+
 
 def initialize(path, k, rank, seed, output):
     """CPU initialization runs in two spawned workers while the GPU fits."""
@@ -89,14 +130,19 @@ class Study:
         selections=list(csv.DictReader((self.source/'selection_ablation.csv').open()))
         self.reference={(r['view'],int(r['layer'])):int(r['k']) for r in selections
                         if r['method']=='gmm' and r['criterion']=='icl' and float(r['tolerance'])==.02}
-        self.protocol=dict(schema_version=1,source=str(self.source),deadline_utc=args.deadline,
-            ranks=[4,8,16],screen_ranks_per_layer=2,raw=True,normalization=False,pca=False,
+        self.protocol=dict(schema_version=2,source=str(self.source),deadline_utc=args.deadline,
+            ranks=list(RANKS),screen_ranks_per_layer=3,
+            search=dict(independent_k_per_layer_rank=True,coarse_k=list(COARSE_K),
+                        refinement='Best K plus/minus max(1, K//5), independently for each rank',
+                        strict_finalists_per_rank=2,rank_pruning=False,
+                        historical_k='Cached control/additional candidate only; no new fixed-GMM-K coverage fits'),
+            raw=True,normalization=False,pca=False,
             dimension=3584,samples=5000,screen=dict(n_init=1,max_steps=400,tol=1e-4),
             final=dict(n_init=3,max_steps=2000,tol=1e-5),optimizer=args.optimizer,
             final_optimizer_control='Last initialization uses plain batched EM; others use the requested accelerator',
             execution=dict(gpu_workers=1,cpu_initialization_workers=2,cpu_threads_each=2,
                            float_precision='float64',gpu_input_resident=True,component_batch=8),
-            phases=dict(coverage_cutoff_hours_before_deadline=18,screen_cutoff=7,refine_cutoff=5,
+            phases=dict(coverage_cutoff_hours_before_deadline=18,screen_cutoff=10,refine_cutoff=8,
                         final_cutoff=2,stability_cutoff=.5),
             selection='ICL on converged strict fits; BIC and ICL tolerances also exported',
             limitations=['Adaptive bounded search, not exhaustive or a global optimum guarantee.',
@@ -105,11 +151,7 @@ class Study:
                 'Historical CPU/GPU EM fits are reused with provenance; accelerated fits may reach different local optima.'],
             driver_sha256=file_digest(Path(__file__)),
             optimizer_sha256=file_digest(Path(__file__).resolve().parents[1]/'src/hss/cluster/mfa_fast.py'))
-        previous=self.root/'protocol.json'
-        if previous.exists():
-            old=json.loads(previous.read_text())
-            if old!=self.protocol:raise ValueError('Protocol changed: use a new study directory')
-        save_json(previous,self.protocol)
+        record_protocol(self.root,self.protocol,revise_search=args.revise_search)
         self.import_previous()
         for p in (self.root/'candidates').glob('*.json'):
             item=json.loads(p.read_text());self.records[item['key']]=item
@@ -145,6 +187,10 @@ class Study:
             strict_candidates=len(strict),covered_units=sum(x is not None for x in selected.values()),
             total_units=len(self.units),new_fits=sum(r.get('origin')!='imported' for r in self.records.values()),
             failed=len(self.failures),ram_available_gib=psutil.virtual_memory().available/1024**3)
+        status['strict_layer_rank_pairs']=sum(any(admissible(r) and r['rank']==rank for r in self.rows(u))
+                                             for u in self.units for rank in RANKS)
+        status['total_layer_rank_pairs']=len(self.units)*len(RANKS)
+        status['independent_k_per_layer_rank']=True
         if self.phase=='finished':
             remaining=sum(len(json.loads(p.read_text()).get('remaining',[])) for p in (self.root/'phases').glob('*.json'))
             status.update(unrun_planned_tasks=remaining,deadline_met=time.time()<=self.deadline,
@@ -155,23 +201,35 @@ class Study:
 
     def report(self,export=False):
         status=self.status();frame=pd.DataFrame(self.records.values());frame.to_csv(self.root/'candidate_metrics.csv',index=False)
-        chosen=[];policies=[]
+        chosen=[];policies=[];per_rank=[]
         for unit in self.units:
             options=[r for r in self.rows(unit) if r['rank'] in [4,8,16]]
             row=select(options)
             if row:chosen.append(row)
+            for rank in RANKS:
+                rank_rows=[r for r in options if r['rank']==rank]
+                best=select(rank_rows);screen=select(rank_rows,strict=False)
+                per_rank.append(dict(view=unit[0],layer=unit[1],rank=rank,
+                    strict_best_k=best['k'] if best else None,strict_best_icl=best['icl'] if best else None,
+                    strict_fit_path=best['fit_path'] if best else None,
+                    screen_best_k=screen['k'] if screen else None,
+                    evaluated_k=','.join(str(k) for k in sorted({r['k'] for r in rank_rows})),
+                    strict_k_count=len({r['k'] for r in rank_rows if admissible(r)}),
+                    coarse_k_completed=sum(any(r['k']==k and r.get('status')=='complete' for r in rank_rows) for k in COARSE_K),
+                    coarse_k_planned=len(COARSE_K)))
             for criterion in ['icl','bic']:
                 for tol in [0.,.005,.01,.02]:
                     value=select(options,criterion=criterion,tolerance=tol)
                     if value:policies.append(dict(view=unit[0],layer=unit[1],criterion=criterion,tolerance=tol,
                                                   k=value['k'],rank=value['rank'],score=value[criterion],fit_path=value['fit_path']))
         pd.DataFrame(chosen).to_csv(self.root/'selected_layers.csv',index=False)
+        pd.DataFrame(per_rank).to_csv(self.root/'rank_k_selection.csv',index=False)
         pd.DataFrame(policies).to_csv(self.root/'selection_ablation.csv',index=False)
         title='Qwen MATH MFA — 24-hour bounded study'
         body=f'<h1>{title}</h1><p>Raw 5000 × 3584 response means. No extra normalization or PCA. Descriptive fit, not held-out prediction.</p><pre>{html.escape(json.dumps(status,indent=2))}</pre>'
-        body+='<p><a href="candidate_metrics.csv">All fits</a> · <a href="selected_layers.csv">Selected layers</a> · <a href="selection_ablation.csv">ICL/BIC sensitivity</a> · <a href="protocol.json">Protocol</a> · <a href="stability.csv">Seed stability</a> · <a href="figures.png">Figures</a></p>'
+        body+='<p><a href="candidate_metrics.csv">All fits</a> · <a href="selected_layers.csv">Selected layers</a> · <a href="rank_k_selection.csv">Independent K by layer/rank</a> · <a href="selection_ablation.csv">ICL/BIC sensitivity</a> · <a href="protocol.json">Protocol</a> · <a href="stability.csv">Seed stability</a> · <a href="figures.png">Figures</a></p>'
         if chosen:body+=pd.DataFrame(chosen)[['view','layer','rank','k','icl','converged','origin']].to_html(index=False)
-        body+='<h2>Interpretation</h2><p>Only converged fits with all three initialization attempts enter this table. Screening fits are provisional. Historical candidates and unselected fits remain available. Per-layer rank selection does not imply that all clusters have identical effective dimension.</p>'
+        body+='<h2>Interpretation</h2><p>Selections are best-so-far over evaluated strict candidates until the search finishes. Each layer/rank independently searches K; no rank is pruned using GMM K. Only converged fits with all three initialization attempts enter this table. Screening fits are provisional. Historical candidates and unselected fits remain available. Per-layer rank selection does not imply that all clusters have identical effective dimension.</p>'
         if (self.root/'latest_exports.json').exists():body+='<pre>'+html.escape((self.root/'latest_exports.json').read_text())+'</pre>'
         (self.root/'index.html').write_text('<!doctype html><meta charset="utf-8"><title>'+title+'</title><style>body{font:16px system-ui;margin:3em;max-width:1300px}td,th{padding:.4em}table{border-collapse:collapse}pre{white-space:pre-wrap}</style>'+body)
         if export:
@@ -208,7 +266,7 @@ class Study:
 
     def export(self,view,chosen):
         data=self.snapshots[view];chosen=sorted(chosen,key=lambda r:r['layer'])
-        key=digest({'fits':[r['key'] for r in chosen],'eta':.6,'assignment':'posterior'})
+        key=digest({'fits':[r['key'] for r in chosen],'eta':.6,'assignment':'posterior','export_schema':2})
         root=self.root/'trials'/f'{view}_{key}'
         if (root/'_SUCCESS.json').exists():return str(root)
         root.mkdir(parents=True,exist_ok=True);models=[];local=[];scans=[]
@@ -227,6 +285,7 @@ class Study:
         idx=np.arange(data.n_items());save_npz(root/'split.npz',train=idx,map_fit=idx,validation=np.array([],dtype=int),test=np.array([],dtype=int))
         config=dict(self.source_protocol['identity']['config']);config=json.loads(json.dumps(config))
         config['name']='qwen_math_mfa_24h_'+view;config['data']['final_norm']='pre' if view=='pre_final' else 'post'
+        config['data']['layers']=data.layers()
         config['cluster'].update(method='mfa',assignment='posterior',rank=8,
             rank_by_layer={str(r['layer']):r['rank'] for r in chosen})
         config['evaluation']['mode']='geometry'
@@ -337,46 +396,45 @@ class Study:
         save_json(self.root/'phases'/f'{phase}.json',manifest)
         self.report(export=True)
 
-    def run(self):
-        # First produce a complete, strict rank-8 map. Extra ranks follow.
-        coverage=[self.task(u,r,self.reference[u],final=True,purpose='coverage') for r in [8,4,16] for u in self.units]
-        self.run_queue('coverage_and_rank',coverage,self.deadline-18*3600)
-        shortlist={}
-        for u in self.units:
-            ranked=[]
-            for rank in [4,8,16]:
-                row=select([r for r in self.rows(u) if r['rank']==rank])
-                if row:ranked.append(row)
-            shortlist[u]=[r['rank'] for r in sorted(ranked,key=lambda r:r['icl'])[:2]] or [8]
+    def screen_tasks(self):
         tasks=[]
-        for index in range(5):
+        for k in COARSE_K:
             for u in self.units:
-                k0=self.reference[u];grid=sorted(set([2,max(2,k0//2),k0,min(80,round(1.5*k0)),80]))
-                if index>=len(grid):continue
-                for rank in shortlist[u]:
-                    k=grid[index]
+                for rank in RANKS:
                     if not any(r['rank']==rank and r['k']==k and r.get('status')=='complete' for r in self.rows(u)):
                         tasks.append(self.task(u,rank,k))
-        self.run_queue('bounded_k_screen',tasks,self.deadline-7*3600)
+        return tasks
+
+    def refinement_tasks(self):
         tasks=[]
         for u in self.units:
-            for rank in shortlist[u]:
+            for rank in RANKS:
                 row=select([r for r in self.rows(u) if r['rank']==rank],strict=False)
                 if row:
                     step=max(1,row['k']//5)
                     for k in sorted(set([max(2,row['k']-step),min(80,row['k']+step)])):
                         if not any(r['rank']==rank and r['k']==k for r in self.rows(u)):tasks.append(self.task(u,rank,k))
-        self.run_queue('local_k_refinement',tasks,self.deadline-5*3600)
+        return tasks
+
+    def finalist_tasks(self):
+        # First best K for EVERY layer/rank, then its runner-up. No cross-rank
+        # pruning before each rank's K candidates receive strict evaluation.
+        options={(u,rank):ranked_k_options([r for r in self.rows(u) if r['rank']==rank])
+                 for u in self.units for rank in RANKS}
         tasks=[]
-        for u in self.units:
-            options=sorted([r for r in self.rows(u) if r['rank'] in shortlist[u]],key=lambda r:r['icl'])
-            seen=set()
-            for row in options:
-                pair=(row['rank'],row['k'])
-                if pair in seen:continue
-                seen.add(pair);tasks.append(self.task(u,*pair,final=True,purpose='final'))
-                if len(seen)>=2:break
-        self.run_queue('strict_finalists',tasks,self.deadline-2*3600)
+        for index in range(2):
+            for u in self.units:
+                for rank in RANKS:
+                    rows=options[u,rank]
+                    if index<len(rows):tasks.append(self.task(u,rank,rows[index]['k'],final=True,purpose='final'))
+        return tasks
+
+    def run(self):
+        # Existing GMM-K controls remain candidates but do not determine the grid
+        # or exclude ranks. Spend the remaining budget on independent K searches.
+        self.run_queue('bounded_k_screen',self.screen_tasks(),self.deadline-10*3600)
+        self.run_queue('local_k_refinement',self.refinement_tasks(),self.deadline-8*3600)
+        self.run_queue('strict_finalists',self.finalist_tasks(),self.deadline-2*3600)
         chosen={u:select([r for r in self.rows(u) if r['rank'] in [4,8,16]]) for u in self.units}
         tasks=[self.task(u,r['rank'],r['k'],seed=seed,purpose='stability') for seed in [1042,2042] for u,r in chosen.items() if r]
         self.run_queue('independent_seed_checks',tasks,self.deadline-.5*3600)
@@ -402,6 +460,7 @@ class Study:
 def main():
     p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--directory',required=True)
     p.add_argument('--deadline',required=True);p.add_argument('--optimizer',choices=['none','squarem'],default='none');p.add_argument('--report-only',action='store_true')
+    p.add_argument('--revise-search',action='store_true',help='Archive and apply an explicit search-only protocol revision; fit/data changes are rejected')
     args=p.parse_args()
     with lock(Path(args.directory)/'study.lock'),threadpool_limits(limits=2):
         study=Study(args)
