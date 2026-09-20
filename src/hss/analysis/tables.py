@@ -84,6 +84,13 @@ def dynamics(result):
     marginal["rank"] = np.arange(1, len(marginal) + 1)
     marginal["cumulative_mass"] = marginal.frequency.cumsum()
     profile = pd.DataFrame(result.summary["profile"])
+    if "relative_depth" not in profile:
+        profile["relative_depth"] = np.arange(len(profile)) / max(1, len(profile) - 1)
+    if "self_transition" not in profile:
+        profile["self_transition"] = [np.nan] + [
+            float((result.states[:, j] == result.states[:, j - 1]).mean())
+            for j in range(1, len(profile))
+        ]
     vocab = result.json("alignment.json")["local_to_global"]
     profile["active_k"] = [
         len(np.unique(result.states[:, j])) for j in range(len(profile))
@@ -123,16 +130,29 @@ def trajectory_similarity(result, max_rows=1000, seed=42, linkage_method="averag
 
 def selection_surface(result):
     rows = []
+    config = result.config["cluster"]
+    criterion = config.get("selection_criterion", "icl")
+    def score(c):
+        return c.get(criterion, c.get("criterion"))
+    def eligible(c):
+        return (not config.get("require_convergence", False) or
+                (c.get("converged") is not False
+                 and c.get("tol", config.get("tol", 1e-5)) <= config.get("tol", 1e-5)
+                 and c.get("initializations_completed", config.get("n_init", 1)) >= config.get("n_init", 1)))
     for layer in result.json("selection.json"):
         candidates = layer["candidates"]
         finite = [
-            c["criterion"]
+            score(c)
             for c in candidates
-            if c.get("criterion") is not None and np.isfinite(c["criterion"])
+            if eligible(c) and score(c) is not None and np.isfinite(score(c))
         ]
         best = min(finite) if finite else np.nan
         for candidate in candidates:
-            value = candidate.get("criterion")
+            value = score(candidate)
+            selected = layer["selected"]
+            same = candidate["k"] == selected["k"] and candidate.get("rank") == selected.get("rank")
+            if candidate.get("fit_path") and selected.get("fit_path"):
+                same = candidate["fit_path"] == selected["fit_path"]
             relative = (
                 (value - best) / max(abs(best), 1) if value is not None else np.nan
             )
@@ -140,10 +160,12 @@ def selection_surface(result):
                 {
                     "layer": layer["layer"],
                     **candidate,
+                    "criterion": value,
+                    "eligible": eligible(candidate),
                     "relative_criterion": relative,
-                    "selected": candidate["k"] == layer["selected"]["k"],
+                    "selected": same,
                     "near_optimal": bool(
-                        relative <= result.config["cluster"]["parsimony_tolerance"]
+                        eligible(candidate) and relative <= config["parsimony_tolerance"]
                     ),
                 }
             )
@@ -166,9 +188,12 @@ def collect_tables(results):
         fields = result.metadata()
         fields["n_global_states"] = result.summary["n_global_states"]
         _, profile = dynamics(result)
+        evaluation = result.summary["evaluation"]
+        if isinstance(evaluation, dict) and set(evaluation) <= {"scope"}:
+            evaluation = []
         frames = {
             "profiles": profile,
-            "evaluation": pd.DataFrame(result.summary["evaluation"]),
+            "evaluation": pd.DataFrame(evaluation),
             "diagnostics": pd.DataFrame(result.json("diagnostics.json")),
             **{
                 key: result.table(key + ".csv")
