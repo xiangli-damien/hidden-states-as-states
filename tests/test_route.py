@@ -1,7 +1,7 @@
 import numpy as np
 
 from hss.route.counts import crossfit_scores, group_folds
-from hss.route.nulls import ConditionalRouting, occupancy_null, shuffle_within
+from hss.route.nulls import ConditionalRouting, occupancy_null, shuffle_within, shuffle_suffixes
 
 
 def test_group_split_and_scores_are_id_invariant():
@@ -57,3 +57,21 @@ def test_no_class_overlap_reports_zero_support():
     y=np.array([0,0,1,1]); a=np.zeros(4,int)
     r=ConditionalRouting(a,y,y,y).test(np.random.default_rng(2),19)
     assert r['support_n']==0 and r['p']==1 and np.isnan(r['js_bits'])
+
+
+def test_suffix_null_preserves_all_edges_in_each_fold():
+    rng=np.random.default_rng(29);z=rng.integers(0,4,(400,8));fold=np.arange(400)%5
+    other=shuffle_suffixes(z,fold,rng)
+    assert np.any(z!=other)
+    for f in np.unique(fold):
+        for l in range(7):
+            a=np.sort(z[fold==f,l]*4+z[fold==f,l+1])
+            b=np.sort(other[fold==f,l]*4+other[fold==f,l+1])
+            np.testing.assert_array_equal(a,b)
+
+
+def test_exact_js_bias_matches_monte_carlo():
+    rng=np.random.default_rng(11);a=rng.integers(0,5,500);b=rng.integers(0,7,500);y=rng.integers(0,2,500)
+    t=ConditionalRouting(a,b,y,np.zeros(500,int))
+    sampled=t.test(rng,10000)['null_mean_bits']
+    assert abs(t.exact_null_mean()-sampled)<.001

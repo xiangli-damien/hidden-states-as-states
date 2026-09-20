@@ -4,7 +4,19 @@ Labels enter this module to TEST structure, never to fit a detector.
 Permutation p-values condition on the already fitted, whole-data maps.
 """
 import numpy as np
+from functools import lru_cache
+from scipy.special import xlogy
+from scipy.stats import hypergeom
 from .counts import js_rows
+
+
+@lru_cache(maxsize=300000)
+def expected_js_cell(n, n1, m):
+    """Exact label-permutation JS expectation for one destination cell."""
+    x=np.arange(max(0,m-(n-n1)),min(m,n1)+1)
+    p=x/n1; q=(m-x)/(n-n1); middle=(p+q)/2
+    term=(xlogy(p,p)-xlogy(p,middle)+xlogy(q,q)-xlogy(q,middle))/(2*np.log(2))
+    return float(hypergeom.pmf(x,n,m,n1) @ term)
 
 
 def codes(*columns):
@@ -53,6 +65,12 @@ class ConditionalRouting:
                     support_n=self.support, support_fraction=self.support/len(self.y), eligible_groups=int(self.eligible.sum()),
                     all_groups=self.ng, permutations=permutations)
 
+    def exact_null_mean(self):
+        if not self.support:return float('nan')
+        return float(sum(weight*sum(expected_js_cell(int(self.n[g]),int(self.n1[g]),int(m))
+                                    for m in self.total[g] if m)
+                         for g,weight in zip(np.flatnonzero(self.eligible),self.weights)))
+
 
 def shuffle_within(values, groups, rng):
     """Independently shuffle columns within groups, preserving all marginals."""
@@ -65,20 +83,44 @@ def shuffle_within(values, groups, rng):
     return out[:,0] if one else out
 
 
-def occupancy_null(states, y, nuisance, rng, permutations=499):
+def occupancy_null(states, y, nuisance, rng, permutations=499, bias_correct=False):
     """Keep every (class,nuisance,layer) occupancy; destroy cross-layer pairing."""
     z=np.column_stack([np.unique(col,return_inverse=True)[1] for col in states.T])
     tests=[ConditionalRouting(z[:,l],z[:,l+1],y,nuisance) for l in range(z.shape[1]-1)]
     observed=np.array([t.statistic() for t in tests]); null=np.empty((permutations,len(tests)))
+    bias=np.array([t.exact_null_mean() for t in tests]) if bias_correct else np.zeros(len(tests))
+    null_bias=np.zeros_like(null)
     groups=codes(y,nuisance)
     for b in range(permutations):
         shuffled=shuffle_within(z,groups,rng)
         # BOTH endpoints are shuffled. Rebuild origins; class counts and common
         # support remain fixed under this class/nuisance-preserving shuffle.
-        null[b]=[ConditionalRouting(shuffled[:,l],shuffled[:,l+1],y,nuisance).statistic() for l in range(z.shape[1]-1)]
+        others=[ConditionalRouting(shuffled[:,l],shuffled[:,l+1],y,nuisance) for l in range(z.shape[1]-1)]
+        null[b]=[t.statistic() for t in others]
+        if bias_correct:null_bias[b]=[t.exact_null_mean() for t in others]
     obs=float(np.nanmean(observed)); means=np.nanmean(null,axis=1)
-    return dict(observed_mean_js_bits=obs,null_mean_bits=float(means.mean()),
+    result=dict(observed_mean_js_bits=obs,null_mean_bits=float(means.mean()),
                 excess_bits=float(obs-means.mean()),null_95=np.quantile(means,[.025,.975]).tolist(),
                 p_greater=float((1+(means>=obs).sum())/(permutations+1)),
                 layer_observed=observed.tolist(),layer_null_mean=np.nanmean(null,axis=0).tolist(),
                 permutations=permutations,scope='Class/nuisance occupancy preserved; original edge counts not preserved; evaluation-only null')
+    if bias_correct:
+        corrected=np.nanmean(observed-bias); corrected_null=np.nanmean(null-null_bias,axis=1)
+        result['bias_corrected']=dict(observed_bits=float(corrected),null_mean_bits=float(corrected_null.mean()),
+            excess_bits=float(corrected-corrected_null.mean()),null_95=np.quantile(corrected_null,[.025,.975]).tolist(),
+            p_greater=float((1+(corrected_null>=corrected-1e-15).sum())/(permutations+1)),
+            correction='Exact conditional label-permutation expectation, accounting for occupied-cell sparsity of EACH shuffled map')
+    return result
+
+
+def shuffle_suffixes(states, folds, rng):
+    """Swap whole suffixes at a shared middle state within a count-fitting fold.
+
+    Every layer's edge counts AND fold membership are exactly preserved.
+    Longer prefix/suffix associations are randomized without using correctness.
+    """
+    out=np.asarray(states).copy()
+    for layer in range(1,out.shape[1]-1):
+        order=shuffle_within(np.arange(len(out)),codes(out[:,layer],folds),rng)
+        out[:,layer+1:]=out[order,layer+1:]
+    return out
