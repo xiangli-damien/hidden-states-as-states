@@ -84,3 +84,29 @@ OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 \
 每层保存实际 model/projection/selection；`states.npy` 为关联后状态，
 `local_states.npy` 为未关联的逐层原始簇 ID，`rows.parquet` 固定样本顺序。
 完成结果使用 HSS `Result.validate(full=True)` 校验，不需要重新拟合即可读取。
+
+## 已完成结果与可重建报告
+
+本轮于 **2026-09-20 11:19:51 UTC** 完成。粗网格540组（含3个缓存）、局部加密175组、
+严格候选180组（含20个缓存）、独立种子检查60组全部执行。新增160个严格候选和60个
+种子检查均收敛；2个筛选候选未收敛，未被冒充正式结果。
+
+主策略为已验证严格候选中最低ICL、选择容差0。post共29个位置均选rank16，K范围4–9，
+末层K7；pre-final对照rank16/K8。rank16是本轮搜索上限，不能据此断言它是全局最佳rank。
+post种子ARI中位数0.609，末层0.488–0.495；pre-final为0.588–0.611。
+这里检查的是固定配置下的初始化敏感性，不是重新选择K/rank的稳定性，也不是测试集预测。
+
+`final_delivery_audit_20260920.json` 保存两套完整Result的校验、5000行样本ID/标签检查、
+各层参数和种子统计。以下命令只读取已保存模型和表格，不读取原始激活、不重新拟合：
+
+```bash
+cd /lambda/nfs/dami/hidden-states-as-states
+.venv/bin/python scripts/render_mfa_deadline.py \
+  --directory /lambda/nfs/dami/hss/qwen-math-mfa-24h-20260920 \
+  --samples /lambda/nfs/dami/hss/qwen-math-cluster-structure-20260919/exploration.json
+```
+
+报告写入独立的 `final_report/`，包含6组PNG/SVG图、逐层选择与稳定性表，以及按末层簇、
+正确性和题号筛选的5000题原文/回答/状态轨迹。原文连接必须通过全部样本ID、正确性标签和
+token数一致性检查。图表清单记录脚本、输入模型及原文文件的哈希；拟合后的trial不被改写。
+本地可以在已同步的study目录执行同一命令，`--samples` 指向本地原文JSON。
