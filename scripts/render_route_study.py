@@ -38,7 +38,7 @@ def render(root):
     for method in ['gmm','mfa','gmm_matched']:
         for j,control in enumerate(['full','geometry']):
             p=extra[(extra.method==method)&(extra.control==control)].sort_values('layer_from')
-            axes[0,j].plot(p.layer_from,p.excess_bits,marker='.',color=COLORS[method],label=NAMES[method])
+            axes[0,j].plot(p.layer_from,p.excess_bits,color=COLORS[method],label=NAMES[method])
             axes[1,j].plot(p.layer_from,p.support_fraction,color=COLORS[method])
             sig=p.fdr_q<.05;axes[0,j].scatter(p.layer_from[sig],p.excess_bits[sig],s=30,color=COLORS[method])
         axes[0,0].legend(frameon=False,fontsize=9)
