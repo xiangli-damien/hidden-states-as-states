@@ -227,16 +227,19 @@ def render(out):
     for seed,part in seeds.groupby('seed'):
         part=part.sort_values('position');axes[1].plot(part.position,part.model_pr_p50,label=f'seed {seed}')
     axes[1].set_yscale('log',base=2);axes[1].set(xlabel='Layer position (29=final post norm)',ylabel='Cluster-median full model PR',title='Existing alternative initializations; no refitting');axes[1].legend()
-    for ax in axes:ax.grid(alpha=.2)
+    for ax in axes:
+        ax.set_yticks([8,12,16,24,32],['8','12','16','24','32']);ax.grid(alpha=.2)
     fig.tight_layout()
     for ext in ['png','pdf']:fig.savefig(dest/f'controls.{ext}',dpi=180)
     plt.close(fig)
-    fig,axes=plt.subplots(1,2,figsize=(11,5.2),sharey=True)
+    fig,axes=plt.subplots(1,2,figsize=(11,6.6),sharey=True)
     for ax,owner in zip(axes,['L28_pre','L28_post']):
         for r in norm[norm.assignment_source==owner].itertuples():
             ax.plot([0,1],[r.pre_pr,r.post_pr],'o-',alpha=.75,label=f'C{r.cluster} n={r.n}')
         ax.set_xticks([0,1],['Pre RMSNorm','Post RMSNorm']);ax.set_yscale('log',base=2)
-        ax.set_title(f'Fixed {owner} cluster membership');ax.set_ylabel('Empirical participation dimension');ax.grid(alpha=.2);ax.legend(fontsize=7)
+        ax.set_title(f'Fixed {owner} cluster membership');ax.set_ylabel('Empirical participation dimension');ax.grid(alpha=.2)
+        ax.set_yticks([8,12,16,20],['8','12','16','20'])
+        ax.legend(fontsize=7,ncol=3,loc='upper center',bbox_to_anchor=(.5,-.12))
     fig.suptitle('Final norm comparison with identical questions in each cluster');fig.tight_layout()
     for ext in ['png','pdf']:fig.savefig(dest/f'norm_control.{ext}',dpi=180)
     plt.close(fig)
