@@ -202,7 +202,7 @@ def render(cfg):
     plt.close(fig)
     records=[]
     for r in real:
-        stat=stats.loc[r['name']].to_dict()
+        stat={k:None if pd.isna(v) else v for k,v in stats.loc[r['name']].to_dict().items()}
         records.append(dict(**r,association=stat,profiles=profiles[profiles.view==r['name']].replace({np.nan:None}).to_dict('records'),examples=examples[r['name']]))
     save_json(dest/'data.json',dict(views=records,nulls=[r for r in fits if r['name'].startswith('gaussian_')]))
     keep=['sample_id','question','response_text','ground_truth','label','category','level','n_tokens','entropy']
