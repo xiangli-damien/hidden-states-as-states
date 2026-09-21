@@ -136,11 +136,18 @@ def fit_view(task):
     marker = folder/'selection.json'
     source = cache/'views'/f'{name}.npy'
     source_sha = file_digest(source)
+    search_signature = dict(grid=cfg['k_grid'], extension=cfg.get('k_extension', []))
     if marker.exists():
         old = json.loads(marker.read_text())
         if old['feature_sha256'] != source_sha:
             raise ValueError('Changed source features')
-        return old
+        if old.get('search_signature') == search_signature:
+            return old
+        # Preserve the unlabeled pilot before extending a boundary-selected grid.
+        import shutil
+        for filename in ['selection.json','assignments.npz','selected_model.joblib','display.npz','display_pca.joblib']:
+            p=folder/filename
+            if p.exists() and not (folder/('pilot_'+filename)).exists():shutil.copy2(p,folder/('pilot_'+filename))
     started = time.monotonic()
     meta = pd.read_parquet(root/'splits.parquet', columns=['sample_id','split'])
     temporal = name.startswith('token_delta_')
@@ -154,12 +161,18 @@ def fit_view(task):
         raise ValueError('Invalid feature rows')
     rows = []; models = {}
     with threadpool_limits(cfg['cpu_threads']):
-        for k in cfg['k_grid']:
+        search_grid=list(cfg['k_grid'])
+        for k in search_grid:
             for seed in cfg['seeds']:
                 path = folder/f'k{k}_s{seed}'
                 gm, rec = fit_one(x[train_index], k, seed, cfg, path, train_index)
                 rec = dict(rec, path=str(path.relative_to(root)), validation_ll=float(gm.score(x[va])))
                 rows.append(rec); models[k, seed] = gm
+            # Adaptive extension is decided by training ICL, never by labels.
+            if k==max(cfg['k_grid']) and cfg.get('k_extension'):
+                current=[r for r in rows if r['converged']]
+                if current and min(current,key=lambda r:r['icl'])['k']==k:
+                    search_grid.extend(cfg['k_extension'])
         viable = [r for r in rows if r['converged']]
         if not viable or not any(r['k']==1 for r in viable):
             raise RuntimeError('No converged candidates or K=1 baseline')
@@ -184,7 +197,7 @@ def fit_view(task):
             train_questions = np.flatnonzero(meta.split.to_numpy() == 'train')
             chosen = rng.choice(train_questions, int(.8*len(train_questions)), replace=False)
             idx = np.flatnonzero(np.isin(owners, chosen))
-            alt, diag = fit_one(x[idx], best['k'], seed, cfg, folder/f'subsample_s{seed}', idx, '80pct_questions')
+            alt, diag = fit_one(x[idx], best['k'], seed, cfg, folder/f'subsample_k{best["k"]}_s{seed}', idx, '80pct_questions')
             stable.append(dict(kind='80pct_questions', seed=int(seed), converged=diag['converged'],
                 ari=float(adjusted_rand_score(assigned[te], alt.predict(x[te])))))
         # Visual projection ONLY, fitted on training examples. No fitted feature scaling.
@@ -201,7 +214,8 @@ def fit_view(task):
         rng=np.random.default_rng(921)
         boot=np.array([np.nanmean(qtest[rng.integers(len(qtest),size=len(qtest))]) for _ in range(1000)])
         summary = dict(name=name, k=best['k'], seed=best['seed'], k_validation=best_val['k'],
-            k_boundary=best['k']==max(cfg['k_grid']), feature_sha256=source_sha,
+            k_boundary=best['k']==max(search_grid), feature_sha256=source_sha,
+            search_signature=search_signature, searched_k=search_grid,
             selection='minimum training ICL = BIC + 2 posterior entropy; converged fits only',
             normalization=False, dimension=x.shape[1], n_vectors=len(x),
             n_train_vectors=len(train_index), n_test_questions=int((meta.split=='test').sum()),
@@ -214,4 +228,3 @@ def fit_view(task):
         save_json(marker, summary)
     print(json.dumps(dict(done=name,k=best['k'],seconds=round(time.monotonic()-started,1))),flush=True)
     return summary
-

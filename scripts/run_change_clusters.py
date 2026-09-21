@@ -162,11 +162,19 @@ def fits(cfg,kind,only):
     if not only:save_json(root/f'{kind.upper()}_FITTED.json',dict(names=[r['name'] for r in manifest],at=time.time()))
 
 
+def validate_protocol(cfg):
+    saved=json.loads((Path(cfg['output'])/'protocol.json').read_text())['config']
+    now={k:v for k,v in cfg.items() if k not in ['fit_workers','cpu_threads','read_workers']}
+    if saved!=now:raise ValueError('Configuration differs from frozen protocol; use a new output directory')
+
+
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config',default='configs/change-clusters.toml')
     p.add_argument('--stage',required=True,choices=['prepare-summary','prepare-temporal','fit-depth','fit-temporal'])
     p.add_argument('--only',nargs='*');a=p.parse_args();cfg=load_config(a.config)
     if a.stage=='prepare-summary':summary(cfg)
-    elif a.stage=='prepare-temporal':temporal(cfg)
-    else:fits(cfg,a.stage.split('-')[1],a.only)
+    else:
+        validate_protocol(cfg)
+        if a.stage=='prepare-temporal':temporal(cfg)
+        else:fits(cfg,a.stage.split('-')[1],a.only)

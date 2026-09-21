@@ -11,6 +11,7 @@ model = "Qwen/Qwen2-7B-Instruct"
 probe_layers = [1, 7, 14, 21, 28]
 gaussian_null_layers = [7, 14, 28]
 k_grid = [1, 2, 4, 8, 16, 32]
+k_extension = [48, 64, 80]
 seeds = [921, 1921]
 stability_seeds = [2921, 3921]
 max_iter = 300
@@ -23,4 +24,3 @@ read_workers = 2
 token_pairs_per_question = 8
 token_seed = 9212026
 permutations = 999
-

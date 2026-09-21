@@ -32,3 +32,35 @@ def test_question_aggregation_gives_equal_question_weight():
     x=np.array([1,3,10]);owner=np.array([0,0,1])
     result=aggregate_pairs(x,owner,3)[:,0]
     np.testing.assert_allclose(result[:2],[2,10]);assert np.isnan(result[2])
+
+
+def test_fitting_needs_no_labels_and_saves_a_reusable_model(tmp_path):
+    import json
+    import joblib
+    import pandas as pd
+    from hss.analysis.change_clusters import fit_view
+    out=tmp_path/'result';cache=tmp_path/'cache';out.mkdir();(cache/'views').mkdir(parents=True)
+    rng=np.random.default_rng(8);x=np.r_[rng.normal(-3,.3,(80,4)),rng.normal(3,.3,(80,4))].astype(np.float32)
+    np.save(cache/'views/mean_delta_L01.npy',x)
+    split=np.tile(np.array(['train']*5+['validation']+['test']*2),20)
+    pd.DataFrame(dict(sample_id=[str(i) for i in range(160)],split=split)).to_parquet(out/'splits.parquet')
+    cfg=dict(output=str(out),cache=str(cache),k_grid=[1,2],seeds=[1,2],stability_seeds=[3,4],
+             cpu_threads=1,max_iter=100,retry_max_iter=300,tol=.001,reg_covar=1e-5)
+    result=fit_view(('mean_delta_L01',cfg))
+    assert result['k']==2 and result['test_gain_nats_per_dimension']>0
+    m=joblib.load(out/'fits/mean_delta_L01/selected_model.joblib')
+    saved=np.load(out/'fits/mean_delta_L01/assignments.npz')
+    np.testing.assert_array_equal(m.predict(x),saved['assignment'])
+    assert len(result['candidates'])==4 and all(s['converged'] for s in result['stability'])
+
+
+def test_controlled_permutation_keeps_group_composition():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+    from evaluate_change_clusters import permutation_test, bh
+    y=np.r_[np.zeros(20,dtype=int),np.ones(20,dtype=int)]
+    h=np.eye(2)[y]
+    assert permutation_test(h,y,y,99,1)['p']==1
+    assert permutation_test(h,y,np.zeros(40),99,1)['p']==.01
+    np.testing.assert_allclose(bh([.01,.04,.9]),[.03,.06,.9])
