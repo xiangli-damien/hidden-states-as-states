@@ -2,7 +2,7 @@
 
 ## 本轮结果
 
-已完成 **210 个候选 + 16 个 HMM 续训**。正式结果使用 `state-route-algorithms-20260921-refined`；初始版本 `state-route-algorithms-20260921` 保留。训练3,011题，验证1,003题，测试986题。初始拟合18.9分钟，HMM并行续训与复制约34秒，另有评价和交付时间。
+已完成 **210 个候选 + 16 个 HMM 续训**。正式结果使用 `state-route-algorithms-20260921-final`；初始版本及 `-refined` 收敛检查版本保留。训练3,011题，验证1,003题，测试986题。初始拟合18.9分钟，HMM并行续训与复制约34秒，另有评分一致性修复、评价和交付时间。
 
 初始27个HMM中16个触及100次迭代上限，包括最终选中的三个地图×三个种子。按预先声明的无标签收敛问题继续41–250次迭代后，**27/27 HMM与27/27路径混合模型均达到数值收敛标准**。续训不使用正误标签；重新按验证NLL选HMM，要求该设置的三个种子均收敛。其他模型未重新训练。神经网络按验证早停／固定预算结束，不声称找到全局最优。
 
@@ -17,7 +17,7 @@
 | 掩码Transformer | 0.559 | 0.502 | 0.543 |
 | Deep SVDD | 0.561 | 0.530 | 0.534 |
 | 后缀结构对比学习 | 0.467 | 0.484 | 0.495 |
-| LOF | 0.580 | 0.536 | 0.586 |
+| LOF | 0.580 | 0.539 | 0.586 |
 
 共同基线：长度 **0.776**，平均token熵 **0.685**，二者验证百分位等权平均 **0.790**。完整表还包含kNN、Isolation Forest、One-Class SVM、PCA、DAE、VAE、固定集成，以及预设top4局部异常分数。上述最高值是事后描述，不是使用标签选出的可部署模型。
 
@@ -28,6 +28,8 @@
 结论范围：这些无标签密度、异常性和一致性目标尚未产生优于长度/熵基线的失败检测器。它不证明state sequence不含正误信息、不否定其他目标，也不把方向反转后重新包装为成功。
 
 [本地交互报告](http://127.0.0.1:8775/report/index.html)。模型、逐层损失、逐题分数、候选诊断和986题测试原文均保存。
+
+重载核验发现sklearn LOF在大量相同离散距离下可能随查询批大小改变并列邻居。最终版改用严格等价的one-hot欧氏距离（sqrt(2×不同层数)），以训练行号稳定处理并列，重算三个LOF。VAE评分保留4次积分，但使用固定共同Gaussian噪声，使同一条路径的分数不随查询顺序、批次或CPU/CUDA的随机数生成器改变；18个VAE仅重算分数，训练权重和验证选参不变。两项修复都来自可复现性检查，不按标签性能挑选。GRU的CPU/CUDA浮点差异可达约2e-4，不视为逐位一致。
 
 ## 范围与冻结规则
 
@@ -50,12 +52,12 @@
 | 路径族 | Mixture of Markov chains | 路径族2/4/8，MAP平滑EM，验证NLL |
 | 隐结构 | 层相关 categorical HMM | 隐状态2/4/8，层相关发射与转移，验证NLL |
 | 邻域 | kNN | one-hot欧氏距离，k20 |
-| 局部密度 | LOF | k35，novelty=True |
+| 局部密度 | LOF | k35，novelty评分，训练行号稳定处理距离并列 |
 | 隔离 | Isolation Forest | 400树，max_samples256 |
 | 核方法 | One-Class SVM | RBF，nu0.1，gamma=scale |
 | 线性重构 | PCA | one-hot中心化后32主成分，重构误差 |
 | 非线性重构 | Denoising AE | 30%层状态置空；类别交叉熵；瓶颈width/4 |
-| 概率潜变量 | Categorical VAE | Gaussian潜变量，CE+KL；4次MC评价 |
+| 概率潜变量 | Categorical VAE | Gaussian潜变量，CE+KL；4组固定共同噪声积分评价 |
 | 自回归 | GRU | 严格右移输入，前缀预测下一层状态 |
 | 自回归注意力 | Causal Transformer | 两层、四头、严格右移输入与因果mask |
 | 双向条件预测 | Masked Transformer | 随机mask训练；逐层leave-one-out伪似然评分 |
@@ -78,7 +80,7 @@
 
 ## 保存与复现
 
-远端最终结果：`/lambda/nfs/dami/hss/state-route-algorithms-20260921-refined`。本地同步到仓库 `results/state-route-algorithms-20260921-refined`。初始结果仍保留在无 `-refined` 后缀的目录。
+远端最终结果：`/lambda/nfs/dami/hss/state-route-algorithms-20260921-final`。本地同步到仓库 `results/state-route-algorithms-20260921-final`。初始结果和HMM续训版本同样保留。
 
 ```bash
 .venv/bin/python scripts/benchmark_route_unsupervised.py \
@@ -93,11 +95,13 @@
 
 本次HMM续训入口为 `scripts/refine_route_hmm.py --source INITIAL --output NEW --data INPUT_STUDY`；会复制初始记录到新目录、继续未收敛候选、重新冻结分数。对新目录再执行独立评价脚本。完整性校验入口为 `scripts/audit_route_benchmark.py --root RESULT`。
 
+最终评分修复入口为 `scripts/stabilize_route_lof.py --source REFINED --output FINAL --data INPUT_STUDY`，同时固定LOF并列处理与VAE积分噪声，再在FINAL目录执行评价。新跑的benchmark已直接使用这些修复，无需重复执行修复脚本。
+
 新样本先使用**原来同一套聚类模型**得到各层local ID，保存N×28整数 `.npy`；然后：
 
 ```bash
 .venv/bin/python scripts/score_route_samples.py \
-  --benchmark results/state-route-algorithms-20260921-refined \
+  --benchmark results/state-route-algorithms-20260921-final \
   --map mfa --states new_local_states.npy --output new_scores.parquet
 ```
 
