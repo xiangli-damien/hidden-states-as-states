@@ -276,6 +276,28 @@ def audit(out, source):
         source_hashes_verified=len(p['source_hashes']), validation_far_verified=True))
 
 
+def supplemental_comparisons(out):
+    """Post-hoc interpretation checks; reuse frozen scores, never refit/select."""
+    table = pd.read_csv(out / 'metrics.csv').set_index('name')
+    bootstrap = np.load(out / 'bootstrap_auroc.npz')
+    pairs = [('28-layer NB minus five-layer NB', 'delta28_nb', 'delta5_nb')]
+    for adjustment in ['spline', 'hgb']:
+        pairs.extend([
+            (f'Update minus state after {adjustment} adjustment, same five layers',
+             'delta5_nb__' + adjustment, 'state5_nb__' + adjustment),
+            (f'Markov minus NB after {adjustment} adjustment, same 28 layers',
+             'delta28_markov__' + adjustment, 'delta28_nb__' + adjustment),
+        ])
+    records = []
+    for title, a, b in pairs:
+        delta = bootstrap[a] - bootstrap[b]
+        records.append(dict(comparison=title, a=a, b=b,
+            delta=float(table.loc[a, 'auroc'] - table.loc[b, 'auroc']),
+            ci_low=float(np.quantile(delta, .025)), ci_high=float(np.quantile(delta, .975))))
+    pd.DataFrame(records).to_csv(out / 'supplemental_contrasts.csv', index=False)
+    return records
+
+
 def render(out, source):
     import matplotlib
     matplotlib.use('Agg')
@@ -285,6 +307,7 @@ def render(out, source):
     summary = json.loads((out / 'summary.json').read_text())
     protocol = json.loads((out / 'protocol.json').read_text())
     selection = json.loads((out / 'selection.json').read_text())
+    supplemental = supplemental_comparisons(out)
     folder = out / 'report'; folder.mkdir(exist_ok=True)
     names = summary['models']
     english = ['Update NB (28 layers)', 'Update Markov (28 layers)', 'Update NB (5 layers)',
@@ -297,7 +320,7 @@ def render(out, source):
     axes[0].axvline(.5, color='grey', ls=':')
     axes[0].axvline(table.loc['length_entropy_spline', 'auroc'], color='#b74c24', ls='--', label='Length + entropy (spline)')
     axes[0].axvline(table.loc['length_entropy_hgb', 'auroc'], color='#538641', ls='--', label='Length + entropy (HGB)')
-    axes[0].set_xlabel('Failure AUROC (test n=986)'); axes[0].legend(fontsize=8, loc='lower left')
+    axes[0].set_xlabel('Failure AUROC (test n=986)'); axes[0].legend(fontsize=8, loc='upper left')
     for offset, adjustment, color in [(-.13, 'spline', '#2766a1'), (.13, 'hgb', '#538641')]:
         d = contrasts.set_index('a').loc[[n+'__'+adjustment for n in names]]
         axes[1].errorbar(d.delta, np.arange(len(d))+offset,
@@ -332,6 +355,7 @@ def render(out, source):
             f'{r.test_far:.1%}', f'{r.failure_recall:.1%}']) + '</tr>')
     baseline_rows = ''.join(f'<li>{TITLES[n]}：AUROC <b>{table.loc[n,"auroc"]:.3f}</b> [{table.loc[n,"ci_low"]:.3f}, {table.loc[n,"ci_high"]:.3f}]</li>' for n in ['length', 'entropy', 'length_entropy_spline', 'length_entropy_hgb'])
     comparison_rows = ''.join('<li>'+html.escape(r.comparison)+f'：Δ AUROC {r.delta:+.3f} [{r.ci_low:+.3f}, {r.ci_high:+.3f}]</li>' for r in contrasts.head(3).itertuples())
+    supplemental_rows = ''.join('<li>'+html.escape(r['comparison'])+f'：Δ AUROC {r["delta"]:+.3f} [{r["ci_low"]:+.3f}, {r["ci_high"]:+.3f}]</li>' for r in supplemental)
     probability_rows = ''.join(f'<tr><td>{TITLES[n]}</td><td>{table.loc[n,"raw_brier"]:.3f}</td><td>{table.loc[n,"calibrated_brier"]:.3f}</td><td>{table.loc[n,"raw_logloss"]:.3f}</td><td>{table.loc[n,"calibrated_logloss"]:.3f}</td></tr>' for n in names)
     probs = pd.read_parquet(out / 'calibrated_probabilities.parquet')
     examples = []
@@ -343,7 +367,7 @@ def render(out, source):
             probabilities={n:float(probs.iloc[i][n]) for n in names}))
     save_json(folder / 'samples.json', examples)
     save_json(folder / 'data.json', dict(summary=summary, metrics=table.reset_index().replace({np.nan:None}).to_dict('records'),
-                                       contrasts=contrasts.to_dict('records'), selection=selection))
+                                       contrasts=contrasts.to_dict('records'), supplemental=supplemental, selection=selection))
     page = '''<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>变化簇的贝叶斯检测 · Qwen MATH</title><style>
 body{max-width:1300px;margin:35px auto;padding:0 24px;font:16px/1.7 system-ui;color:#213047;background:#f5f7fa}h1{line-height:1.3}section{background:white;border:1px solid #dbe2eb;border-radius:12px;padding:24px;margin:22px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;border-bottom:1px solid #dce2eb;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eef3f8}img{max-width:100%}.note{border-left:4px solid #d99936;padding:16px;background:#fff6e5}.scroll{overflow:auto}select,input,button{font:inherit;padding:8px;margin:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:480px;overflow:auto;font:14px/1.7 system-ui}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}a{color:#2164af}@media(max-width:760px){.grid{grid-template-columns:1fr}}</style>
@@ -351,12 +375,14 @@ body{max-width:1300px;margin:35px auto;padding:0 24px;font:16px/1.7 system-ui;co
 <div class="note">训练 3,011／验证 1,003／测试 986（正确 458、错误 528）。使用标签训练贝叶斯；测试题只用状态／变化簇预测。当前 MATH 已反复探索，结果是探索性留出评估，不是全新确认实验。生成特征用于回答完成后的检测；Prompt 两项才是生成前预测。</div>
 <section><h2>测试表现</h2><p>正类＝错误。AUROC 越高越好；区间为 2,000 次题目级分层配对 bootstrap 的逐项 95% CI。增益是将贝叶斯分数加入同一长度＋熵基线后的变化。</p><div class="scroll"><table><thead><tr><th>表示／模型</th><th>AUROC [95% CI]</th><th>加入样条基线 Δ</th><th>加入树基线 Δ</th><th>测试 FAR</th><th>错误召回</th></tr></thead><tbody>__ROWS__</tbody></table></div><p>阈值仅用验证集正确回答校准到 FAR ≤10%；测试 FAR 是实际观测值，不保证等于 10%。Prompt 加入长度／熵后的结果使用了生成后的信息，因此只是诊断对照，不能称为生成前预测。</p><h3>相同测试集的基线</h3><ul>__BASELINES__</ul><h3>配对比较</h3><ul>__COMPARISONS__</ul></section>
 <section><h2>效果与增益</h2><img src="bayes.png" alt="贝叶斯分类表现和长度熵之外的增益"><p><a href="bayes.pdf">下载 PDF</a></p><img src="roc.png" alt="测试 ROC 曲线"><p><a href="roc.pdf">下载 ROC PDF</a></p></section>
+<section><h2>补充比较：收益来自转移关系吗？</h2><p>以下比较在看到初步结果后补充，只复用冻结分数，没有重新拟合或选择模型；属于事后探索。即使变化簇能预测正误，也要检查它是否胜过相同层数的原始状态，以及 Markov 是否确实胜过 NB。</p><ul>__SUPPLEMENTAL__</ul><p><a href="../supplemental_contrasts.csv">补充配对比较 CSV</a></p></section>
 <section><h2>概率是否可信</h2><p>不同层存在依赖，朴素贝叶斯容易过度自信。单调 Platt 校准只用验证集，不反转分数方向。下列 Brier 和 log loss 均在测试集计算，越小越好。</p><div class="scroll"><table><thead><tr><th>模型</th><th>原始 Brier</th><th>校准 Brier</th><th>原始 log loss</th><th>校准 log loss</th></tr></thead><tbody>__PROBABILITY__</tbody></table></div></section>
 <section><h2>逐题检查：测试集</h2><select id="method"></select><select id="order"><option value="high">预测错误分数从高到低</option><option value="low">从低到高</option></select><input id="query" placeholder="题目或 ID"><button id="prev">上一题</button><button id="next">下一题</button><p id="meta"></p><div class="grid"><div><h3>题目</h3><pre id="question"></pre><h3>参考答案</h3><pre id="answer"></pre></div><div><h3>模型回答</h3><pre id="response"></pre></div></div></section>
 <section><h2>方法与边界</h2><ul><li>GMM 沿用已冻结、仅训练题拟合的结果。NB 使用各层独立簇词表、经验类别先验和 α=1 的 Laplace 平滑，无需 Hungarian matching。</li><li>Markov 使用类别条件的首层概率和逐层转移概率，是论文式 NB 的扩展。28 层变化取完整回答均值，末层用 pre-RMSNorm。</li><li>原始状态与变化的公平对照仅使用共同的 1、7、14、21、28 层。没有全层原始状态分类器，也没有本轮 MFA 分类器。</li><li>Token 多项式 NB 输入每题 8 个均匀随机采样相邻 token 对的簇计数；采样对不构成连续轨迹。</li><li>组合分类器在训练题的五折 out-of-fold 贝叶斯分数上拟合，验证集只选逻辑回归正则 C。基线与组合使用相同样条配置，并报告固定梯度提升树敏感性对照。下游分类器的缩放不改变 GMM 特征。</li><li>单个对比的区间不校正多重比较，也没有重采样重训 GMM／分类器。超越长度和熵仍不代表机制或因果；token 类型、题型等仍可能解释信号。</li><li>沿用 60%／20%／20% 划分，不是论文 40%／60% 的严格复现。测试结果不用于模型、阈值或符号选择。</li></ul><p><a href="../metrics.csv">所有指标</a> · <a href="../contrasts.csv">配对差异</a> · <a href="../protocol.json">协议</a> · <a href="../selection.json">模型选择／校准</a> · <a href="../test_predictions.parquet">逐题分数</a> · <a href="../inventory.json">结果清单</a></p></section>
 <script>const titles=__TITLES__;let samples,shown=[],position=0;const el=x=>document.getElementById(x);function show(){if(!shown.length){el('meta').textContent='没有匹配题目';for(const k of ['question','answer','response'])el(k).textContent='';return}const s=shown[position],m=el('method').value;el('meta').textContent=`${position+1}/${shown.length} · ${s.sample_id} · 实际${s.correct?'正确':'错误'} · ${s.tokens} tokens · 熵 ${s.entropy.toFixed(3)} · 贝叶斯 log odds ${s.scores[m].toFixed(3)} · 校准错误概率 ${(100*s.probabilities[m]).toFixed(1)}%`;for(const k of ['question','answer','response'])el(k).textContent=s[k]}function filter(){const query=el('query').value.toLowerCase(),m=el('method').value,sign=el('order').value==='high'?-1:1;shown=samples.filter(s=>(s.sample_id+' '+s.question).toLowerCase().includes(query)).sort((a,b)=>sign*(a.scores[m]-b.scores[m]));position=0;show()}fetch('samples.json').then(r=>r.json()).then(s=>{samples=s;for(const m of Object.keys(s[0].scores)){const o=document.createElement('option');o.value=m;o.textContent=titles[m];el('method').append(o)}filter()}).catch(e=>el('meta').textContent='加载失败：'+e);el('method').onchange=filter;el('order').onchange=filter;el('query').oninput=filter;el('prev').onclick=()=>{if(shown.length){position=(position-1+shown.length)%shown.length;show()}};el('next').onclick=()=>{if(shown.length){position=(position+1)%shown.length;show()}};</script></html>'''
     for key, value in {'__ROWS__': ''.join(body), '__BASELINES__': baseline_rows,
                         '__COMPARISONS__': comparison_rows, '__PROBABILITY__': probability_rows,
+                        '__SUPPLEMENTAL__': supplemental_rows,
                         '__TITLES__': json.dumps(TITLES, ensure_ascii=False)}.items(): page = page.replace(key, value)
     (folder / 'index.html').write_text(page, encoding='utf-8')
 
