@@ -85,6 +85,13 @@ def run(args):
     table.loc[primary,'fdr_q']=fdr(table.loc[primary,'p_greater_chance'].to_numpy())
     table.to_csv(out/'leaderboard.csv',index=False);per_question.to_parquet(out/'test_scores.parquet',index=False)
     save_json(out/'risk_coverage.json',curves)
+    predictive=[]
+    for row in json.loads((root/'selected.json').read_text()):
+        if row['method'] not in ['node','markov','mixture_markov','hmm','gru','causal_transformer']:continue
+        loss=np.mean([np.load(root/name/'scores.npz')['losses'] for name in row['candidates']],axis=0)
+        predictive.append(dict(map=row['map'],method=row['method'],paramkey=row['paramkey'],
+            train_nll=float(loss[tr].mean()),validation_nll=float(loss[va].mean()),test_nll=float(loss[te].mean())))
+    pd.DataFrame(predictive).to_csv(out/'structure_learning.csv',index=False)
     # Seeds/configurations remain exploratory diagnostics; never choose by these.
     all_candidates=[]
     for r in json.loads((root/'candidates.json').read_text()):
@@ -139,7 +146,8 @@ def render(root,table,meta,test_scores):
     plt.close(fig)
     records=table.replace({np.nan:None}).to_dict('records')
     selected=json.loads((root/'selected.json').read_text());summary=json.loads((root/'evaluation/summary.json').read_text())
-    save_json(out/'data.json',dict(leaderboard=records,selected=selected,summary=summary))
+    predictive=pd.read_csv(root/'evaluation/structure_learning.csv').to_dict('records')
+    save_json(out/'data.json',dict(leaderboard=records,selected=selected,summary=summary,predictive=predictive))
     items=[]
     for _,row in meta.iterrows():
         i=test_scores[test_scores.sample_id==row.sample_id].iloc[0]
@@ -155,7 +163,7 @@ def render(root,table,meta,test_scores):
 <section><h2>测试表现</h2><p>AUROC 0.5 为随机排序；分数方向固定为越高越可能错误。主分数为逐层平均，top4 是预设的局部异常敏感性结果。</p><label>地图 <select id="map"><option>mfa</option><option>gmm</option><option>gmm_matched</option></select></label><label>汇总 <select id="agg"><option>mean</option><option>top4</option></select></label><div style="overflow:auto"><table><thead><tr><th>方法</th><th>AUROC [95% CI]</th><th>长度×熵组内</th><th>加入基线 Δ</th><th>50%覆盖错误率</th><th>观测 FAR</th></tr></thead><tbody id="table"></tbody></table></div><p class="muted">“加入基线”用验证集百分位固定等权合并长度、熵、路径，与长度+熵比较；不是监督拟合的最优分类器。区间为逐项区间，不能用挑出的最佳值声称独立验证成功。FAR 为验证集90%分位阈值下的测试观测值，无10%保证。</p></section>
 <section><h2>跨地图比较</h2><img src="auroc.png" alt="各方法AUROC热图"><p><a href="auroc.pdf">下载 PDF</a></p><img src="increment.png" alt="加入长度和熵基线后的AUROC变化"><p><a href="increment.pdf">下载 PDF</a></p></section>
 <section><h2>逐题查看：测试集</h2><select id="method"></select><select id="order"><option value="high">高分优先</option><option value="low">低分优先</option></select><input id="query" placeholder="搜索题目／sample ID"><button id="prev">上一题</button><button id="next">下一题</button><p id="sampleMeta"></p><div class="grid"><div><h3>题目</h3><pre id="prompt"></pre><h3>参考答案</h3><pre id="gold"></pre></div><div><h3>模型回答</h3><pre id="response"></pre></div></div></section>
-<section><h2>复核与下载</h2><p><a href="../evaluation/leaderboard.csv">所有分数与指标</a> · <a href="../evaluation/candidate_diagnostics.csv">210 个候选诊断</a> · <a href="../protocol.json">冻结协议</a> · <a href="../selected.json">无标签选参记录</a> · <a href="../evaluation/summary.json">限制与统计定义</a></p><p>训练文件只读取 sample_id、question_group 和 state sequence；正确性首次进入单独评估脚本。所有候选模型、初始化、逐层损失和逐题分数均保留。</p></section>
+<section><h2>复核与下载</h2><p><a href="../evaluation/leaderboard.csv">所有分数与指标</a> · <a href="../evaluation/candidate_diagnostics.csv">210 个候选诊断</a> · <a href="../evaluation/structure_learning.csv">预测状态的 NLL：结构是否学会</a> · <a href="../protocol.json">冻结协议</a> · <a href="../selected.json">无标签选参记录</a> · <a href="../evaluation/summary.json">限制与统计定义</a></p><p>训练文件只读取 sample_id、question_group 和 state sequence；正确性首次进入单独评估脚本。所有候选模型、初始化、逐层损失和逐题分数均保留。</p></section>
 <script>let data,samples,shown=[],pos=0;const el=x=>document.getElementById(x),fmt=x=>x==null?'—':x.toFixed(3);function table(){const rows=data.leaderboard.filter(r=>(r.map===el('map').value&&r.score===el('agg').value)||r.map==='baseline').sort((a,b)=>b.failure_auroc-a.failure_auroc);el('table').replaceChildren();for(const r of rows){const tr=document.createElement('tr');for(const v of [r.method,`${fmt(r.failure_auroc)} [${fmt(r.ci_low)}, ${fmt(r.ci_high)}]`,fmt(r.conditional_auc),fmt(r.combined_delta),fmt(r.risk_at_50),fmt(r.observed_correct_far)]){const td=document.createElement('td');td.textContent=v;tr.append(td)}el('table').append(tr)}}function filter(){const k=el('method').value,q=el('query').value.toLowerCase(),sign=el('order').value==='high'?-1:1;shown=samples.filter(s=>(s.id+' '+s.prompt).toLowerCase().includes(q)).sort((a,b)=>sign*(a.scores[k]-b.scores[k]));pos=0;show()}function show(){if(!shown.length){el('sampleMeta').textContent='没有匹配的题目';return}const s=shown[pos],k=el('method').value;el('sampleMeta').textContent=`${pos+1}/${shown.length} · ${s.id} · ${s.correct?'正确':'错误'} · ${s.tokens} tokens · 熵 ${fmt(s.entropy)} · 分数 ${fmt(s.scores[k])}`;el('prompt').textContent=s.prompt;el('gold').textContent=s.ground_truth;el('response').textContent=s.response}Promise.all([fetch('data.json').then(r=>r.json()),fetch('samples.json').then(r=>r.json())]).then(([d,s])=>{data=d;samples=s;const a=d.summary;el('summary').textContent=`训练 ${a.train_n} / 验证 ${a.validation_n} / 测试 ${a.test_n}；测试正确 ${a.test_correct}、错误 ${a.test_incorrect}；完成 ${a.candidates} 个候选，${a.primary_scores} 个主分数。`;for(const k of Object.keys(s[0].scores).filter(k=>k.endsWith('__mean'))){const o=document.createElement('option');o.value=k;o.textContent=k;el('method').append(o)}table();filter()}).catch(e=>el('summary').textContent='加载失败：'+e);['map','agg'].forEach(k=>el(k).onchange=table);['method','order'].forEach(k=>el(k).onchange=filter);el('query').oninput=filter;el('prev').onclick=()=>{pos=(pos-1+shown.length)%shown.length;show()};el('next').onclick=()=>{pos=(pos+1)%shown.length;show()};</script></html>'''
     (out/'index.html').write_text(html)
 
