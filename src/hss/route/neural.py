@@ -62,7 +62,7 @@ class RouteNet(nn.Module):
             h = self.core(x)
         return self.head(h)
 
-    def ae_loss(self, z, corrupt=False, sample=False):
+    def ae_loss(self, z, corrupt=False, sample=False, noise=None):
         x = self.onehot(z)
         if corrupt:
             keep = (torch.rand(z.shape, device=z.device)>.3).float()
@@ -73,7 +73,7 @@ class RouteNet(nn.Module):
             lv = self.logvar(h).clamp(-8, 8)
             kl = .5*(h.square()+lv.exp()-1-lv).sum(1)/self.depth
             if sample:
-                h = h + torch.randn_like(h)*(.5*lv).exp()
+                h = h + (torch.randn_like(h) if noise is None else noise)*(.5*lv).exp()
         logits = self.decoder(h).reshape(len(z), self.depth, self.maxk)
         return self.ce(logits, z), kl
 
@@ -161,6 +161,9 @@ def fit_neural(train, validation, sizes, kind, width, seed, config, device):
 @torch.no_grad()
 def neural_losses(model, z, batch=128, device='cpu'):
     model.eval(); result=[]; torch.manual_seed(18221)
+    # Common fixed integration draws make VAE scores independent of query order
+    # and batching. Training still uses fresh posterior samples.
+    noise_bank=torch.randn(4,model.width//4,device=device) if model.kind=='vae' else None
     for start in range(0, len(z), batch):
         x = torch.tensor(z[start:start+batch], device=device)
         if model.kind in ['gru', 'causal_transformer']:
@@ -176,8 +179,8 @@ def neural_losses(model, z, batch=128, device='cpu'):
             loss = (model.encoder(model.onehot(x))-model.center).square().sum(1, keepdim=True)
         else:
             parts=[]
-            for _ in range(4 if model.kind=='vae' else 1):
-                ce, kl = model.ae_loss(x, sample=model.kind=='vae')
+            for j in range(4 if model.kind=='vae' else 1):
+                ce, kl = model.ae_loss(x, sample=model.kind=='vae',noise=noise_bank[j][None] if noise_bank is not None else None)
                 parts.append(ce+kl[:, None])
             loss = torch.stack(parts).mean(0)
         result.append(loss.cpu().numpy())

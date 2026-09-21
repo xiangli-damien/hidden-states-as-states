@@ -1,4 +1,4 @@
-"""Fix LOF tie handling in a new preserved benchmark version; no labels."""
+"""Make LOF and VAE scores query-batch invariant; preserve earlier versions."""
 import argparse
 import json
 from pathlib import Path
@@ -25,6 +25,8 @@ def run(a):
         deterministic_lof=dict(reason='Repeated discrete distances made sklearn LOF depend on query batching; discovered by checkpoint reload checks.',
             tie_break='Stable training-row index',distance='sqrt(2 * differing layer count), identical to one-hot Euclidean',
             source=str(source),script_sha256=file_digest(Path(__file__)),structure_sha256=file_digest(Path('src/hss/route/structure.py'))))
+    protocol['deterministic_vae']=dict(reason='Fixed common posterior integration draws make scoring independent of query order/batch size.',
+        draws=4,seed=18221,training_unchanged=True,selection_unchanged=True,neural_sha256=file_digest(Path('src/hss/route/neural.py')))
     save_json(root/'protocol.json',protocol)
     scores=pd.read_parquet(root/'pre_lof_unlabeled_scores.parquet');tr=(scores.split=='train').to_numpy();va=(scores.split=='validation').to_numpy()
     meta=pd.read_parquet(data/'inputs/rows.parquet',columns=['sample_id']);assert meta.sample_id.tolist()==scores.sample_id.tolist()
@@ -44,6 +46,27 @@ def run(a):
         for agg in ['mean','top4']:scores[r['map']+'__lof__'+agg]=loss[:,0]
         variants[r['map']+'__lof__fixed']=loss[:,0]
         print(json.dumps(dict(map=r['map'],seconds=r['seconds'],batch_invariant=True)),flush=True)
+    import torch
+    from hss.route.neural import RouteNet,neural_losses
+    torch.set_num_threads(2)
+    for r in records:
+        if r['method']!='vae':continue
+        p=root/r['path'];saved=torch.load(p/'model.pt',map_location='cpu',weights_only=True)
+        model=RouteNet(saved['sizes'],saved['kind'],saved['width']);model.load_state_dict(saved['state_dict'])
+        enc=joblib.load(root/'models'/r['map']/'encoder.joblib');z=enc.transform(states[r['map']])
+        loss=neural_losses(model,z)
+        np.testing.assert_allclose(neural_losses(model,z[:8]),loss[:8],rtol=1e-5,atol=1e-6)
+        np.savez_compressed(p/'scores.npz',losses=loss,**aggregate_losses(loss))
+        r['artifacts']={f.name:file_digest(f) for f in p.iterdir() if f.is_file() and f.name!='complete.json'}
+        save_json(p/'complete.json',r)
+    selected=json.loads((root/'pre_lof_selected.json').read_text())
+    for row in selected:
+        if row['method']=='vae':
+            for agg in ['mean','top4']:scores[row['name']+'__'+agg]=np.mean([np.load(root/p/'scores.npz')[agg] for p in row['candidates']],axis=0)
+    for name in protocol['config']['maps']:
+        for key in ['width64','width128']:
+            group=[r for r in records if r['map']==name and r['method']=='vae' and r['paramkey']==key]
+            variants[name+'__vae__'+key]=np.mean([np.load(root/r['path']/'scores.npz')['mean'] for r in group],axis=0)
     for name in protocol['config']['maps']:
         cols=[c for c in scores if c.startswith(name+'__') and c.endswith('__mean') and '__node__' not in c and '__ensemble__' not in c]
         scores[name+'__ensemble__mean']=np.mean([np.searchsorted(np.sort(scores.loc[va,c]),scores[c],side='right')/(va.sum()+1) for c in cols],axis=0)

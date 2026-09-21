@@ -92,3 +92,14 @@ def test_lof_discrete_ties_are_query_batch_invariant():
     partial=np.concatenate([model.score_samples(query[:1]),model.score_samples(query[1:19]),model.score_samples(query[19:])])
     np.testing.assert_array_equal(whole,partial)
     shuffled=rng.permutation(len(query));np.testing.assert_array_equal(whole[shuffled],model.score_samples(query[shuffled]))
+
+
+def test_vae_fixed_integration_is_batch_invariant():
+    import pytest
+    torch=pytest.importorskip('torch')
+    from hss.route.neural import RouteNet,neural_losses
+    model=RouteNet([3]*6,'vae',16)
+    z=np.random.default_rng(7).integers(0,3,(20,6))
+    whole=neural_losses(model,z,batch=16)
+    np.testing.assert_allclose(whole,neural_losses(model,z,batch=3),atol=1e-6,rtol=1e-6)
+    np.testing.assert_allclose(whole[:1],neural_losses(model,z[:1]),atol=1e-6,rtol=1e-6)
