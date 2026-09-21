@@ -1,0 +1,18 @@
+# Frozen before evaluating new scores. Existing state maps are transductive.
+maps = ["gmm", "mfa", "gmm_matched"]
+seeds = [920, 1920, 2920]
+epochs = 45
+patience = 7
+batch_size = 128
+learning_rate = 0.001
+cpu_threads = 2
+gpu_memory_fraction = 0.08
+markov_orders = [0, 1, 2, 3, 4]
+latent_components = [2, 4, 8]
+neural_widths = [64, 128]
+neural_methods = ["dae", "vae", "gru", "causal_transformer", "masked_transformer", "deep_svdd", "suffix_contrastive"]
+knn_neighbors = 20
+lof_neighbors = 35
+isolation_trees = 400
+pca_components = 32
+bootstrap = 1000
