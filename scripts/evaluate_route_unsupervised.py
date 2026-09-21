@@ -122,26 +122,29 @@ def render(root,table,meta,test_scores):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
+    from matplotlib.colors import TwoSlopeNorm
     from html import escape
     out=root/'report';out.mkdir(exist_ok=True)
     primary=table[table.score=='mean'].copy();routes=primary[primary['map']!='baseline']
     matrix=routes.pivot(index='method',columns='map',values='failure_auroc')
-    fig,ax=plt.subplots(figsize=(8,9));im=ax.imshow(matrix.values,vmin=.3,vmax=.8,cmap='RdBu_r')
-    ax.set_xticks(range(len(matrix.columns)),matrix.columns);ax.set_yticks(range(len(matrix)),matrix.index)
+    map_titles={'gmm':'GMM','gmm_matched':'GMM\nmatched K','mfa':'MFA'}
+    labels=[m.replace('_',' ') for m in matrix.index]
+    fig,ax=plt.subplots(figsize=(9,9));im=ax.imshow(matrix.values,norm=TwoSlopeNorm(vmin=.3,vcenter=.5,vmax=.8),cmap='RdBu_r',aspect='auto')
+    ax.set_xticks(range(len(matrix.columns)),[map_titles[c] for c in matrix.columns]);ax.set_yticks(range(len(matrix)),labels)
     for i in range(len(matrix)):
         for j in range(len(matrix.columns)):ax.text(j,i,f'{matrix.iloc[i,j]:.3f}',ha='center',va='center',fontsize=10)
     ax.set_title('Unsupervised route scores | test failure AUROC\nFrozen whole-data maps; higher score fixed as failure')
     fig.colorbar(im,ax=ax,shrink=.65);fig.tight_layout()
     for ext in ['png','pdf']:fig.savefig(out/f'auroc.{ext}',dpi=180)
     plt.close(fig)
-    fig,axes=plt.subplots(1,3,figsize=(15,8),sharey=True)
+    fig,axes=plt.subplots(1,3,figsize=(15,8),sharey=True,sharex=True)
     methods=matrix.index.tolist()
     for ax,map_name in zip(axes,matrix.columns):
         a=routes[routes['map']==map_name].set_index('method').loc[methods]
         ax.hlines(np.arange(len(a)),a.combined_delta_low,a.combined_delta_high,color='steelblue')
         ax.plot(a.combined_delta,np.arange(len(a)),'o',color='steelblue')
-        ax.axvline(0,color='black',lw=1);ax.set_title(map_name);ax.set_xlabel('AUROC change vs length + entropy')
-        ax.set_yticks(np.arange(len(a)),methods);ax.grid(alpha=.2)
+        ax.axvline(0,color='black',lw=1);ax.set_title(map_titles[map_name].replace('\n',' '));ax.set_xlabel('AUROC change vs length + entropy')
+        ax.set_yticks(np.arange(len(a)),labels);ax.grid(alpha=.2)
     axes[0].invert_yaxis();fig.suptitle('Fixed equal-weight percentile combination | pointwise 95% CI\nNo label-fitted weights; exploratory comparisons');fig.tight_layout()
     for ext in ['png','pdf']:fig.savefig(out/f'increment.{ext}',dpi=180)
     plt.close(fig)
@@ -171,4 +174,10 @@ def render(root,table,meta,test_scores):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',required=True);p.add_argument('--source',required=True)
-    with threadpool_limits(2):run(p.parse_args())
+    p.add_argument('--render-only',action='store_true');a=p.parse_args()
+    with threadpool_limits(2):
+        if a.render_only:
+            root=Path(a.root);s=pd.read_parquet(root/'unlabeled_scores.parquet')
+            m=pd.read_parquet(Path(a.source)/'inputs/rows.parquet').set_index('sample_id').loc[s.sample_id].reset_index()
+            render(root,pd.read_csv(root/'evaluation/leaderboard.csv'),m.loc[(s.split=='test').to_numpy()],pd.read_parquet(root/'evaluation/test_scores.parquet'))
+        else:run(a)
