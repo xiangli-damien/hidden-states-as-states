@@ -163,7 +163,7 @@ def neural_losses(model, z, batch=128, device='cpu'):
     model.eval(); result=[]; torch.manual_seed(18221)
     # Common fixed integration draws make VAE scores independent of query order
     # and batching. Training still uses fresh posterior samples.
-    noise_bank=torch.randn(4,model.width//4,device=device) if model.kind=='vae' else None
+    noise_bank=torch.randn(4,model.width//4,device='cpu').to(device) if model.kind=='vae' else None
     for start in range(0, len(z), batch):
         x = torch.tensor(z[start:start+batch], device=device)
         if model.kind in ['gru', 'causal_transformer']:

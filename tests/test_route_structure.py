@@ -103,3 +103,5 @@ def test_vae_fixed_integration_is_batch_invariant():
     whole=neural_losses(model,z,batch=16)
     np.testing.assert_allclose(whole,neural_losses(model,z,batch=3),atol=1e-6,rtol=1e-6)
     np.testing.assert_allclose(whole[:1],neural_losses(model,z[:1]),atol=1e-6,rtol=1e-6)
+    if torch.cuda.is_available():
+        np.testing.assert_allclose(whole,neural_losses(model.cuda(),z,device='cuda'),atol=1e-5,rtol=1e-5)
