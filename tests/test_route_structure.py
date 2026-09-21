@@ -54,3 +54,17 @@ def test_causal_no_future_leakage_and_suffix_preservation():
     swapped,_=suffix_negatives(z)
     for l in range(5):
         assert torch.equal(torch.bincount(z[:,l]*3+z[:,l+1],minlength=9),torch.bincount(swapped[:,l]*3+swapped[:,l+1],minlength=9))
+
+
+def test_saved_route_inference_does_not_require_labels(tmp_path):
+    import joblib,json
+    from hss.route.inference import score_new_routes
+    z=np.array([[10,30,50],[20,40,60],[10,30,50]]*10)
+    encoder=RouteEncoder().fit(z);zz=encoder.transform(z)
+    model=BackoffMarkov(encoder.sizes).fit(zz)
+    folder=tmp_path/'models'/'mfa'/'markov';folder.mkdir(parents=True)
+    joblib.dump(encoder,folder.parent/'encoder.joblib');joblib.dump(model,folder/'model.joblib')
+    (tmp_path/'selected.json').write_text(json.dumps([dict(map='mfa',method='markov',candidates=['models/mfa/markov'])]))
+    out=score_new_routes(tmp_path,'mfa',z)
+    np.testing.assert_allclose(out['markov__mean'],model.losses(zz).mean(1))
+    assert np.isfinite(score_new_routes(tmp_path,'mfa',np.array([[99,99,99]]))['markov__mean']).all()
