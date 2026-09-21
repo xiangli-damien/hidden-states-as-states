@@ -25,16 +25,16 @@ except ImportError:
     import tomli as tomllib
 from hss.experiments.artifacts import file_digest, save_json
 from hss.route.counts import group_folds
-from hss.route.structure import RouteEncoder, BackoffMarkov, MixtureMarkov, LayerHMM, aggregate_losses
+from hss.route.structure import RouteEncoder, BackoffMarkov, MixtureMarkov, LayerHMM, StableRouteLOF, aggregate_losses
 
 
-def fit_classical(kind, x, train, cfg):
+def fit_classical(kind, x, train, cfg, z=None, train_z=None):
     if kind=='knn':
         m=NearestNeighbors(n_neighbors=cfg['knn_neighbors'], metric='euclidean', n_jobs=cfg['cpu_threads']).fit(train)
         score=m.kneighbors(x)[0].mean(1)
     elif kind=='lof':
-        m=LocalOutlierFactor(n_neighbors=cfg['lof_neighbors'], novelty=True, n_jobs=cfg['cpu_threads']).fit(train)
-        score=-m.score_samples(x)
+        m=StableRouteLOF(n_neighbors=cfg['lof_neighbors']).fit(train_z)
+        score=-m.score_samples(z)
     elif kind=='isolation_forest':
         m=IsolationForest(n_estimators=cfg['isolation_trees'], max_samples=256, random_state=920, n_jobs=cfg['cpu_threads']).fit(train)
         score=-m.score_samples(x)
@@ -124,7 +124,7 @@ def run(args):
                     joblib.dump(model,out/'model.joblib')
                     val=float(losses[va].mean())
                 elif kind not in config['neural_methods']:
-                    model,losses=fit_classical(kind,x,x[tr],config)
+                    model,losses=fit_classical(kind,x,x[tr],config,z,z[tr])
                     joblib.dump(model,out/'model.joblib');val=None
                 else:
                     model,diag=fit_neural(z[tr],z[va],encoder.sizes,kind,params['width'],seed,config,args.device)

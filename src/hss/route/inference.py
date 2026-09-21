@@ -32,6 +32,7 @@ def score_new_routes(root, map_name, states, device='cpu', methods=None):
             else:
                 model=joblib.load(path/'model.joblib');kind=row['method']
                 if hasattr(model,'losses'):losses=model.losses(z)
+                elif getattr(model,'input_encoding',None)=='local_state_ids':losses=-model.score_samples(z)[:,None]
                 elif kind=='knn':losses=model.kneighbors(x)[0].mean(1)[:,None]
                 elif kind=='pca':losses=np.mean((x-model.inverse_transform(model.transform(x)))**2,1)[:,None]
                 else:losses=-model.score_samples(x)[:,None]

@@ -6,6 +6,7 @@ reserve an explicit unknown symbol at every layer for new observations.
 from collections import Counter, defaultdict
 import numpy as np
 from scipy.special import logsumexp
+from scipy.spatial.distance import cdist
 
 
 class RouteEncoder:
@@ -159,3 +160,38 @@ class LayerHMM:
 def aggregate_losses(losses):
     """Frozen scoring directions; no optimization against correctness."""
     return dict(mean=losses.mean(1), top4=np.sort(losses, axis=1)[:, -min(4, losses.shape[1]):].mean(1))
+
+
+class StableRouteLOF:
+    """Novelty LOF with deterministic training-index tie breaks.
+
+    Euclidean distance on layer-wise one-hot equals sqrt(2 * Hamming count).
+    Categorical paths have many exact ties; resolving them by training row
+    index makes a single-query score agree with arbitrary query batches.
+    """
+    input_encoding = 'local_state_ids'
+
+    def __init__(self, n_neighbors=35):
+        self.n_neighbors=n_neighbors
+
+    def _neighbors(self, z, exclude_self=False):
+        all_idx=[];all_d=[]
+        for start in range(0,len(z),256):
+            d=np.sqrt(2*z.shape[1]*cdist(z[start:start+256],self.train,metric='hamming'))
+            if exclude_self:d[np.arange(len(d)),start+np.arange(len(d))]=np.inf
+            idx=np.argsort(d,axis=1,kind='stable')[:,:self.k]
+            all_idx.append(idx);all_d.append(np.take_along_axis(d,idx,axis=1))
+        return np.concatenate(all_idx),np.concatenate(all_d)
+
+    def fit(self,z):
+        self.train=np.asarray(z).copy();self.k=min(self.n_neighbors,len(z)-1)
+        if self.k<1:raise ValueError('LOF needs at least two training paths')
+        idx,d=self._neighbors(self.train,exclude_self=True)
+        self.k_distance=d[:,-1]
+        self.lrd=1/(np.maximum(d,self.k_distance[idx]).mean(1)+1e-10)
+        return self
+
+    def score_samples(self,z):
+        idx,d=self._neighbors(np.asarray(z))
+        lrd=1/(np.maximum(d,self.k_distance[idx]).mean(1)+1e-10)
+        return -(self.lrd[idx]/lrd[:,None]).mean(1)

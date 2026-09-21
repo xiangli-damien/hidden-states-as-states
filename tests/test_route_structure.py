@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import logsumexp
-from hss.route.structure import RouteEncoder, BackoffMarkov, MixtureMarkov, LayerHMM
+from hss.route.structure import RouteEncoder, BackoffMarkov, MixtureMarkov, LayerHMM, StableRouteLOF
 
 
 def test_encoder_unknown_and_id_invariance():
@@ -82,3 +82,13 @@ def test_vectorized_bootstrap_matches_tied_auc():
     rng=np.random.default_rng(5);y=np.r_[np.zeros(50),np.ones(50)]
     scores=rng.integers(0,8,100);idx=rng.integers(100,size=(231,100))
     np.testing.assert_allclose(auc_bootstrap(y,scores,idx),[roc_auc_score(y[a],scores[a]) for a in idx],atol=1e-12)
+
+
+def test_lof_discrete_ties_are_query_batch_invariant():
+    rng=np.random.default_rng(992)
+    train=rng.integers(0,3,(350,8));query=rng.integers(0,3,(520,8))
+    model=StableRouteLOF(20).fit(train)
+    whole=model.score_samples(query)
+    partial=np.concatenate([model.score_samples(query[:1]),model.score_samples(query[1:19]),model.score_samples(query[19:])])
+    np.testing.assert_array_equal(whole,partial)
+    shuffled=rng.permutation(len(query));np.testing.assert_array_equal(whole[shuffled],model.score_samples(query[shuffled]))
