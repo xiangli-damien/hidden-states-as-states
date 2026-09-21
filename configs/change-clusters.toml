@@ -1,0 +1,26 @@
+# Initial Qwen MATH change-space experiment. Raw features; labels only in evaluation.
+output = "/lambda/nfs/dami/hss/change-clusters-20260921"
+cache = "/home/ubuntu/hss-change-cache-20260921"
+source = "/lambda/nfs/dami/openact/runs/math_full_20260916/qwen2"
+summary_cache = "/home/ubuntu/hss-channel-cache/qwen2_math/summary"
+route_rows = "/lambda/nfs/dami/hss/state-route-initial-20260920/inputs/rows.parquet"
+expected_samples = 5000
+last_layer = 28
+hidden_dim = 3584
+model = "Qwen/Qwen2-7B-Instruct"
+probe_layers = [1, 7, 14, 21, 28]
+gaussian_null_layers = [7, 14, 28]
+k_grid = [1, 2, 4, 8, 16, 32]
+seeds = [921, 1921]
+stability_seeds = [2921, 3921]
+max_iter = 300
+retry_max_iter = 1000
+tol = 0.001
+reg_covar = 0.00001
+fit_workers = 6
+cpu_threads = 2
+read_workers = 2
+token_pairs_per_question = 8
+token_seed = 9212026
+permutations = 999
+
