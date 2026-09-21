@@ -23,7 +23,14 @@ def percentile(reference, x):
 
 
 def auc_bootstrap(y, s, indices):
-    return np.array([roc_auc_score(y[ii],s[ii]) for ii in indices])
+    # Rank-sum identity, with average ranks for ties; avoids thousands of
+    # sklearn validation calls while preserving the exact bootstrap statistic.
+    values=[]
+    for ii in np.array_split(indices,max(1,int(np.ceil(len(indices)/200)))):
+        yy=y[ii];n1=yy.sum(1);n0=yy.shape[1]-n1
+        ranks=rankdata(s[ii],axis=1)
+        values.append(((ranks*yy).sum(1)-n1*(n1+1)/2)/(n1*n0))
+    return np.concatenate(values)
 
 
 def run(args):

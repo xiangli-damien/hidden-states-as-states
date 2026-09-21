@@ -68,3 +68,14 @@ def test_saved_route_inference_does_not_require_labels(tmp_path):
     out=score_new_routes(tmp_path,'mfa',z)
     np.testing.assert_allclose(out['markov__mean'],model.losses(zz).mean(1))
     assert np.isfinite(score_new_routes(tmp_path,'mfa',np.array([[99,99,99]]))['markov__mean']).all()
+
+
+def test_vectorized_bootstrap_matches_tied_auc():
+    import sys
+    from pathlib import Path
+    from sklearn.metrics import roc_auc_score
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+    from evaluate_route_unsupervised import auc_bootstrap
+    rng=np.random.default_rng(5);y=np.r_[np.zeros(50),np.ones(50)]
+    scores=rng.integers(0,8,100);idx=rng.integers(100,size=(231,100))
+    np.testing.assert_allclose(auc_bootstrap(y,scores,idx),[roc_auc_score(y[a],scores[a]) for a in idx],atol=1e-12)
