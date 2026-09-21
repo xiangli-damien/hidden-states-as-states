@@ -60,13 +60,17 @@ class CountNB:
             self.tables.append(np.log(table / table.sum(axis=1, keepdims=True)))
         return self
 
-    def predict_proba(self, states):
+    def predict_log_proba(self, states):
+        """Normalized log probabilities, retaining extreme but finite log odds."""
         scores = np.tile(self.log_prior, (len(states), 1))
         for j, (vocab, table) in enumerate(zip(self.vocabularies, self.tables)):
             mapping = {int(v): i for i, v in enumerate(vocab)}
             positions = np.array([mapping[int(s)] for s in states[:, j]])
             scores += table[:, positions].T
-        return np.exp(scores - logsumexp(scores, axis=1, keepdims=True))
+        return scores - logsumexp(scores, axis=1, keepdims=True)
+
+    def predict_proba(self, states):
+        return np.exp(self.predict_log_proba(states))
 
 
 def binary_metrics(y, score, *, threshold=0.5):
