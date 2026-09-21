@@ -89,6 +89,8 @@ def evaluate(cfg):
         raise RuntimeError('All unsupervised candidates must finish before evaluating labels')
     manifests=sum([json.loads((root/f'{kind}_views.json').read_text()) for kind in ['depth','temporal']],[])
     rows=pd.read_parquet(root/'rows.parquet');splits=pd.read_parquet(root/'splits.parquet')
+    if 'question' not in rows:
+        rows['question']=rows.prompt_text
     np.testing.assert_array_equal(rows.sample_id,splits.sample_id)
     train=splits.split.to_numpy()=='train';test=splits.split.to_numpy()=='test';y=rows.label.to_numpy(int)
     pairs=pd.read_parquet(root/'pairs.parquet')
@@ -175,6 +177,8 @@ def render(cfg):
     stats=pd.read_csv(root/'evaluation/outcome_association.csv').set_index('name')
     profiles=pd.read_csv(root/'evaluation/cluster_profiles.csv')
     rows=pd.read_parquet(root/'rows.parquet');splits=pd.read_parquet(root/'splits.parquet')
+    if 'question' not in rows:
+        rows['question']=rows.prompt_text
     examples=json.loads((root/'evaluation/examples.json').read_text())
     real=[r for r in fits if not r['name'].startswith('gaussian_')]
     depth=[r for r in real if r['name'].startswith('mean_delta_')]
