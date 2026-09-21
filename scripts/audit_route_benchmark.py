@@ -37,7 +37,7 @@ def run(root):
     assert evaluation['test_n']==int((scores.split=='test').sum())
     assert len(json.loads((root/'report/samples.json').read_text()))==evaluation['test_n']
     provenance=dict(at=time.time(),python=platform.python_version(),numpy=np.__version__,pandas=pd.__version__,sklearn=sklearn.__version__,
-        fit_commit=protocol['code_commit'],evaluation_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        fit_commit=protocol['code_commit'],delivery_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
         evaluation_source_sha256=file_digest(Path('scripts/evaluate_route_unsupervised.py')),
         audit_source_sha256=file_digest(Path(__file__)))
     save_json(root/'evaluation/provenance.json',provenance)
@@ -46,7 +46,7 @@ def run(root):
     save_json(root/'inventory.json',inventory)
     result=dict(complete=True,at=time.time(),candidates=len(records),selected_methods=len(selected),
         samples=len(scores),files=len(inventory),bytes=sum(v['bytes'] for v in inventory.values()),
-        inventory_sha256=file_digest(root/'inventory.json'),source_commit=provenance['evaluation_commit'])
+        inventory_sha256=file_digest(root/'inventory.json'),source_commit=provenance['delivery_commit'])
     save_json(root/'_SUCCESS.json',result);print(json.dumps(result))
 
 

@@ -1,5 +1,34 @@
 # 无标签路径结构：广覆盖算法比较
 
+## 本轮结果
+
+已完成 **210 个候选 + 16 个 HMM 续训**。正式结果使用 `state-route-algorithms-20260921-refined`；初始版本 `state-route-algorithms-20260921` 保留。训练3,011题，验证1,003题，测试986题。初始拟合18.9分钟，HMM并行续训与复制约34秒，另有评价和交付时间。
+
+初始27个HMM中16个触及100次迭代上限，包括最终选中的三个地图×三个种子。按预先声明的无标签收敛问题继续41–250次迭代后，**27/27 HMM与27/27路径混合模型均达到数值收敛标准**。续训不使用正误标签；重新按验证NLL选HMM，要求该设置的三个种子均收敛。其他模型未重新训练。神经网络按验证早停／固定预算结束，不声称找到全局最优。
+
+| 测试主分数，方向预先固定 | GMM | 同K GMM | MFA |
+|---|---:|---:|---:|
+| 节点罕见程度基线 | 0.440 | 0.637 | 0.635 |
+| 高阶Markov | 0.566 | 0.502 | 0.521 |
+| 路径混合 | 0.563 | 0.495 | 0.517 |
+| 收敛HMM | 0.482 | 0.499 | 0.498 |
+| GRU | 0.564 | 0.504 | 0.535 |
+| 因果Transformer | 0.558 | 0.505 | 0.541 |
+| 掩码Transformer | 0.559 | 0.502 | 0.543 |
+| Deep SVDD | 0.561 | 0.530 | 0.534 |
+| 后缀结构对比学习 | 0.467 | 0.484 | 0.495 |
+| LOF | 0.580 | 0.536 | 0.586 |
+
+共同基线：长度 **0.776**，平均token熵 **0.685**，二者验证百分位等权平均 **0.790**。完整表还包含kNN、Isolation Forest、One-Class SVM、PCA、DAE、VAE、固定集成，以及预设top4局部异常分数。上述最高值是事后描述，不是使用标签选出的可部署模型。
+
+路径结构确实被学会：MFA测试集的独立节点NLL为1.979 nats/层，因果Transformer为0.456；GMM独立节点3.801，高阶Markov1.024。更好地预测状态分布，没有转化为更好地区分正误。
+
+本轮最有利的固定组合来自MFA**节点**基线：在长度+熵上增加 **0.01094 AUROC**，点态95%区间 **[-0.00996, 0.03184]**，跨0；这并不是转移结构的增益。其长度×熵分组内AUROC为0.639，说明静态状态占用仍值得单独研究，但分箱不能排除题型、难度等其他解释。预设top4的最高值同样来自节点基线（同K GMM，0.642）。
+
+结论范围：这些无标签密度、异常性和一致性目标尚未产生优于长度/熵基线的失败检测器。它不证明state sequence不含正误信息、不否定其他目标，也不把方向反转后重新包装为成功。
+
+[本地交互报告](http://127.0.0.1:8775/report/index.html)。模型、逐层损失、逐题分数、候选诊断和986题测试原文均保存。
+
 ## 范围与冻结规则
 
 本轮覆盖 15 类方法，另有节点罕见程度基线与等权集成。“先进”不代表适合当前数据，也不声称穷尽全部算法或达到某个榜单的 SOTA。
@@ -49,7 +78,7 @@
 
 ## 保存与复现
 
-远端结果：`/lambda/nfs/dami/hss/state-route-algorithms-20260921`。本地同步到仓库 `results/state-route-algorithms-20260921`。
+远端最终结果：`/lambda/nfs/dami/hss/state-route-algorithms-20260921-refined`。本地同步到仓库 `results/state-route-algorithms-20260921-refined`。初始结果仍保留在无 `-refined` 后缀的目录。
 
 ```bash
 .venv/bin/python scripts/benchmark_route_unsupervised.py \
@@ -62,15 +91,19 @@
 
 同一冻结协议允许从完整候选恢复。修改代码、配置或输入后必须使用新输出目录。
 
+本次HMM续训入口为 `scripts/refine_route_hmm.py --source INITIAL --output NEW --data INPUT_STUDY`；会复制初始记录到新目录、继续未收敛候选、重新冻结分数。对新目录再执行独立评价脚本。完整性校验入口为 `scripts/audit_route_benchmark.py --root RESULT`。
+
 新样本先使用**原来同一套聚类模型**得到各层local ID，保存N×28整数 `.npy`；然后：
 
 ```bash
 .venv/bin/python scripts/score_route_samples.py \
-  --benchmark results/state-route-algorithms-20260921 \
+  --benchmark results/state-route-algorithms-20260921-refined \
   --map mfa --states new_local_states.npy --output new_scores.parquet
 ```
 
 接口不接受ground truth；未知state映射到训练词表保留的UNK。不能传另一套重新编号的簇或全局matched ID。输出是冻结的异常/一致性分数，不是校准后的正确率。
+
+可用 `--methods gru causal_transformer` 只加载指定方法，`--threads 2` 限制CPU线程。神经网络评分需要PyTorch（项目的 `gpu` extra，CPU上也可以运行）；Lambda环境已具备，本地只看报告不需要安装Torch。
 
 ## 参考
 
