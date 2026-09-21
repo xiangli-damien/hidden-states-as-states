@@ -172,7 +172,14 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config',default='configs/change-clusters.toml')
     p.add_argument('--stage',required=True,choices=['prepare-summary','prepare-temporal','fit-depth','fit-temporal'])
-    p.add_argument('--only',nargs='*');a=p.parse_args();cfg=load_config(a.config)
+    p.add_argument('--only',nargs='*')
+    p.add_argument('--workers',type=int,help='Override fit worker count; does not change scientific protocol')
+    p.add_argument('--threads',type=int,help='Override BLAS threads per fit worker')
+    a=p.parse_args();cfg=load_config(a.config)
+    for field,value in [('fit_workers',a.workers),('cpu_threads',a.threads)]:
+        if value is not None:
+            if value<1:raise ValueError('Worker/thread count must be positive')
+            cfg[field]=value
     if a.stage=='prepare-summary':summary(cfg)
     else:
         validate_protocol(cfg)
