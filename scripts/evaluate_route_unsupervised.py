@@ -42,7 +42,8 @@ def run(args):
     meta=pd.read_parquet(Path(args.source)/'inputs/rows.parquet').set_index('sample_id').loc[scores.sample_id].reset_index()
     tr=scores.split.to_numpy()=='train';va=scores.split.to_numpy()=='validation';te=scores.split.to_numpy()=='test'
     y=1-meta.label.to_numpy(int);yt=y[te];rng=np.random.default_rng(2051921)
-    boot=rng.integers(te.sum(),size=(1000,te.sum()))
+    protocol=json.loads((root/'protocol.json').read_text())
+    boot=rng.integers(te.sum(),size=(protocol['config']['bootstrap'],te.sum()))
     length=np.log1p(meta.n_tokens.to_numpy(float));entropy=meta.entropy.to_numpy(float)
     if not np.isfinite(entropy).all():raise ValueError('Missing token entropy')
     nuisance=np.column_stack([length,entropy])

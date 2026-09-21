@@ -83,6 +83,7 @@ src/hss/
   transform/             Train-only preprocessing and portable projections
   results/               Lazy result/model reading and checksum/structure audit
   analysis/              Numerical tables, Hamming geometry, comparisons/bootstrap
+  route/                 Label-free route counts, latent chains, neural models, inference
   viz/                   Pure plots, paper recipes, control reports, render manifests
   align.py, predict.py   Reusable core interfaces
   experiments/
@@ -109,6 +110,9 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 - [Residual-channel correctness study: held-out effects, transfer and temporal checks](docs/channel-study.zh-CN.md)
 - [Confidence scalars, full-dimensional directions, and cross-layer follow-up](docs/confidence-study.zh-CN.md)
 - [Confidence follow-up findings and limits](docs/confidence-findings.zh-CN.md)
+- [State-route research protocol](docs/state-route-research-plan.zh-CN.md)
+- [Initial route findings and structural controls](docs/state-route-initial-results.zh-CN.md)
+- [Unsupervised route algorithm benchmark and new-sample scoring](docs/route-algorithm-benchmark.zh-CN.md)
 
 ## Plot without refitting
 
