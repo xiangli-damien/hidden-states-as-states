@@ -63,7 +63,7 @@ def audit(cfg):
         source_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),runtime=runtime_versions(),checks=checks)
     save_json(root/'audit.json',receipt)
     inventory={str(p.relative_to(root)):dict(bytes=p.stat().st_size,sha256=file_digest(p)) for p in sorted(root.rglob('*'))
-               if p.is_file() and p.name not in ['inventory.json','_SUCCESS.json'] and not p.name.endswith('.log')}
+               if p.is_file() and p.name not in ['inventory.json','_SUCCESS.json'] and not p.name.endswith('.log') and '.tmp-' not in p.name}
     save_json(root/'inventory.json',inventory)
     save_json(root/'_SUCCESS.json',dict(questions=len(meta),views=len(manifests),candidates=candidate_count,
         inventory_sha256=file_digest(root/'inventory.json'),files=len(inventory),bytes=sum(v['bytes'] for v in inventory.values())))

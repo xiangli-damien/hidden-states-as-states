@@ -176,6 +176,7 @@ def render(cfg):
     fits=json.loads((root/'evaluation/fit_summary.json').read_text())
     stats=pd.read_csv(root/'evaluation/outcome_association.csv').set_index('name')
     profiles=pd.read_csv(root/'evaluation/cluster_profiles.csv')
+    transitions=pd.read_csv(root/'evaluation/token_kind_counts.csv')
     rows=pd.read_parquet(root/'rows.parquet');splits=pd.read_parquet(root/'splits.parquet')
     if 'question' not in rows:
         rows['question']=rows.prompt_text
@@ -203,7 +204,14 @@ def render(cfg):
     records=[]
     for r in real:
         stat={k:None if pd.isna(v) else v for k,v in stats.loc[r['name']].to_dict().items()}
-        records.append(dict(**r,association=stat,profiles=profiles[profiles.view==r['name']].replace({np.nan:None}).to_dict('records'),examples=examples[r['name']]))
+        pp=profiles[profiles.view==r['name']].replace({np.nan:None}).to_dict('records')
+        for item in pp:
+            tt=transitions[(transitions['view']==r['name'])&(transitions.cluster==item['cluster'])]
+            if len(tt):
+                top=tt.loc[tt['count'].idxmax()]
+                item['dominant_transition']=str(top.kind_before)+' → '+str(top.kind_after)
+                item['dominant_transition_fraction']=float(top['count']/tt['count'].sum())
+        records.append(dict(**r,association=stat,profiles=pp,examples=examples[r['name']]))
     save_json(dest/'data.json',dict(views=records,nulls=[r for r in fits if r['name'].startswith('gaussian_')]))
     keep=['sample_id','question','response_text','ground_truth','label','category','level','n_tokens','entropy']
     frame=rows[[k for k in keep if k in rows]].copy();frame['split']=splits.split
@@ -220,7 +228,7 @@ body{font:16px/1.7 system-ui;margin:32px auto;max-width:1320px;padding:0 20px;co
 <script>
 let DATA,QUESTIONS;const el=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const num=(x,n=3)=>x==null?'—':Number(x).toFixed(n);
 function samples(){let v=DATA.views[el('view').value],c=el('cluster').value;el('examples').innerHTML=(v.examples[c]||[]).map(e=>{let q=QUESTIONS[e.question_index];return `<details class="card"><summary>${q.label?'正确':'错误'} · ${esc(q.category)} · ${q.n_tokens} tokens · ${esc(q.sample_id)}</summary><p>${e.position?`相邻生成 token ${e.position} → ${e.position+1}：<code>${esc(e.piece_before)}</code> → <code>${esc(e.piece_after)}</code>`:''}</p><p>Mahalanobis² = ${num(e.mahalanobis_sq)} · ${esc(q.split)}</p><strong>题目</strong><pre>${esc(q.question)}</pre><strong>模型回答</strong><pre>${esc(q.response_text)}</pre><strong>参考答案</strong><pre>${esc(q.ground_truth)}</pre></details>`}).join('')||'<p>该簇没有测试题目。</p>'}
-function show(){let v=DATA.views[el('view').value],a=v.association;let ari=v.stability.filter(s=>s.kind==='80pct_questions'&&s.converged).map(s=>s.ari);el('metrics').innerHTML=`<p><span class="badge">ICL K=${v.k}${v.k_boundary?'（搜索边界）':''}</span><span class="badge">验证 LL K=${v.k_validation}</span><span class="badge">ΔLL/d=${num(v.test_gain_nats_per_dimension,4)}</span><span class="badge">子样本 ARI=${ari.map(x=>num(x)).join(' / ')}</span></p><p>正误占比 JS=${num(a.js_bits,4)} bits · q=${num(a.q)} · 长度+熵控制 q=${num(a.controlled_q)} · 再加题型+难度 q=${num(a.task_controlled_q)}</p>${a.token_kind_nmi==null?'':`<p>簇与 token 类型转换 NMI=${num(a.token_kind_nmi)}；与生成相对位置 NMI=${num(a.position_nmi)}</p>`}`;el('plot').src=`figures/${v.name}.png`;el('note').textContent=v.note+' Silhouette='+num(v.silhouette_test);el('profiles').innerHTML='<tr><th>簇</th><th>测试题目权重</th><th>加权正确率</th><th>回答长度</th><th>Token 熵</th><th>中心范数</th><th>方差总和</th></tr>'+v.profiles.map(p=>`<tr><td>${p.cluster}</td><td>${num(p.test_question_mass,1)}</td><td>${num(p.test_correct_rate==null?null:p.test_correct_rate*100,1)}%</td><td>${num(p.weighted_mean_length,0)}</td><td>${num(p.weighted_mean_entropy)}</td><td>${num(p.center_norm,1)}</td><td>${num(p.diagonal_variance_sum,1)}</td></tr>`).join('');el('cluster').innerHTML=v.profiles.map(p=>`<option value="${p.cluster}">Cluster ${p.cluster}</option>`).join('');samples()}
+function show(){let v=DATA.views[el('view').value],a=v.association;let ari=v.stability.filter(s=>s.kind==='80pct_questions'&&s.converged).map(s=>s.ari);el('metrics').innerHTML=`<p><span class="badge">ICL K=${v.k}${v.k_boundary?'（搜索边界）':''}</span><span class="badge">验证 LL K=${v.k_validation}</span><span class="badge">ΔLL/d=${num(v.test_gain_nats_per_dimension,4)}</span><span class="badge">子样本 ARI=${ari.map(x=>num(x)).join(' / ')}</span></p><p>正误占比 JS=${num(a.js_bits,4)} bits · q=${num(a.q)} · 长度+熵控制 q=${num(a.controlled_q)} · 再加题型+难度 q=${num(a.task_controlled_q)}</p>${a.token_kind_nmi==null?'':`<p>簇与 token 类型转换 NMI=${num(a.token_kind_nmi)}；与生成相对位置 NMI=${num(a.position_nmi)}</p>`}`;el('plot').src=`figures/${v.name}.png`;el('note').textContent=v.note+' Silhouette='+num(v.silhouette_test);el('profiles').innerHTML='<tr><th>簇</th><th>测试题目权重</th><th>加权正确率</th><th>回答长度</th><th>Token 熵</th><th>中心范数</th><th>方差总和</th><th>常见 token 类型转换</th></tr>'+v.profiles.map(p=>`<tr><td>${p.cluster}</td><td>${num(p.test_question_mass,1)}</td><td>${num(p.test_correct_rate==null?null:p.test_correct_rate*100,1)}%</td><td>${num(p.weighted_mean_length,0)}</td><td>${num(p.weighted_mean_entropy)}</td><td>${num(p.center_norm,1)}</td><td>${num(p.diagonal_variance_sum,1)}</td><td>${p.dominant_transition?esc(p.dominant_transition)+" ("+num(100*p.dominant_transition_fraction,0)+"%)":"—"}</td></tr>`).join('');el('cluster').innerHTML=v.profiles.map(p=>`<option value="${p.cluster}">Cluster ${p.cluster}</option>`).join('');samples()}
 Promise.all([fetch('data.json').then(r=>r.json()),fetch('questions.json').then(r=>r.json())]).then(([d,q])=>{DATA=d;QUESTIONS=q;el('view').innerHTML=d.views.map((v,i)=>`<option value="${i}">${v.name}</option>`).join('');el('view').onchange=show;el('cluster').onchange=samples;el('nulls').innerHTML='<table><tr><th>层</th><th>真实更新 K</th><th>单高斯 K</th><th>真实 ΔLL/d</th><th>单高斯 ΔLL/d</th></tr>'+d.nulls.map(n=>{let r=d.views.find(v=>v.name===n.name.replace('gaussian','mean'));return `<tr><td>${n.name}</td><td>${r.k}</td><td>${n.k}</td><td>${num(r.test_gain_nats_per_dimension,4)}</td><td>${num(n.test_gain_nats_per_dimension,4)}</td></tr>`}).join('')+'</table>';show()}).catch(e=>el('metrics').textContent='加载失败：'+e);
 </script></html>'''
     (dest/'index.html').write_text(page,encoding='utf-8')
