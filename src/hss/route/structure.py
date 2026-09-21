@@ -125,11 +125,12 @@ class LayerHMM:
             c = a.sum(1); f.append(a/c[:, None]); scales.append(c)
         return em, f, scales
 
-    def fit(self, z):
+    def fit(self, z, warm_start=False):
         rng = np.random.default_rng(self.seed); m = self.components; depth = z.shape[1]
-        self.initial = np.ones(m)/m
-        self.transitions = np.stack([rng.dirichlet(np.ones(m), m) for _ in range(depth-1)])
-        self.emissions = [rng.dirichlet(np.ones(k), m) for k in self.sizes]
+        if not warm_start:
+            self.initial = np.ones(m)/m
+            self.transitions = np.stack([rng.dirichlet(np.ones(m), m) for _ in range(depth-1)])
+            self.emissions = [rng.dirichlet(np.ones(k), m) for k in self.sizes]
         self.trace = []; self.converged = False
         for _ in range(self.max_iter):
             em, f, scales = self._forward(z)

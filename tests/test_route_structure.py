@@ -40,6 +40,9 @@ def test_hmm_forward_matches_enumeration():
             for l in range(1,3):p*=m.transitions[l-1,h[l-1],h[l]]*m.emissions[l][h[l],row[l]]
             total+=p
         np.testing.assert_allclose(np.exp(-m.losses(z)[i].sum()),total)
+    initial=float(-m.losses(z).sum(1).mean())
+    m.fit(z,warm_start=True)
+    np.testing.assert_allclose(m.trace[0],initial)
 
 
 def test_causal_no_future_leakage_and_suffix_preservation():
