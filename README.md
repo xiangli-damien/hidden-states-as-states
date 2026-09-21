@@ -113,6 +113,7 @@ The root `experiments/`, `hss_workbench/`, and `hss_bundle_bridge/` remain avail
 - [State-route research protocol](docs/state-route-research-plan.zh-CN.md)
 - [Initial route findings and structural controls](docs/state-route-initial-results.zh-CN.md)
 - [Unsupervised route algorithm benchmark and new-sample scoring](docs/route-algorithm-benchmark.zh-CN.md)
+- [GMMs of cross-layer updates and adjacent-token differences](docs/change-clusters.zh-CN.md)
 
 ## Plot without refitting
 
