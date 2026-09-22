@@ -38,6 +38,10 @@
 ```bash
 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 \
   .venv/bin/python -u scripts/run_local_depth_changes.py --stage all
+
+# 上游已在另一进程运行时可提前启动，锁释放后自动评估；上游失败则明确退出。
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 \
+  .venv/bin/python -u scripts/evaluate_local_depth_changes.py --wait-for-assignment
 ```
 
 CPU 拟合与评分；Safety 继续使用 GPU。读盘两路并发，拟合六个进程、每个两条 BLAS 线程。
@@ -47,5 +51,10 @@ SSD 缓存 `/home/ubuntu/hss-local-depth-cache-20260921`；结果 `/lambda/nfs/d
 读取时校验完成凭据、模型、题目数及 token 数；重新计算的整段均值必须与旧缓存一致。
 所有 GMM 候选参数、收敛记录、选型、全序列分配、分类器、逐题分数均保存。
 原始 OpenAct 文件不修改。
+
+评估输出在结果根目录的 `evaluation/`：`metrics.csv`、`contrasts.csv`、`scores.parquet`、
+`models/`、`cluster_selection.csv` 和 `report/index.html`。测试集每题都有独立 JSON，保存原文、句子边界和完整 token／句子更新簇序列。
+报告同时展示独立 ICL 选 K 与统一 K=8 的结果、长度／熵及 token 类型控制后的增益、乱序对照。
+新增端到端小数据测试覆盖读取、末层 pre-norm 替换、无损缓存、GMM 拟合、完整序列评分、题目级训练／验证／测试与报告生成。
 
 这是在已反复探索的数据上的新对照实验；不作为独立确认结果，也不能仅据多模态拟合宣称存在离散计算操作。
