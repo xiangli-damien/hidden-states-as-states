@@ -1,6 +1,6 @@
 # Revision experiment execution state
 
-## 2026-09-23 10:52–11:15 UTC — functional pilot complete and audited; behavior running
+## 2026-09-23 10:52–11:00 UTC — functional pilot complete and audited; behavior running
 
 Functional completed all17,010 expected conditions /64 selected questions in3073.7seconds (~51.2minutes). `audit_revision_functional.py` passed full coverage, real positions, complete saved-reference lengths, exactly-one-hook assertions, identity invariance and2,745 final-block-past-position architectural-null conditions. Full actual bf16 energy ratios deviate by at most~0.83%, not the earlier partial snapshot's0.6%. Plan remains853ef90 / SHA3cc8e2740bd199955daec6b8dfefbf532827f37e6374dbc961695b8be3a87b2b.
 
