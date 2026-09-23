@@ -37,6 +37,8 @@ Qwen2-7B-Instruct固定revision，block14；主width16、辅助width4；greedy�
 
 它把donor投影到**recipient的同一组坐标**，保留recipient正交补。不能把两个不同簇的8个坐标直接相减。shared8使用完全相同的操作，仅把投影换成固定共享基。四种条件为identity、full_donor、local8、shared8。
 
+这里的8维是传入donor变化的维数，recipient的完整状态仍然保留；它不同于只保留8维的压缩重构。测试能力通过后最多48对×2宽度×4方法=384个真实patch条件；validation只做能力检查，不用它挑干预参数。
+
 full_donor指在同一block和选定位置替换完整hidden vector，不代表交换整套KV cache或模型内部状态。记录理想与实际bf16位移、区域分配、捕获一致性和一次hook。主比较local8−shared8同8连续坐标，但局部基存储更多参数；不假装所有预算相同。
 
 ## 判分与统计
@@ -49,6 +51,8 @@ full_donor指在同一block和选定位置替换完整hidden vector，不代表�
 
 ## 执行依赖与当前状态
 
-先完成已授权的Llama GSM8K采集及公平FA/MFA队列；此实验不得抢占GPU。CPU输入准备、纯数学投影和判分契约可以先完成。真正模型执行、原始审计及最终报告需另实现并检查，输入准备不等于能力门槛通过，更不等于steering成功。
+先完成已授权的Llama GSM8K采集及公平FA/MFA队列；此实验不得抢占GPU。CPU准备实际通过64/64对齐检查，前缀均18token。4项数学/配对/判分/失败门槛测试在本地与Lambda通过。准备计划SHA为 `00b32a8d6cb46f3474f35eb92cbc5c88a0b595e9b74fd332b5f94cb919256b6d`。
+
+执行器、独立原始审计、报告和独立统计核验均另行实现。队列应依次等待公平比较审计完成与GPU空闲，执行validation能力检查、CPU独立审计；过门槛后才执行test，否则科学性停止并报告失败。输入准备或随机小模型hook测试都不等于7B能力门槛通过，更不等于steering成功。
 
 配置：`configs/revision_index_interchange_20260923.json`。拟用结果根：`/lambda/nfs/dami/hss/revision-index-interchange-20260923`。任何偏离已冻结配置的修复必须保留旧证据，并先说明差异。
