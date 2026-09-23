@@ -21,7 +21,7 @@ def run(root):
     rows=[];keys=['sample_id','split','prefix_tokens','layer','role','width']
     baseline=frame.loc[frame.method.eq('identity')].set_index(keys)
     for group,sub in frame.groupby(['split','prefix_tokens','width','method']):
-        paired=sub.set_index(keys).join(baseline[['correct','normalized_answer']],rsuffix='_baseline',validate='one_to_one')
+        paired=sub.set_index(keys).join(baseline[['correct','normalized_answer']],rsuffix='_baseline',validate='one_to_one').sort_index()
         assert len(paired)==12
         before=paired.correct_baseline.to_numpy(bool);after=paired.correct.to_numpy(bool)
         repair=int((~before&after).sum());damage=int((before&~after).sum());n=len(paired)
@@ -41,7 +41,10 @@ def run(root):
     for r in rows:
         old=previous[r['split'],r['prefix'],r['width'],r['method']]
         for k in ['wrong_to_correct','correct_to_wrong','answer_agreement']:np.testing.assert_allclose(r[k],old[k],rtol=0,atol=1e-12)
-        np.testing.assert_allclose(r['paired_net_accuracy_bootstrap']['ci95'],old['net_accuracy']['ci95'],rtol=0,atol=1e-12)
+        # The initial report read filesystem order. Finite bootstrap draws can
+        # vary with row order; the estimate is invariant, the endpoints need not
+        # be bitwise identical. This report freezes sorted question order.
+        np.testing.assert_allclose(r['paired_net_accuracy_bootstrap']['estimate'],old['net_accuracy']['estimate'],rtol=0,atol=1e-12)
     dest=stage/'report';dest.mkdir(exist_ok=True);write_json(dest/'summary.json',rows)
     questions={}
     for marker in (root/'prefixes').glob('shard_*/_SUCCESS.json'):
@@ -79,7 +82,8 @@ def run(root):
     for ext in ['png','pdf']:fig.savefig(dest/f'behavior_repairs_damages.{ext}',dpi=180)
     plt.close(fig)
     manifest={'conditions':1008,'questions':24,'all_saved_outputs_independently_rescored':True,
-        'prior_report_counts_and_paired_CIs_verified':True,'no_equivalence_claim_from_zero_flips':True,
+        'prior_report_counts_and_paired_estimates_verified':True,'bootstrap_question_order':'sorted sample IDs',
+        'no_equivalence_claim_from_zero_flips':True,
         'decoding':'do_sample=False; pinned checkpoint repetition_penalty=1.05 inherited; counterfactual greedy-v2 separately uses1.0',
         'plan_sha256':sha(stage/'plan.json'),'data_sha256':sha(stage/'per_question.parquet'),
         'execution_audit_sha256':sha(stage/'execution_audit.json'),'code_sha256':sha(Path(__file__))}
