@@ -2,6 +2,8 @@
 
 ### Collection amendment — active root has `_v2` suffix
 
+18:44UTC verified launch: v2 queue PID444653, Llama smoke2/2 and independent auditpassed, full1319collectorPID444718 now running (15,870MiB). Sourcebff452b; five tests passed local/remote. All prompts fit8192context. Fullrunfingerprintb93ea7101336f581db1364c7fa7124cfc4df0901d5c93c0665efcaa00f52ca43. Completion remains pending; do not start anotherGPUjob until this collector/queue releasesGPU.
+
 Qwen all-file SHA/re-scoring audit passed18:39UTC:1319rows/42shards,1134correct,341885tokens,57055267394bytes. Original new Llama smoke failed before producing any samples because HF5 represents omitted repetition_penalty asNone until its generation defaults are filled. OpenAct fix `bff452b` now applies the same library fallback for the guard and records both raw/resolved defaults; actual generation protocol unchanged. Five regression/contract tests passed locally; deployment reruns them remotely. Preserve the old failure. Corrected queue root **`/lambda/nfs/dami/openact/runs/gsm8k_test_20260923_v2`**, SSD staging`/home/ubuntu/openact-gsm8k-llama3-20260923-v2`; it SHA-pins the already completed Qwen audit instead of rereading53GiB. Monitor the **v2** queue and its smoke/full statuses. Existing heartbeat updated. Later entries below mentioning non-v2 queue describe the preserved initial attempt.
 
 ## 2026-09-23 18:34 UTC — approved GSM8K collection side branch; joint MFA fits complete
