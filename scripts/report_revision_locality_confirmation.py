@@ -57,8 +57,15 @@ def run(root):
     plt.close(fig)
     links=question_pages(root,raw,dest)
     all_cis=pairs.loc[pairs.width.eq(16)&pairs.metric.isin(['next_token_kl','delta_nll'])]
+    primary_improved=all(r['high']<0 for r in primary)
+    lead=('本批两个预定主指标的配对区间都小于0：同样每token保留8个坐标时，局部表示的功能保真优势迁移到了新题。'
+          if primary_improved else '本批未在两个预定主指标上同时确认局部表示优于共享表示；保留全部区间。')
+    compact=s.loc[methods,['n','next_token_kl_estimate','delta_nll_estimate','mse_per_coordinate_estimate']].copy()
+    compact.columns=['问题数','下一token KL ↓','完整参考ΔNLL ↓','每坐标MSE ↓']
     parts=['<!doctype html><html lang="zh"><meta charset="utf-8"><title>冻结MATH表征的GSM8K确认</title><style>body{font:16px system-ui;margin:30px;max-width:1400px;line-height:1.6}img{max-width:100%}table{border-collapse:collapse;font-size:13px}td,th{border:1px solid #ddd;padding:6px}.scroll{overflow:auto}</style>',
         '<h1>冻结MATH表征 → 新GSM8K问题：功能确认</h1>',
+        '<h2>先看本批结果</h2><p>'+lead+'</p>',compact.to_html(float_format=lambda x:f'{x:.5f}'),
+        '<p>局部8维与共享8维的MSE也不同，尚未单独隔离方向的功能专属性。共享64/512保留更多连续坐标；它们的优势不能被省略，也不能作为等编码预算比较。几何控制和clean消融见下方，均不是数学正确率或选择性steering证据。</p>',
         '<p>64道GSM8K train问题在任何本轮模型结果出现前按hash选定。不是之前使用的1319道GSM8K test。所有中心和方向由MATH训练集固定，没有target拟合、target验证或按结果补抽题。它测试跨数据迁移；不等于同域MATH复现，也不排除模型预训练见过GSM8K。</p>',
         '<p>主设置block14／已生成16token／替换16位置。每个token独立编码，模型其余上下文保留。主比较local8−shared8，KL与完整参考NLL都报告；区间以问题为单位，随机seed先在题内平均，pointwise 95%。宽度1/4为辅助条件。本轮参考回答未评分，没有干预后自由生成或正确率结论。</p>',
         '<h2>预先固定的两个主指标</h2>',pd.DataFrame(primary).to_html(index=False),
