@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from revision_common import sha,write_json
+from revision_common import sha,write_json,freeze,provenance
 from revision_locality_common import key
 from report_revision_functional import interval,paired_difference
 
@@ -69,6 +69,32 @@ def tables(per):
                         'primary':a=='local_8' and b=='shared_8' and base['prefix_tokens']==16 and base['layer']==14 and base['width']==16,
                         **paired_difference(sub,a,b,metric)})
     return pd.DataFrame(summaries),pd.DataFrame(pairs)
+
+
+def match_mse(per,protocol):
+    sub=per
+    for field,value in protocol['view'].items():sub=sub.loc[sub[field].eq(value)]
+    val=sub.loc[sub.split.eq('validation')];test=sub.loc[sub.split.eq('test')]
+    result=[]
+    for rank in protocol['local_ranks']:
+        local=f'local_{rank}';mse=float(val.loc[val.method.eq(local),'mse_per_coordinate'].mean())
+        candidates=[]
+        for r in protocol['shared_ranks']:
+            error=float(val.loc[val.method.eq(f'shared_{r}'),'mse_per_coordinate'].mean())
+            assert mse>0 and error>0 and np.isfinite(error)
+            candidates.append({'rank':r,'validation_mse':error,'selection_distance':abs(float(np.log(error/mse)))})
+        chosen=min(candidates,key=lambda x:(x['selection_distance'],x['rank']));shared=f'shared_{chosen["rank"]}'
+        gap=abs(chosen['validation_mse']/mse-1)
+        row={'local_rank':rank,'selected_shared_rank':chosen['rank'],'validation_local_mse':mse,
+            'validation_shared_mse':chosen['validation_mse'],'relative_validation_MSE_gap':gap,
+            'within_predeclared_10pct_validation_gap':gap<=.1,'all_validation_candidates':candidates}
+        for metric in ['next_token_kl','delta_nll','delta_first16_nll','mse_per_coordinate']:
+            row['test_'+metric+'_local_minus_shared']=paired_difference(test,local,shared,metric)
+        row['test_local_mse']=float(test.loc[test.method.eq(local),'mse_per_coordinate'].mean())
+        row['test_shared_mse']=float(test.loc[test.method.eq(shared),'mse_per_coordinate'].mean())
+        row['relative_test_MSE_gap']=abs(row['test_shared_mse']/row['test_local_mse']-1)
+        result.append(row)
+    return result
 
 
 def draw(summary,per,dest):
@@ -133,7 +159,15 @@ def save(fig,dest,name):
 
 
 def run(root):
+    protocol_path=Path(__file__).resolve().parents[1]/'configs/revision_locality_mse_match_20260923.json'
+    protocol=json.loads(protocol_path.read_text())
+    frozen=provenance(protocol,[protocol_path])
+    if (root/'mse_match_plan.json').exists():
+        old=json.loads((root/'mse_match_plan.json').read_text())
+        assert old['config']==protocol and old['files']==frozen['files']
+    else:freeze(root/'mse_match_plan.json',frozen)
     raw,per,audit=collect(root);summary,pairs=tables(per);dest=root/'report';dest.mkdir(exist_ok=True)
+    matched=match_mse(per,protocol);write_json(dest/'validation_mse_match.json',matched)
     for name,table in [('individual_conditions',raw),('per_question_seed_average',per),('summary',summary),('paired_methods',pairs)]:
         table.to_parquet(dest/f'{name}.parquet',index=False)
         if name in ['summary','paired_methods']:write_json(dest/f'{name}.json',table.to_dict('records'))
@@ -146,11 +180,13 @@ def run(root):
         '错误基中心不变，3个置换全部保存；图和配对先在题内平均seed，再bootstrap问题，不扩充样本量。',
         '径向匹配与Gram匹配是不同对照，理想不变量通过审计，实际bf16偏差见下表。随机变化保留原activation，不是压缩decoder。',
         '从clean移除局部部分，与从center加回局部部分回答不同问题；所有操作重新分配state并报告保留率。',
-        'KL/NLL评价原模型输出保真，不等于正确率或选择性控制。MSE接近时是否仍有功能差别尚需验证冻结的匹配设计。',
+        'KL/NLL评价原模型输出保真，不等于正确率或选择性控制。MSE匹配只按验证均值选择rank，测试差距单列，不能说逐题误差相同。',
         '首token、前16token和完整参考NLL都保存；末层过去位置不影响未来KV，不能把辅助末层的宽窗口当多位置因果作用。']
     parts=['<!doctype html><html lang="zh"><meta charset="utf-8"><title>Locality controls</title><style>body{font:16px system-ui;margin:30px;max-width:1450px;line-height:1.6}img{max-width:100%}.scroll{overflow:auto}table{border-collapse:collapse;font-size:12px}td,th{border:1px solid #ddd;padding:5px}</style>',
         '<h1>局部方向为什么有效？同中心、共享／局部／错误基与clean-state消融</h1><ul>']
-    parts+=['<li>'+html.escape(n)+'</li>' for n in notes];parts+=['</ul><h2>预定主比较</h2>',pd.DataFrame(primary).to_html(index=False)]
+    parts+=['<li>'+html.escape(n)+'</li>' for n in notes];parts+=['</ul><h2>预定主比较</h2>',pd.DataFrame(primary).to_html(index=False),
+        '<details><summary>仅验证MSE选择shared rank，再评价历史测试</summary><p>均值MSE接近不等于逐题匹配，10%门槛和测试MSE差异明确报告；不改变主比较。</p><pre>',
+        html.escape(json.dumps(matched,indent=2,ensure_ascii=False)),'</pre></details>']
     for name in ['locality_common_anchor','locality_budgets','locality_clean_ablation','locality_corruptions','locality_error_function']:
         parts+=[f'<img src="{name}.png"><p><a href="{name}.pdf">PDF</a></p>']
     for title,table in [('全部设置',summary),('配对比较',pairs)]:

@@ -1,0 +1,9 @@
+{
+  "view": {"prefix_tokens":16,"layer":14,"role":"tokens","width":16},
+  "local_ranks": [4,8,16,32],
+  "shared_ranks": [4,8,16,32,64,128,256,512],
+  "selection_split": "validation",
+  "selection": "For each local rank, minimize absolute log ratio of question-mean activation MSE using only validation. Break exact ties by smaller shared rank. Never choose on KL/NLL or test data.",
+  "near_error_label": "Only when relative validation MSE gap <= 0.10; test MSE gap is also always reported. Matching mean error does not match every question or prove an independent functional effect.",
+  "scope": "Secondary exploratory comparison. Fixed after GPU smoke execution but before reading any locality scientific outcomes; independent of primary same-rank contrast."
+}
