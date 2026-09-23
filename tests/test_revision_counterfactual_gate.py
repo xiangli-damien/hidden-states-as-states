@@ -70,3 +70,24 @@ def test_future_causality_and_final_block_past_output_null():
     patched=generate(model,tokenizer,ids,model.model.embed_tokens,[1],full_transform(replacement))
     counterfactual=generate(model,tokenizer,changed)
     assert patched['generated_ids']==counterfactual['generated_ids']
+
+
+def test_capability_deduplicates_originals_and_requires_both_donor_types():
+    from revision_counterfactual_gate import summarize
+    records=[]
+    for case in cases():
+        r=case['recipient'];d=case['donor'];mode=case['mode']
+        edited={**r,'a':d['a'],'b':d['b'],'u':d['u']}
+        records.append({'case':case,'prompt':task_text(r,mode),'edited_prompt':task_text(edited,mode),
+            'baseline':{'generated_ids':[(r['u']+r['c'])%10,0 if r['tag']=='red' else 1]},
+            'edited_baseline':{'generated_ids':[case['cf_digit'],0 if r['tag']=='red' else 1]},
+            'baseline_correct':True,'edited_correct':True,'patches':[]})
+    summary=summarize(records)
+    assert all(r['passed'] for r in summary['capability'])
+    assert all(r['unique_original_prompts']<=20 and r['case_pairs']==40 for r in summary['capability'])
+    for r in records:
+        if r['case']['mode']=='explicit_digit' and r['case']['pair_type']=='different_u':
+            r['edited_correct']=False
+            r['edited_baseline']['generated_ids'][0]=(r['case']['cf_digit']+1)%10
+    summary=summarize(records)
+    assert [r['passed'] for r in summary['capability']]==[False,True]

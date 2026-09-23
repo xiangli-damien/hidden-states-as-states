@@ -249,12 +249,21 @@ def run():
             'baseline_correct':baseline['digit']==(recipient['u']+recipient['c'])%10 and baseline['tag']==recipient['tag'],
             'edited_correct':counterfactual['digit']==case['cf_digit'] and counterfactual['tag']==recipient['tag'],
             'future_causality_exact':True,'embedding_control_exact':True,'final_block_null_exact':True}
-        write_npz(ROOT/'activations'/(case['id']+'.npz'),**{f'{name}_{l}':h[l] for name,h in [('recipient',original_h),('donor',donor_h)] for l in cfg['layers']})
+        activation_path=ROOT/'activations'/(case['id']+'.npz')
+        write_npz(activation_path,**{f'{name}_{l}':h[l] for name,h in [('recipient',original_h),('donor',donor_h)] for l in cfg['layers']})
+        record['activation_sha256']=sha(activation_path)
         write_json(path,record);records.append(record)
         status(ROOT,'gate',state='running',completed=len(records),expected=len(cfg['cases']))
         print(json.dumps({'counterfactual_gate_cases':len(records)}),flush=True)
     if len(records)!=len(cfg['cases']) or {r['case']['id'] for r in records}!={c['id'] for c in cfg['cases']}:
         raise AssertionError('Incomplete gate coverage')
+    expected={f'{method}_l{layer}_{scope}' for layer in (7,14) for method in ('donor','matched_random')
+              for scope in ('w1','w4','w16','memory_region')}
+    for r in records:
+        if len(r['patches'])!=len(expected) or {p['condition'] for p in r['patches']}!=expected:
+            raise AssertionError('Incomplete per-recipient intervention conditions')
+        if sha(ROOT/'activations'/(r['case']['id']+'.npz'))!=r['activation_sha256']:
+            raise AssertionError('Saved activation checksum mismatch')
     result=summarize(records);write_json(ROOT/'summary.json',result)
     write_json(ROOT/'_SUCCESS.json',{'cases':len(records),'summary_sha256':sha(ROOT/'summary.json'),
         'interpretation':'Gate executed, not necessarily scientifically passed'})
