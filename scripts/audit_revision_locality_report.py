@@ -102,8 +102,24 @@ def run(root):
         for stat in ['estimate','low','high']: close(row[stat], actual[stat])
     expected_primary = [r for r in pairs if r['primary'] and r['metric'] in ['next_token_kl','delta_nll']]
     assert expected_primary == json.loads((report/'primary.json').read_text()) == receipt['primary']
-    protocol = json.loads((root/'mse_match_plan.json').read_text())['config']
-    matches = json.loads((report/'validation_mse_match.json').read_text())
+    frozen_source = receipt.get('matching_mode') == 'frozen_source'
+    if frozen_source:
+        # Confirmation cannot choose a rank using any target measurement.
+        assert set(frame.split) == {'test'}
+        assert not (report/'validation_mse_match.json').exists()
+        assert receipt['source_mse_match_sha256'] == sha(root/'source_mse_match.json')
+        plan = json.loads((root/'plan.json').read_text())
+        assert not plan['target_fit_performed']
+        assert plan['source_mse_choice_sha256'] == receipt['source_mse_match_sha256']
+        source = next(r for r in json.loads((root/'source_mse_match.json').read_text()) if r['local_rank'] == 8)
+        assert source['selected_shared_rank'] == 64
+        assert plan['config']['ranks'] == [8] and plan['config']['shared_ranks'] == [8,64,512]
+        assert any(r['method_a']=='local_8' and r['method_b']=='shared_64' for r in pairs)
+        protocol = {'view':dict(zip(GROUP[1:], (16,14,'tokens',16)))}
+        matches = []
+    else:
+        protocol = json.loads((root/'mse_match_plan.json').read_text())['config']
+        matches = json.loads((report/'validation_mse_match.json').read_text())
     vkey = tuple(protocol['view'][k] for k in GROUP[1:])
     def vector(split, method, metric):
         data = vectors[(split,)+vkey+(method,)]
@@ -133,7 +149,8 @@ def run(root):
     assert ids == {p.stem for p in (report/'questions').glob('*.html')}
     outcome = {'complete': True, 'conditions': len(records), 'questions': len(ids),
                'seed_averaged_rows': len(frame), 'summary_rows': len(summary), 'paired_rows': len(pairs),
-               'checked': 'Raw JSON -> baseline differences -> within-question seed means -> paired question bootstrap; validation-only MSE choice; report SHA and question-page coverage.',
+               'checked': 'Raw JSON -> baseline differences -> within-question seed means -> paired question bootstrap; report SHA and question-page coverage.',
+               'matching_check': 'Frozen MATH source rank64; no target selection' if frozen_source else 'Validation-only MSE choice independently recomputed',
                'scope': 'Statistical report audit; real logits and geometry have a separate execution audit.',
                'raw_audit_sha256': sha(stage/'audit.json'), 'report_receipt_sha256': sha(report/'_SUCCESS.json'),
                'audit_code_sha256': sha(Path(__file__))}

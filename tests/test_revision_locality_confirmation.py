@@ -3,6 +3,8 @@ import sys
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from collect_revision_locality_confirmation import select
+from prepare_revision_locality_confirmation import evaluation_config
+from revision_locality_common import conditions,key
 
 
 def test_selection_is_order_invariant_and_excludes_prior_prompts_and_duplicate_questions():
@@ -21,3 +23,16 @@ def test_selection_never_uses_gold_or_model_outcome():
     changed=[{**r,'ground_truth':-r['ground_truth'],'label':1-r['label']} for r in data]
     after,_=select(changed,set(),8,'frozen')
     assert [r['sample_id'] for r in before]==[r['sample_id'] for r in after]
+
+
+def test_confirmation_keeps_source_rank_choice_and_all_control_seeds():
+    import json
+    cfg=json.loads((Path(__file__).resolve().parents[1]/'configs/revision_locality_confirmation_20260923.json').read_text())
+    ev=evaluation_config(cfg)
+    assert ev['ranks']==[8] and ev['shared_ranks']==[8,64,512]
+    primary=conditions(ev,True);aux=conditions(ev,False)
+    assert len(primary)==40 and len(aux)==14
+    names={key(c) for c in primary}
+    assert all(f'wrong_local_8_{seed}' in names for seed in (42,137,271))
+    assert all(f'remove_local_radial_random_8_{alpha}_{seed}' in names for alpha in (.25,.5,1.) for seed in (42,137,271))
+    assert not any('rank' in c and c['rank'] not in [8,64,512] for c in primary)
