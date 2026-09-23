@@ -93,7 +93,8 @@ def run(root):
             ax.plot(range(4),selected['mean'],'o-',c=color,label=method)
             ax.vlines(range(4),selected.low,selected.high,color=color,alpha=.5)
         ax.axhline(0,c='gray',lw=1);ax.set_xticks(range(4),['First','2–16','After16','Full']);ax.set_title(cohort)
-        ax.set_ylabel('Reference ΔNLL (nats/token)');ax.legend(fontsize=8);ax.spines[['top','right']].set_visible(False)
+        ax.set_yscale('symlog', linthresh=.01)
+        ax.set_ylabel('Reference ΔNLL (symlog, linear within ±0.01)');ax.legend(fontsize=8);ax.spines[['top','right']].set_visible(False)
     fig.suptitle('One fixed original continuation; question-weighted means and pointwise 95% bootstrap intervals')
     for ext in ['png','pdf']: fig.savefig(dest/f'loss_windows.{ext}',dpi=170)
     plt.close(fig)
@@ -131,7 +132,7 @@ def run(root):
         '<p>正数表示 local8 的偏差更大。top10pct_share_of_positive_sum 表示最大的10%题占全部正差总和的比例；不是总净效应的比例。删去它们的均值只用于敏感性描述，不能换成新的主结论。</p>',
         '<div class="scroll">'+show.to_html(index=False,float_format=lambda x:f'{x:.5g}')+'</div>',
         '<h2>边界变化是否延续？</h2><img src="loss_windows.png">',
-        '<p>First 是 patch 边界后的第1个参考 token（回答第17个），After16 是回答第33个及之后；不是 prompt 后的第1个 token。每题在该窗口内平均，再跨题平均。后续只保存了参考 token 损失，不能计算后续完整词表 KL。</p>',
+        '<p>First 是 patch 边界后的第1个参考 token（回答第17个），After16 是回答第33个及之后；不是 prompt 后的第1个 token。每题在该窗口内平均，再跨题平均。纵轴在 ±0.01 内线性，外侧对数，以显示边界与后续差异。后续只保存了参考 token 损失，不能计算后续完整词表 KL。</p>',
         '<h2>中心、局部部分、补空间、完整状态</h2><p>centroid=μ；local8=μ+u；remove_local_8_1.0=μ+v；identity=μ+u+v。KL 不可加，不能据此分配功能百分比。</p>',
         four.to_html(index=False,float_format=lambda x:f'{x:.5g}'),
         '<h2>现有窗口宽度比较</h2><p>width1/4/16 是替换最后1/4/16个位置；同时改变总扰动能量。shared64仅有width16，未补造其他宽度。</p>',
