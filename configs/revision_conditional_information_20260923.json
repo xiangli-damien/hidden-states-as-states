@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "source_root": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "output": "/lambda/nfs/dami/hss/revision-conditional-information-20260923",
+  "jobs": [[16,14,"mean16"],[16,28,"mean16"],[64,14,"mean16"],[64,28,"mean16"],[64,14,"all_mean"],[64,28,"all_mean"]],
+  "C_grid": [0.0003,0.001,0.003,0.01,0.03,0.1,0.3,1.0,3.0],
+  "workers": 3,
+  "blas_threads": 2,
+  "max_iter": 2000,
+  "seed": 42,
+  "primary": "block28/prefix16 mean16: prompt+current+nuisance versus prompt+nuisance",
+  "scope": "Exploratory reused MATH test; no claim that a readout difference establishes causality"
+}
