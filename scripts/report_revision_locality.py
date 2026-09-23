@@ -142,7 +142,7 @@ def draw(summary,per,dest):
     ax.vlines(x,sub.next_token_kl_low,sub.next_token_kl_high,color='black',lw=1)
     ax.set_xticks(x,['Center replacement','Energy matched','Radial + energy matched','Error Gram preserved'],rotation=15,ha='right')
     ax.set_ylabel('Next-token KL');ax.spines[['top','right']].set_visible(False)
-    fig.suptitle('Finite-amplitude corruption controls\nRandom controls retain original activation; radial and Gram controls preserve different properties')
+    fig.suptitle('Finite-amplitude corruption controls\nRandom controls retain original activation\nRadial and Gram controls preserve different properties',fontsize=11)
     save(fig,dest,'locality_corruptions')
     fig,ax=plt.subplots(figsize=(8,5),layout='constrained')
     q=per.loc[per.split.eq('test')&per.prefix_tokens.eq(16)&per.layer.eq(14)&per.width.eq(16)]
@@ -156,6 +156,33 @@ def draw(summary,per,dest):
 def save(fig,dest,name):
     for ext in ['png','pdf']:fig.savefig(dest/f'{name}.{ext}',dpi=180)
     plt.close(fig)
+
+
+def key_findings(summary,pairs,matched):
+    """Show the fixed primary beside the capacity and clean-ablation controls."""
+    main=summary.loc[summary.split.eq('test')&summary.prefix_tokens.eq(16)&summary.layer.eq(14)&summary.width.eq(16)].set_index('method')
+    primary=pairs.loc[pairs.primary&pairs.split.eq('test')].set_index('metric')
+    def ci(metric):
+        row=primary.loc[metric]
+        return f'{row.estimate:+.4f} [{row.low:+.4f}, {row.high:+.4f}]'
+    ms=next(row for row in matched if row['local_rank']==8)
+    selected=f'shared_{ms["selected_shared_rank"]}'
+    methods=['centroid','shared_8','local_8','wrong_local_8',selected,'shared_512']
+    table=main.loc[methods,['n','next_token_kl_estimate','delta_nll_estimate','mse_per_coordinate_estimate']].copy()
+    table.columns=['问题数','下一token KL ↓','完整参考 ΔNLL ↓','每坐标 MSE ↓']
+    table.index.name='方法'
+    parts=['<h2>先看结论：局部信息有用，专属方向的必要性尚未建立</h2>',
+        '<p>以下是Qwen2-MATH、第14个block、已生成16token后替换16个位置的32道历史测试题；另有32道验证题。每题内部先平均随机种子，区间以问题为单位。</p>',
+        table.to_html(float_format=lambda x:f'{x:.5f}'),
+        '<ul><li>同样保留8个连续坐标：local8−shared8 的下一token KL差为 '+ci('next_token_kl')+
+        '，完整参考ΔNLL差为 '+ci('delta_nll')+'。主KL区间跨0，不能概括成所有功能指标都明确更好。</li>',
+        f'<li>只按验证MSE选出的共享rank是{ms["selected_shared_rank"]}；验证误差差距{100*ms["relative_validation_MSE_gap"]:.2f}%，测试差距{100*ms["relative_test_MSE_gap"]:.2f}%。共享基保留更多坐标时可反超；不能声称局部基在所有预算下必需。</li>',
+        '<li>K64 local8与shared512只匹配基矩阵的存储量，后者每token保留512个坐标。两种预算不能混为一谈。</li>',
+        f'<li>中心替换KL={main.loc["centroid","next_token_kl_estimate"]:.3f}，径向匹配随机={main.loc["centroid_radial_random","next_token_kl_estimate"]:.3f}，Gram保留随机={main.loc["centroid_gram_random","next_token_kl_estimate"]:.3f}。在生成窗口的这些对照中，幅度/径向或跨token误差Gram各自不足以解释输出差异；它们不是同时匹配全部属性的单一对照。</li>',
+        f'<li>从原始h完整删除局部u：KL={main.loc["remove_local_8_1.0","next_token_kl_estimate"]:.3f}，对应径向匹配随机={main.loc["remove_local_radial_random_8_1.0","next_token_kl_estimate"]:.3f}。局部信息在clean状态上也有作用；仍不代表选择性控制或数学纠错。</li>',
+        '<li>效果依赖位置：chat-tail的local8并未在KL/NLL上优于shared8。所有辅助设置均在下方完整保存。</li></ul>',
+        '<p><b>范围：</b>本轮7538个条件的执行审计通过，但只有64道独立问题；历史测试不是新确认数据；本轮没有干预后的自由生成。bf16实现的匹配误差和逐题原文见页末。</p>']
+    return '\n'.join(parts)
 
 
 def question_pages(root,raw,dest):
@@ -205,7 +232,8 @@ def run(root):
         'KL/NLL评价原模型输出保真，不等于正确率或选择性控制。MSE匹配只按验证均值选择rank，测试差距单列，不能说逐题误差相同。',
         '首token、前16token和完整参考NLL都保存；末层过去位置不影响未来KV，不能把辅助末层的宽窗口当多位置因果作用。']
     parts=['<!doctype html><html lang="zh"><meta charset="utf-8"><title>Locality controls</title><style>body{font:16px system-ui;margin:30px;max-width:1450px;line-height:1.6}img{max-width:100%}.scroll{overflow:auto}table{border-collapse:collapse;font-size:12px}td,th{border:1px solid #ddd;padding:5px}</style>',
-        '<h1>局部方向为什么有效？同中心、共享／局部／错误基与clean-state消融</h1><ul>']
+        '<h1>局部方向为什么有效？同中心、共享／局部／错误基与clean-state消融</h1>',
+        key_findings(summary,pairs,matched),'<h2>实验与解释边界</h2><ul>']
     parts+=['<li>'+html.escape(n)+'</li>' for n in notes];parts+=['</ul><h2>预定主比较</h2>',pd.DataFrame(primary).to_html(index=False),
         '<details><summary>仅验证MSE选择shared rank，再评价历史测试</summary><p>均值MSE接近不等于逐题匹配，10%门槛和测试MSE差异明确报告；不改变主比较。</p><pre>',
         html.escape(json.dumps(matched,indent=2,ensure_ascii=False)),'</pre></details>']

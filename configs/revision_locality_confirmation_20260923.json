@@ -1,0 +1,23 @@
+{
+  "output": "/lambda/nfs/dami/hss/revision-locality-confirmation-20260923",
+  "source_locality": "/lambda/nfs/dami/hss/revision-locality-20260923",
+  "source_foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "previous_gsm8k": "/lambda/nfs/dami/hss/revision-gsm8k-20260923/rows.parquet",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "dataset": "openai/gsm8k",
+  "dataset_config": "main",
+  "dataset_revision": "740312add88f781978c0658806c59bc2815b9866",
+  "dataset_split": "train",
+  "dataset_expected_rows": 7473,
+  "questions": 64,
+  "selection_salt": "locality-independent-gsm8k-train-confirmation-v1",
+  "template_hash": "507f30ec8346341e",
+  "layer": 14,
+  "prefix_tokens": 16,
+  "window": 16,
+  "generation": {"max_new_tokens":2048,"do_sample":false,"repetition_penalty":1.05,"temperature":1.0,"top_p":1.0,"top_k":50,"num_beams":1},
+  "primary": "Frozen MATH GMM anchors and residual bases; local8 minus shared8, generated16/block14/width16, next-token KL and full-reference mean NLL. Report both pointwise paired question CIs; no claim that both improve unless both exclude zero in the improving direction.",
+  "secondary": "Wrong-local8 over all three original derangements; shared64 fixed by MATH validation MSE, not by this target; shared512 storage comparison; radial/Gram centroid controls; clean-local alpha .25/.5/1 with the original matching controls. No target refitting, no test-based matching or subset selection.",
+  "scope": "New project-held-out questions from GSM8K train, not a claim about model-pretraining contamination. This tests frozen MATH-to-GSM8K transfer, not same-domain MATH replication. Prefix unavailable cases retained/excluded explicitly without replacement. Historical GSM8K test1319 and all MATH prompts excluded by exact normalized prompt comparison. No correctness claim from reference-fidelity tests."
+}
