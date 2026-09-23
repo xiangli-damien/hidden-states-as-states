@@ -55,6 +55,15 @@ def test_future_causality_and_final_block_past_output_null():
     torch.manual_seed(3)
     model=Qwen2ForCausalLM(Qwen2Config(vocab_size=32,hidden_size=16,intermediate_size=24,
         num_hidden_layers=2,num_attention_heads=2,num_key_value_heads=2,eos_token_id=2,pad_token_id=0)).eval()
+    # The real pinned checkpoint defaults to 1.05; input IDs, unlike swapped
+    # embeddings, would alter the repetition processor's history. Pure greedy
+    # must explicitly remove this extra source of counterfactual differences.
+    model.generation_config.repetition_penalty=1.05
+    actual_generate=model.generate
+    def verified_generate(*args,**kwargs):
+        assert kwargs['repetition_penalty']==1.0
+        return actual_generate(*args,**kwargs)
+    model.generate=verified_generate
     ids=[3,4,5,6,7,8];future=[3,4,5,9,10,11]
     a,_=capture(model,ids,[0,1,2],layers=(1,2));b,_=capture(model,future,[0,1,2],layers=(1,2))
     for layer in (1,2):np.testing.assert_array_equal(a[layer],b[layer])

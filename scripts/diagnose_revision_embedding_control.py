@@ -28,8 +28,9 @@ def run():
     original_penalty=model.generation_config.repetition_penalty
     for penalty in [original_penalty,1.0]:
         model.generation_config.repetition_penalty=penalty
-        cf=generate(model,tokenizer,eids)
-        swap=generate(model,tokenizer,ids,model.model.embed_tokens,changed,full_transform(embedding))
+        cf=generate(model,tokenizer,eids,repetition_penalty=penalty)
+        swap=generate(model,tokenizer,ids,model.model.embed_tokens,changed,full_transform(embedding),
+                      repetition_penalty=penalty)
         results.append({'repetition_penalty':penalty,'true_input':cf,'embedding_swap':swap,
                         'generated_ids_exact':cf['generated_ids']==swap['generated_ids']})
     result={'case':case,'input_ids':ids,'edited_input_ids':eids,'changed_positions':changed,

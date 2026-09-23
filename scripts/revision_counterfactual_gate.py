@@ -18,7 +18,7 @@ from extract_revision_prefixes import load_model
 from revision_common import OncePatch,write_json,write_npz,freeze,provenance,status,sha
 
 
-ROOT=Path('/lambda/nfs/dami/hss/revision-counterfactual-gate-20260923')
+ROOT=Path('/lambda/nfs/dami/hss/revision-counterfactual-gate-20260923-greedy-v2')
 BUFFER=(' Keep the remembered value available for the next step. There is no other calculation in this sentence. '
         'Do not give an answer yet. Carefully retain the remembered value while reading the later input.')
 
@@ -104,12 +104,12 @@ def capture(model,ids,positions,layers=(7,14,28)):
 
 
 @torch.inference_mode()
-def generate(model,tokenizer,ids,module=None,positions=None,transform=None):
+def generate(model,tokenizer,ids,module=None,positions=None,transform=None,repetition_penalty=1.0):
     patch=OncePatch(positions,len(ids),transform) if module is not None else None
     handle=module.register_forward_hook(patch) if patch is not None else None
     try:
         out=model.generate(torch.tensor([ids],device=model.device),do_sample=False,max_new_tokens=16,
-            pad_token_id=model.generation_config.pad_token_id)
+            repetition_penalty=repetition_penalty, pad_token_id=model.generation_config.pad_token_id)
         generated=out[0,len(ids):].tolist();text=tokenizer.decode(generated,skip_special_tokens=True)
         digit,tag=parse(text)
         if patch is not None and patch.calls!=1:
@@ -178,9 +178,12 @@ def run():
          'layers':[7,14,28],'widths':[1,4,16],'max_new_tokens':16,'cases':cases(),
          'additional_scope':'entire user memory prefix before later offset/tag, including memory inputs and buffer',
          'donor_types_paired_within_recipient':True,
+         'decoding':{'do_sample':False,'repetition_penalty':1.0,'max_new_tokens':16},
+         'protocol_version':'greedy-v2; explicit removal of token-history penalty; old failed run preserved',
          'scope_energy_note':'Random directions match each scope donor delta per token. Different scopes are not total-energy-matched; no window-size causal superiority claim.',
          'no_codebook_fit':True,'test_split_not_executed':True}
-    freeze(ROOT/'plan.json',provenance(cfg,[Path(__file__),Path(__file__).with_name('revision_common.py')]))
+    freeze(ROOT/'plan.json',provenance(cfg,[Path(__file__),Path(__file__).with_name('revision_common.py'),
+        Path(__file__).with_name('extract_revision_prefixes.py')]))
     model,tokenizer=load_model(cfg);records=[]
     status(ROOT,'gate',state='running',completed=0,expected=len(cfg['cases']))
     for case in cfg['cases']:

@@ -9,7 +9,7 @@ from revision_common import write_json
 
 
 def run():
-    root=Path('/lambda/nfs/dami/hss/revision-counterfactual-gate-20260923');root.mkdir(parents=True,exist_ok=True)
+    root=Path('/lambda/nfs/dami/hss/revision-counterfactual-gate-20260923-greedy-v2');root.mkdir(parents=True,exist_ok=True)
     lock=(root/'queue.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     repo=Path(__file__).resolve().parents[1]
     state={'state':'waiting_for_transfer_gpu_extraction','pid':os.getpid()}
