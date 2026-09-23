@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import torch
-from revision_common import config, freeze, provenance, reconstruct, write_json, write_npz, status, OncePatch
+from revision_common import config, freeze, provenance, reconstruct, write_json, write_npz, status, OncePatch,sha
 from extract_revision_prefixes import load_model
 
 
@@ -135,6 +135,9 @@ def run(cfg,phase):
                     status(root,phase,state='waiting_for_token_decoders',path=str(path))
                     time.sleep(30)
                 summary=json.loads((path.parent/'summary.json').read_text())
+                receipt=json.loads((path.parent/'_SUCCESS.json').read_text())
+                if sha(path)!=receipt['decoder_sha256'] or sha(path.parent/'summary.json')!=receipt['summary_sha256']:
+                    raise ValueError('Token decoder checksum mismatch')
                 if summary['tokens_per_question_fit']!=cfg.get('intervention_positions_per_question',4):
                     raise ValueError('Wrong token fit coverage for intervention')
                 files.extend([path,path.parent/'_SUCCESS.json',path.parent/'summary.json']);decoder_paths.append(str(path))
@@ -151,16 +154,19 @@ def run(cfg,phase):
         from openact_eval.evaluators.registry import auto_select_evaluator
         evaluator=auto_select_evaluator('math')
     done,started=0,time.monotonic()
+    expected_paths=set();exclusions=[]
     for sid in ids:
         item=tokens[sid];row=indexed.loc[sid]
         for prefixn in prefixes:
             if len(item['response_ids'])<=prefixn or eos.intersection(item['response_ids'][:prefixn]):
+                exclusions.append({'sample_id':sid,'prefix':prefixn,'reason':'response_ended_before_prefix'})
                 continue
             prefix=item['prompt_ids']+item['response_ids'][:prefixn]
             reference=item['response_ids'][prefixn:]
             for role in (['tokens','question_tokens'] if prefixn==0 and phase=='functional' else ['tokens']):
                 eligible=item['question_positions'] if role=='question_tokens' else list(range(len(prefix)))
                 if len(eligible)<16:
+                    exclusions.append({'sample_id':sid,'prefix':prefixn,'role':role,'reason':'fewer_than_16_available_positions'})
                     continue
                 for layer in layers:
                     with np.load(geometry/f'p{prefixn}_l{layer}_{role}'/'decoder.npz') as d:
@@ -170,6 +176,7 @@ def run(cfg,phase):
                         positions=eligible[-width:]
                         for method in methods:
                             filename=f'{sid}_p{prefixn}_l{layer}_{role}_w{width}_{method}.json'
+                            expected_paths.add(filename)
                             path=dest/'samples'/filename
                             logpath=path.with_suffix('.npz')
                             if path.exists():
@@ -209,11 +216,15 @@ def run(cfg,phase):
                                 status(root,phase,state='running',completed_conditions=done,
                                        current_sample=sid,seconds=time.monotonic()-started)
                                 print(json.dumps({'phase':phase,'conditions':done,'sample':sid}),flush=True)
-    records=[json.loads(p.read_text()) for p in sorted((dest/'samples').glob('*.json'))]
+    paths=sorted((dest/'samples').glob('*.json'))
+    if {p.name for p in paths}!=expected_paths:
+        raise AssertionError('Missing or unexpected intervention conditions; cannot mark complete')
+    records=[json.loads(p.read_text()) for p in paths]
     pd.DataFrame(records).to_parquet(dest/'per_question.parquet',index=False)
     status(root,phase,state='complete',completed_conditions=len(records),questions=len(ids),
            seconds=time.monotonic()-started)
-    write_json(dest/'_SUCCESS.json',{'conditions':len(records),'selected_questions':len(ids),'completed_unix':time.time()})
+    write_json(dest/'_SUCCESS.json',{'conditions':len(records),'expected_conditions':len(expected_paths),
+        'selected_questions':len(ids),'exclusions':exclusions,'completed_unix':time.time()})
 
 
 if __name__=='__main__':
