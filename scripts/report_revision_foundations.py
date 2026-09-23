@@ -18,7 +18,7 @@ def run(cfg):
     for s in summaries:
         for g in s['geometry']:
             rows.append({'view':s['view'],'prefix':s['prefix'],'block':s['layer'],'K':s['selected']['k'],
-                         'K_at_upper_boundary':s['k_grid_boundary'],'method':g['method'],
+                         'K_at_upper_boundary':s['k_grid_boundary'],'method':g['method'].replace('local_pca_','local_residual_svd_'),
                          'test_questions':s['test_questions'],'NMSE':g['test_nmse']['estimate'],
                          'CI95':str(g['test_nmse']['ci95'])})
     tables={'geometry':pd.DataFrame(rows)}
@@ -35,6 +35,23 @@ def run(cfg):
             pred.append({'view':p.parent.name,'method':method,'AUROC':roc_auc_score(y,test[method]),
                          'test_questions':len(test),'increment_over_nuisance_CI':str(np.quantile(delta,[.025,.975]).tolist()) if method=='nuisance_plus_state' else ''})
     tables['prediction']=pd.DataFrame(pred)
+    matched=[]
+    for view in ('last','mean4','mean16','all_mean'):
+        for layer in cfg['layers']:
+            frames={}
+            for prefix in cfg['prefixes']:
+                path=root/'geometry'/f'p{prefix}_l{layer}_{view}'/'prediction_per_question.parquet'
+                if path.exists():
+                    frame=pd.read_parquet(path);frames[prefix]=frame.loc[frame.split.eq('test')].set_index('sample_id')
+            if len(frames)!=len(cfg['prefixes']):
+                continue
+            common=sorted(set.intersection(*(set(f.index) for f in frames.values())))
+            for prefix,frame in frames.items():
+                sub=frame.loc[common]
+                for method in ('state_nb','linear_probe','nuisance','nuisance_plus_state'):
+                    matched.append({'view':view,'block':layer,'prefix':prefix,'method':method,
+                        'same_questions':len(common),'AUROC':float(roc_auc_score(sub.failure,sub[method]))})
+    tables['prefix_comparison_same_questions']=pd.DataFrame(matched)
     for phase in ('functional','behavior'):
         records=[json.loads(p.read_text()) for p in (root/phase/'samples').glob('*.json')]
         if not records:
@@ -44,7 +61,8 @@ def run(cfg):
         baseline=frame.loc[frame.method.eq('identity')].set_index(keys)
         results=[]
         for group,sub in frame.groupby(['split','prefix_tokens','layer','role','width','method']):
-            aligned=sub.set_index(keys).join(baseline[['nll' if phase=='functional' else 'correct']],rsuffix='_baseline',how='inner')
+            baseline_columns=['nll'] if phase=='functional' else ['correct','normalized_answer']
+            aligned=sub.set_index(keys).join(baseline[baseline_columns],rsuffix='_baseline',how='inner')
             if not len(aligned):
                 continue
             row=dict(zip(['split','prefix','block','role','width','method'],group));row['n']=len(aligned)
@@ -66,6 +84,7 @@ def run(cfg):
                 row.update(accuracy=float(after.mean()),baseline_accuracy=float(before.mean()),
                            wrong_to_correct=int((~before&after).sum()),correct_to_wrong=int((before&~after).sum()),
                            net_accuracy=paired_ratio_ci(delta,np.ones(len(delta))),
+                           answer_agreement=float((aligned.normalized_answer.fillna('')==aligned.normalized_answer_baseline.fillna('')).mean()),
                            parse_failed=float(aligned.parse_failed.mean()),truncated=float(aligned.finish_reason.eq('length').mean()))
             results.append(row)
         write_json(dest/f'{phase}_summary.json',results);tables[phase]=pd.DataFrame(results)
@@ -73,7 +92,8 @@ def run(cfg):
            'MATH test was previously explored: all findings here are exploratory. No causal conclusion follows from AUROC or geometric NMSE alone.',
            'Prefix 0 is pre-generation; 16/64 consume only that many saved generated tokens. Full-answer mean is not substituted for an online state.',
            'Mean and token codebooks are distinct. Token fit uses 4 positions per training question; reconstruction tests all 16 positions.',
-           'GMM primary assignment is nearest centroid. Rank-8 local PCA is not MFA; MFA comparison remains pending.',
+           'GMM primary assignment is nearest centroid. Implementation key local_pca means SVD of local train residuals about the FIXED GMM mean; it is not empirical-mean-centered local PCA, nor MFA. The exact empirical-mean PCA comparison remains pending.',
+           'Across-prefix AUROC comparisons must use the common-question table; samples that terminate before a prefix are unavailable, not padded or repeated.',
            'Single-layer patch leaves other layers, positions and prompt context available. This does not establish full-model compression.',
            'All confidence intervals are pointwise question-level bootstrap. No multiple-comparison correction or confirmatory selection is implied.',
            'Selective steering, controlled counterfactuals and frozen-map GSM8K transfer evaluation are pending separate stages. Collection is not a transfer result.']
