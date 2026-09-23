@@ -1,0 +1,22 @@
+{
+  "output": "/lambda/nfs/dami/hss/revision-fair-factors-20260923",
+  "staging": "/home/ubuntu/hss-revision-fair-factors-20260923",
+  "source_locality": "/lambda/nfs/dami/hss/revision-locality-20260923",
+  "foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "layers": [7,14,21,28],
+  "prefix_tokens": 16,
+  "layer": 14,
+  "ranks": [8,4,16],
+  "k": 64,
+  "workers": 4,
+  "blas_threads": 2,
+  "seed": 42,
+  "reg_covar": 0.00001,
+  "max_em_steps": 2000,
+  "em_tolerance": 0.00001,
+  "cluster_deadline_seconds": 180,
+  "accelerator": "squarem",
+  "normalization": "none; raw MATH training token vectors; float64 numerical arithmetic",
+  "scope": "First fair-method comparison at fixed source K64, block14, generated16. Primary rank8; secondary ranks4/16, one deterministic initialization each. Fixed nearest-GMM partition. Local PCA and local FA use the same empirical training anchors. No claim about globally optimal K/rank or multi-initialization stability. Future hard/soft MFA jointly learn partitions and must be reported separately from this fixed-partition stage.",
+  "selection": "No functional output, validation or target data used to fit or choose these factors. Unconverged/deadline fits remain explicit and cannot be called converged. Stage currently covers fixed-partition FA training only; real functional comparison and joint MFA follow independently."
+}
