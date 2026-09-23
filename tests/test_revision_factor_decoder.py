@@ -72,3 +72,32 @@ def test_soft_budget_and_unique_fixed_protocol():
     assert hard['continuous_values_per_token']==8 and hard['region_id']
     assert soft['continuous_values_per_token']==575 and not soft['region_id']
     assert hard['learned_scalars']==soft['learned_scalars']
+
+
+def test_nonidentity_fa_patch_cached_losses_match_full_causal_forward():
+    torch=pytest.importorskip('torch');pytest.importorskip('transformers')
+    from transformers import Qwen2Config,Qwen2ForCausalLM
+    from evaluate_revision_locality import measure
+    from revision_common import OncePatch
+    torch.manual_seed(42)
+    model=Qwen2ForCausalLM(Qwen2Config(vocab_size=31,hidden_size=16,intermediate_size=24,
+        num_hidden_layers=3,num_attention_heads=2,num_key_value_heads=2)).eval()
+    rng=np.random.default_rng(4)
+    decoder=FactorDecoder([1.],np.zeros((1,16)),rng.normal(size=(1,16,3)),np.ones((1,16)))
+    def transform(h):
+        z=decoder.assigned(h.detach().float().numpy(),np.zeros(len(h),int))
+        return torch.from_numpy(z).to(h.dtype)
+    prefix=[2,3,4,5];reference=[6,7,8,9,10];positions=[2,3]
+    metric,logp,loss=measure(model,prefix,reference,2,positions,transform)
+    ids=prefix+reference[:-1]
+    patch=OncePatch(positions,len(ids),transform)
+    hook=model.model.layers[1].register_forward_hook(patch)
+    try:
+        with torch.inference_mode():
+            logits=model(torch.tensor([ids]),use_cache=False).logits[0,len(prefix)-1:]
+            expected=torch.nn.functional.cross_entropy(logits,torch.tensor(reference),reduction='none').numpy()
+            expected_logp=logits[0].log_softmax(-1).numpy()
+    finally:hook.remove()
+    assert patch.calls==metric['patch_calls']==1 and metric['actual_patch_energy']>0
+    np.testing.assert_allclose(loss,expected,atol=1e-6)
+    np.testing.assert_allclose(logp,expected_logp,atol=1e-6)
