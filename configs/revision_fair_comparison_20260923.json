@@ -1,0 +1,22 @@
+{
+  "output": "/lambda/nfs/dami/hss/revision-fair-factors-20260923/comparison",
+  "fit_root": "/lambda/nfs/dami/hss/revision-fair-factors-20260923",
+  "math_locality": "/lambda/nfs/dami/hss/revision-locality-20260923",
+  "confirmation": "/lambda/nfs/dami/hss/revision-locality-confirmation-20260923/interventions",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "eos_ids": [151645,151643],
+  "layer": 14,
+  "prefix_tokens": 16,
+  "width": 16,
+  "k": 64,
+  "ranks": [8,4,16],
+  "primary": "Fixed-partition FA rank8 minus common-anchor local PCA rank8: next-token KL and full-reference NLL, both reported.",
+  "splits": "MATH32 validation and32 historical test, plus GSM8K64 previously frozen confirmation questions; no re-selection or target fitting.",
+  "normalization": "none; raw states and float64 numerical decoder arithmetic",
+  "wait_for_collection": "/lambda/nfs/dami/openact/runs/gsm8k_test_20260923_v2",
+  "cpu_threads": 4,
+  "bootstrap_questions": 2000,
+  "bootstrap_seed": 42,
+  "scope": "Functional comparisons fixed in e777a85. CPU preparation and geometry do not establish output fidelity, accuracy, or steering. No rank selection. Hard and soft share joint parameters; soft encoding budget is K*r+K-1."
+}
