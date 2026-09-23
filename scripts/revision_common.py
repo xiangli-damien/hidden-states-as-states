@@ -93,7 +93,15 @@ def reconstruct(x, decoder, method):
     centers = decoder['kmeans_centers'] if method == 'kmeans_centroid' else decoder['centers']
     assignment = nearest(x, centers)
     result = centers[assignment].copy()
-    if method.startswith('local_pca_'):
+    if method.startswith('empirical_pca_'):
+        rank=int(method.rsplit('_',1)[1])
+        anchors=decoder['local_empirical_centers']
+        result=anchors[assignment].copy()
+        for k in np.unique(assignment):
+            selected=assignment==k
+            basis=decoder['local_empirical_basis'][k,:rank]
+            result[selected]+=((x[selected]-anchors[k])@basis.T)@basis
+    elif method.startswith('local_pca_'):
         rank = int(method.rsplit('_', 1)[1])
         for k in np.unique(assignment):
             selected = assignment == k

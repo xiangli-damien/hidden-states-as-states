@@ -32,7 +32,8 @@ from revision_common import (config, digest, freeze, provenance, sha, write_json
 def read_view(cfg, prefix, layer, view):
     frames, xs = [], []
     li = cfg['layers'].index(layer)
-    for marker in sorted((Path(cfg['output'])/'prefixes').glob('shard_*/_SUCCESS.json')):
+    prefix_root=Path(cfg.get('prefix_root',str(Path(cfg['output'])/'prefixes')))
+    for marker in sorted(prefix_root.glob('shard_*/_SUCCESS.json')):
         frame = pd.read_parquet(marker.parent/'rows.parquet')
         with np.load(marker.parent/f'prefix_{prefix}.npz') as saved:
             valid = saved['valid'].copy()
@@ -148,7 +149,11 @@ def _fit_one(cfg, prefix, layer, view):
     tokens = x.ndim == 3
     # Equal fitting contribution per question (four fixed positions), whereas
     # reconstruction below evaluates ALL 16 actual held-out token vectors.
-    xf = x[train][:, [0, 5, 10, 15]].reshape(-1, x.shape[-1]) if tokens else x[train]
+    fit_positions=cfg.get('train_token_positions',[0,5,10,15])
+    if tokens and (not fit_positions or len(set(fit_positions))!=len(fit_positions)
+                   or min(fit_positions)<0 or max(fit_positions)>=x.shape[1]):
+        raise ValueError('Invalid training token positions')
+    xf = x[train][:, fit_positions].reshape(-1, x.shape[-1]) if tokens else x[train]
     # Raw values are unchanged. Float64 avoids cancellation in variance updates
     # on Qwen's large shared coordinates; this is numerical precision, not scaling.
     xf = xf.astype(np.float64)
@@ -201,6 +206,11 @@ def _fit_one(cfg, prefix, layer, view):
     rank = max(cfg['pca_ranks'])
     decoder['global_basis'] = basis(xf, rank, decoder['train_mean'])
     decoder['local_basis'] = np.stack([basis(xf[assignments == j], rank, decoder['centers'][j]) for j in range(k)])
+    # Separate true affine local PCA from the existing fixed-GMM-center residual
+    # SVD. Both use the SAME nearest-GMM partition; neither is an MFA decoder.
+    decoder['local_empirical_centers']=np.stack([xf[assignments==j].mean(0) if np.any(assignments==j)
+                                               else decoder['centers'][j] for j in range(k)]).astype(np.float32)
+    decoder['local_empirical_basis']=np.stack([basis(xf[assignments==j],rank,decoder['local_empirical_centers'][j]) for j in range(k)])
     decoder['local_counts'] = np.bincount(assignments, minlength=k)
     write_npz(dest/'decoder.npz', **decoder)
     flat = x.reshape(-1,x.shape[-1])
@@ -218,7 +228,7 @@ def _fit_one(cfg, prefix, layer, view):
     posterior_codes = np.concatenate(probabilities).reshape(codes.shape)
     write_npz(dest/'assignments.npz', sample_id=frame.sample_id.to_numpy(str),
               nearest=codes, posterior=posterior_codes)
-    methods = ['mean', 'centroid', 'kmeans_centroid'] + [f'{kind}_pca_{r}' for kind in ('global','local') for r in cfg['pca_ranks']]
+    methods = ['mean', 'centroid', 'kmeans_centroid'] + [f'{kind}_pca_{r}' for kind in ('global','local','empirical') for r in cfg['pca_ranks']]
     rows, metrics = [], []
     for method in methods:
         recovered = reconstruct(flat, decoder, method).reshape(x.shape)
@@ -229,7 +239,7 @@ def _fit_one(cfg, prefix, layer, view):
         metrics.append({'method': method, 'test_nmse': result,
                         'test_explained_variance': 1-result['estimate'],
                         'continuous_coordinates_per_vector': int(method.rsplit('_',1)[1]) if 'pca' in method else 0,
-                        'state_id_bits_per_vector': float(np.log2(k)) if method in ('centroid','kmeans_centroid') or method.startswith('local') else 0})
+                        'state_id_bits_per_vector': float(np.log2(k)) if method in ('centroid','kmeans_centroid') or method.startswith(('local','empirical')) else 0})
         rows.append(pd.DataFrame({'sample_id': frame.sample_id, 'split': frame.split, 'method': method,
                                    'squared_error': error, 'train_centered_energy': den}))
     pd.concat(rows).to_parquet(dest/'reconstruction_per_question.parquet',index=False)
@@ -240,7 +250,10 @@ def _fit_one(cfg, prefix, layer, view):
               'nearest_posterior_agreement': float((codes == posterior_codes).mean()),
               'geometry': metrics, 'decoder_parameters': {n: int(a.size) for n,a in decoder.items()},
               'test_scope': 'exploratory reused MATH test; question-level pointwise bootstrap',
-              'tokens_per_question_fit': 4 if tokens else 1}
+              'tokens_per_question_fit': len(fit_positions) if tokens else 1,
+              'train_token_positions':fit_positions if tokens else [],
+              'local_residual_svd_definition':'uncentered train residual SVD about fixed GMM mean',
+              'empirical_pca_definition':'PCA about nearest-assigned training sample mean, same GMM partition'}
     if not tokens:
         confidence=pd.read_parquet(Path(cfg['output'])/'confidence'/f'prefix_{prefix}.parquet').set_index('sample_id').loc[frame.sample_id]
         report, predictions, readout = prediction(frame, x, codes, decoder['centers'],confidence)

@@ -6,6 +6,8 @@
   "rows": "/lambda/nfs/dami/hss/change-clusters-20260921/rows.parquet",
   "splits": "/lambda/nfs/dami/hss/change-clusters-20260921/splits.parquet",
   "output": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "intervention_geometry": "/lambda/nfs/dami/hss/revision-token-decoders-v2-20260923/geometry",
+  "intervention_positions_per_question": 16,
   "layers": [7, 14, 21, 28],
   "prefixes": [0, 16, 64],
   "window": 16,

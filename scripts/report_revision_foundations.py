@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 from revision_common import config, write_json, paired_ratio_ci
+from revision_statistics import paired_auc_ci
 
 
 def run(cfg):
@@ -25,15 +26,11 @@ def run(cfg):
     pred=[]
     for p in sorted((root/'geometry').glob('*/prediction_per_question.parquet')):
         data=pd.read_parquet(p);test=data.loc[data.split.eq('test')]
-        delta=[];rng=np.random.default_rng(42)
         y=test.failure.to_numpy();a=test.nuisance_plus_state.to_numpy();b=test.nuisance.to_numpy()
-        for _ in range(1000):
-            ix=rng.integers(len(y),size=len(y))
-            if len(np.unique(y[ix]))==2:
-                delta.append(roc_auc_score(y[ix],a[ix])-roc_auc_score(y[ix],b[ix]))
+        comparison=paired_auc_ci(y,a,b)
         for method in ('state_nb','linear_probe','nuisance','nuisance_plus_state'):
             pred.append({'view':p.parent.name,'method':method,'AUROC':roc_auc_score(y,test[method]),
-                         'test_questions':len(test),'increment_over_nuisance_CI':str(np.quantile(delta,[.025,.975]).tolist()) if method=='nuisance_plus_state' else ''})
+                         'test_questions':len(test),'increment_over_nuisance_CI':str(comparison['ci95']) if method=='nuisance_plus_state' else ''})
     tables['prediction']=pd.DataFrame(pred)
     matched=[]
     for view in ('last','mean4','mean16','all_mean'):

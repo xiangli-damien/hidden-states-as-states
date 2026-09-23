@@ -110,12 +110,13 @@ def generate(model,tokenizer,prefix,layer,positions,transform,budget):
 
 def run(cfg,phase):
     root=Path(cfg['output']);dest=root/phase;dest.mkdir(parents=True,exist_ok=True)
+    geometry=Path(cfg.get('intervention_geometry',str(root/'geometry')))
     frame,tokens=load_questions(cfg);indexed=frame.set_index('sample_id')
     n=cfg['functional_pilot_per_split'] if phase=='functional' else 12
     ids=choose_questions(frame,n)
-    methods=(['identity','zero','mean','centroid','kmeans_centroid','local_pca_8','global_pca_8',
+    methods=(['identity','zero','mean','centroid','kmeans_centroid','local_pca_8','empirical_pca_8','global_pca_8',
               'beta_0.25','beta_0.5','beta_0.75','matched_random','centroid_energy1','matched_random_energy1']
-             if phase=='functional' else ['identity','centroid','local_pca_8','matched_random','centroid_energy1'])
+             if phase=='functional' else ['identity','centroid','local_pca_8','empirical_pca_8','matched_random','centroid_energy1'])
     layers=cfg['functional_layers'] if phase=='functional' else [14]
     prefixes=cfg['functional_prefixes']
     files=[Path(__file__),Path(__file__).with_name('revision_common.py'),root/'prefixes/plan.json']
@@ -123,10 +124,20 @@ def run(cfg,phase):
     for prefix in prefixes:
         for layer in layers:
             for role in (['tokens','question_tokens'] if prefix==0 and phase=='functional' else ['tokens']):
-                path=root/'geometry'/f'p{prefix}_l{layer}_{role}'/'decoder.npz'
-                if not (path.parent/'_SUCCESS.json').exists():
-                    raise ValueError(f'Validated token decoder not ready: {path}')
-                files.extend([path,path.parent/'_SUCCESS.json']);decoder_paths.append(str(path))
+                path=geometry/f'p{prefix}_l{layer}_{role}'/'decoder.npz'
+                deadline=time.monotonic()+12*3600
+                while not (path.parent/'_SUCCESS.json').exists():
+                    state_file=geometry.parent/'fit_status.json'
+                    if state_file.exists() and json.loads(state_file.read_text())['state']=='failed':
+                        raise RuntimeError('Token decoder fitting failed; refusing partial or old decoder')
+                    if time.monotonic()>deadline:
+                        raise TimeoutError(f'Token decoder not ready: {path}')
+                    status(root,phase,state='waiting_for_token_decoders',path=str(path))
+                    time.sleep(30)
+                summary=json.loads((path.parent/'summary.json').read_text())
+                if summary['tokens_per_question_fit']!=cfg.get('intervention_positions_per_question',4):
+                    raise ValueError('Wrong token fit coverage for intervention')
+                files.extend([path,path.parent/'_SUCCESS.json',path.parent/'summary.json']);decoder_paths.append(str(path))
     plan=provenance(cfg,files)
     plan.update(phase=phase,sample_ids=ids,methods=methods,layers=layers,
                 observation='pilot; historical MATH test has been explored',
@@ -152,7 +163,7 @@ def run(cfg,phase):
                 if len(eligible)<16:
                     continue
                 for layer in layers:
-                    with np.load(root/'geometry'/f'p{prefixn}_l{layer}_{role}'/'decoder.npz') as d:
+                    with np.load(geometry/f'p{prefixn}_l{layer}_{role}'/'decoder.npz') as d:
                         decoder={k:d[k].copy() for k in d.files}
                     baseline=None
                     for width in cfg['functional_widths']:

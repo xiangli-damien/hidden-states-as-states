@@ -7,6 +7,17 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 from revision_common import OncePatch, nearest, reconstruct, nmse_rows, paired_ratio_ci
+from revision_statistics import weighted_auc,paired_auc_ci
+
+
+def test_weighted_auc_matches_sklearn_with_ties_and_repeated_questions():
+    pytest.importorskip('sklearn')
+    from sklearn.metrics import roc_auc_score
+    y=np.array([0,1,1,0,1,0]);scores=np.array([.1,.1,.7,.7,.9,.4])
+    counts=np.array([[1,1,1,1,1,1],[0,3,2,1,4,1]])
+    expected=[roc_auc_score(y,scores,sample_weight=w) for w in counts]
+    np.testing.assert_allclose(weighted_auc(y,scores,counts),expected)
+    assert paired_auc_ci(y,scores,scores,boot=100)['ci95']==[0.,0.]
 
 
 def test_reconstruction_keeps_actual_tokens_distinct_and_uses_training_anchor():
@@ -21,6 +32,14 @@ def test_reconstruction_keeps_actual_tokens_distinct_and_uses_training_anchor():
     a,b=nmse_rows(x,reconstruct(x,d,'centroid'),d['train_mean'])
     np.testing.assert_allclose(a,[10,5]);np.testing.assert_allclose(b,[25,40])
     assert paired_ratio_ci(a,b,boot=20)['estimate']==pytest.approx(15/65)
+
+
+def test_empirical_local_pca_uses_train_anchor_but_same_gmm_assignment():
+    d={'centers':np.array([[0.,0.],[10.,0.]],np.float32),
+       'local_empirical_centers':np.array([[1.,2.],[11.,-1.]],np.float32),
+       'local_empirical_basis':np.array([[[0.,1.]],[[0.,1.]]],np.float32)}
+    x=np.array([[3.,4.],[12.,5.]],np.float32)
+    np.testing.assert_allclose(reconstruct(x,d,'empirical_pca_1'),[[1,4],[11,5]])
 
 
 def test_nmse_denominator_is_not_test_centered():
@@ -113,6 +132,7 @@ def test_full_small_geometry_stage_with_actual_split_names(tmp_path):
     out=fit_one((cfg,0,7,'last'))
     assert out['train_questions']==120 and out['val_questions']==40 and out['test_questions']==40
     assert out['selected']['converged'] and out['normalization']=='none'
+    assert any(row['method']=='empirical_pca_1' for row in out['geometry'])
     results=pd.read_parquet(tmp_path/'geometry/p0_l7_last/prediction_per_question.parquet')
     np.testing.assert_array_equal(results.failure,1-y)
     assert out['prediction']['state_nb']['test_auroc']>.9
