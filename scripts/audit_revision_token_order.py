@@ -43,6 +43,9 @@ def code_identity_diagnostics(codes,token_ids,train,test,k):
             'token_from_state_accuracy':paired_ratio_ci(token_accuracy,np.ones(len(token_accuracy))),
             'token_from_position_accuracy':paired_ratio_ci(slot_accuracy,np.ones(len(slot_accuracy))),
             'token_accuracy_state_minus_position':paired_ratio_ci(token_accuracy-slot_accuracy,np.ones(len(slot_accuracy))),
+            'state_position_test_counts':contingency.astype(int).tolist(),
+            'state_order_from_train':np.lexsort((-counts.sum(1),counts.argmax(1))).tolist(),
+            'accuracy_bootstrap_draws':1000,'accuracy_bootstrap_seed':42,
             'scope':'Train majority decoder, held-out questions; entropy/MI are descriptive token contingencies, no independent-token significance claim'}
 
 
@@ -102,6 +105,16 @@ def run(root):
         ax.set_yticks(np.arange(len(rows)),[s['view'].replace('question_tokens','question').replace('tokens','chat' if s['prefix']==0 else 'generated') for s in results]);ax.grid(axis='x',alpha=.2)
     axes[0].invert_yaxis();fig.suptitle('Qwen2 MATH: order of 16-token GMM states; historical test, exploratory',fontsize=12)
     fig.savefig(dest/'token_order.png',dpi=180);fig.savefig(dest/'token_order.pdf');plt.close(fig)
+    fig,axes=plt.subplots(2,3,figsize=(12,6.5),layout='constrained')
+    for ax,d in zip(axes.ravel(),identity):
+        counts=np.asarray(d['state_position_test_counts'],float)[d['state_order_from_train']]
+        probability=np.divide(counts,counts.sum(1,keepdims=True),out=np.full_like(counts,np.nan),where=counts.sum(1,keepdims=True)>0)
+        im=ax.imshow(probability,aspect='auto',vmin=0,vmax=1,cmap='viridis',interpolation='nearest')
+        ax.set_title(d['view'],fontsize=10);ax.set_xticks([0,3,7,11,15],[1,4,8,12,16]);ax.set_xlabel('Window position')
+        ax.set_ylabel('State (sorted using train only)')
+    fig.colorbar(im,ax=axes.ravel().tolist(),label='Held-out P(position | state)',shrink=.85)
+    fig.suptitle('Do state IDs already encode window position? Gray/blank rows have no test tokens',fontsize=12)
+    fig.savefig(dest/'state_position.png',dpi=180);fig.savefig(dest/'state_position.pdf');plt.close(fig)
     notes=[
         'All six views and all 16 readout families reported; no test-guided choice of the best layer/role/seed.',
         'Main comparison was fixed to block28/generated16 ordered versus occupancy; shuffle42 is the primary order control, 137/271 are sensitivity checks.',
@@ -114,7 +127,7 @@ def run(root):
         'All scalers and vocabularies are fit on train; C chosen by validation log loss. Unknown token IDs have an explicit reserved feature.',
         'Conditional readouts share a single C after feature scaling; no information-theoretic upper bound is inferred from a null gain.',
         'Question-tail views have fewer valid questions than chat/generation; only within-view paired effects are evaluated.',
-        'Intervals use 2,000 question bootstrap draws, pointwise without multiplicity correction; reused historical test is exploratory.'
+        'AUROC intervals use 2,000 question bootstrap draws; identity-decoding accuracy intervals use 1,000. All are pointwise without multiplicity correction; reused historical test is exploratory.'
     ]
     parts=['<!doctype html><html><meta charset="utf-8"><title>Token state order</title>',
         '<style>body{font:16px system-ui;margin:35px;max-width:1900px}table{border-collapse:collapse;font-size:13px}td,th{padding:6px;border:1px solid #ddd}.wide{overflow:auto}img{max-width:100%}</style>',
@@ -123,7 +136,7 @@ def run(root):
     parts.extend('<li>'+html.escape(n)+'</li>' for n in notes)
     parts.extend(['</ul>',f'<p>Audited {audit["readouts"]} readouts; {nconverged}/{nfit} candidates converged; {len(boundary)} selected C at grid boundary.</p>',
         '<h2>全部 AUROC</h2><div class="wide">',pd.DataFrame(table).to_html(index=False,float_format=lambda x:f'{x:.6f}'),'</div>',
-        '<h2>簇编号本身透露多少位置／词身份？</h2>',pd.DataFrame([{
+        '<h2>簇编号本身透露多少位置／词身份？</h2><img src="state_position.png" alt="State position contingency">',pd.DataFrame([{
             'view':d['view'],'position_accuracy':d['position_from_state_accuracy']['estimate'],
             'position_chance':d['position_chance_accuracy'],'position_entropy_fraction_in_state':d['position_entropy_fraction_in_state'],
             'token_from_state_accuracy':d['token_from_state_accuracy']['estimate'],
