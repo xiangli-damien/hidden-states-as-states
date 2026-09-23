@@ -12,8 +12,10 @@ def test_memory_pairs_split_by_sum_and_counterfactual_is_not_donor_answer():
     for u in range(10):
         split=[memory_split(a,(u-a)%10) for a in range(10)]
         assert [split.count(s) for s in ('train','validation','test')]==[6,2,2]
-    items=cases();assert len(items)==40 and len({c['id'] for c in items})==40
+    items=cases();assert len(items)==80 and len({c['id'] for c in items})==80
+    paired={}
     for c in items:
+        paired.setdefault(c['recipient_id'],[]).append(c)
         r,d=c['recipient'],c['donor']
         assert memory_split(r['a'],r['b'])=='validation'
         assert memory_split(d['a'],d['b'])=='validation'
@@ -27,6 +29,25 @@ def test_memory_pairs_split_by_sum_and_counterfactual_is_not_donor_answer():
         assert text.index(BUFFER)<text.index('Later input:')
     assert parse(' 7|blue ')==(7,'blue')
     assert parse('The answer is 7|blue')==(None,None)
+    for pair in paired.values():
+        assert len(pair)==2 and {p['pair_type'] for p in pair}=={'same_u','different_u'}
+        assert pair[0]['recipient']==pair[1]['recipient']
+
+
+def test_memory_region_precedes_offset_and_contains_the_tail():
+    from revision_counterfactual_gate import encode
+    from types import SimpleNamespace
+    class Tokenizer:
+        def apply_chat_template(self,messages,**kw):return 'SYS\nUSER\n'+messages[1]['content']+'\nASSISTANT\n'
+        def __call__(self,text,**kw):
+            return SimpleNamespace(input_ids=list(range(len(text))),offset_mapping=[(i,i+1) for i in range(len(text))])
+    tokenizer=Tokenizer()
+    for case in cases():
+        ids,tail,text=encode(tokenizer,case['recipient'],case['mode'])
+        other,region,_=encode(tokenizer,case['recipient'],case['mode'],'memory_region')
+        assert ids==other and region[-16:]==tail and len(region)>16
+        assert region[-1]<text.index('Later input:')
+        assert text.index('Remember') in region
 
 
 def test_future_causality_and_final_block_past_output_null():

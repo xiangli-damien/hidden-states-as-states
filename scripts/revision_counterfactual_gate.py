@@ -5,7 +5,6 @@ and not proof of an internal arithmetic variable. All patch positions precede
 the recipient's offset/tag, so donor future inputs cannot enter those states.
 """
 import argparse
-from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -36,14 +35,17 @@ def cases():
     result=[]
     for mode in ('explicit_digit','implicit_sum'):
         for i,(a,b) in enumerate(pairs):
-            u=(a+b)%10;kind='same_u' if i%2 else 'different_u'
-            possible=[p for p in pairs if p!=(a,b) and (((sum(p)%10)==u)==(kind=='same_u'))]
-            da,db=possible[i%len(possible)]
-            c=(3*a+7*b+1)%10;tag='red' if i%2 else 'blue'
-            recipient={'a':a,'b':b,'u':u,'c':c,'tag':tag}
-            donor={'a':da,'b':db,'u':(da+db)%10,'c':(c+3)%10,'tag':'blue' if tag=='red' else 'red'}
-            result.append({'id':f'{mode}_{a}_{b}','mode':mode,'pair_type':kind,'split':'validation',
-                           'recipient':recipient,'donor':donor,'cf_digit':(donor['u']+c)%10})
+            u=(a+b)%10;c=(3*a+7*b+1)%10;tag='red' if i%2 else 'blue'
+            for kind in ('same_u','different_u'):
+                # Every recipient appears under BOTH donor types, so recipient
+                # identity, offset, color and original task difficulty are paired.
+                possible=[p for p in pairs if p!=(a,b) and (((sum(p)%10)==u)==(kind=='same_u'))]
+                da,db=possible[i%len(possible)]
+                recipient={'a':a,'b':b,'u':u,'c':c,'tag':tag}
+                donor={'a':da,'b':db,'u':(da+db)%10,'c':(c+3)%10,'tag':'blue' if tag=='red' else 'red'}
+                rid=f'{mode}_{a}_{b}'
+                result.append({'id':rid+'_'+kind,'recipient_id':rid,'mode':mode,'pair_type':kind,'split':'validation',
+                               'recipient':recipient,'donor':donor,'cf_digit':(donor['u']+c)%10})
     return result
 
 
@@ -62,7 +64,7 @@ def task_text(item,mode):
     return prefix+BUFFER+suffix
 
 
-def encode(tokenizer,item,mode):
+def encode(tokenizer,item,mode,scope='tail'):
     text=task_text(item,mode)
     full=tokenizer.apply_chat_template([{'role':'system','content':'You are a helpful assistant.'},
         {'role':'user','content':text}],tokenize=False,add_generation_prompt=True)
@@ -71,7 +73,13 @@ def encode(tokenizer,item,mode):
     positions=[i for i,(a,b) in enumerate(encoded.offset_mapping) if a>=start and b<=end and b>a]
     if len(positions)<16:
         raise ValueError('Memory buffer must contain at least 16 real tokens')
-    return encoded.input_ids,positions[-16:],full
+    if scope=='tail':
+        positions=positions[-16:]
+    elif scope=='memory_region':
+        memory_start=full.index(text)
+        positions=[i for i,(a,b) in enumerate(encoded.offset_mapping) if a>=memory_start and b<=end and b>a]
+    else:raise ValueError(scope)
+    return encoded.input_ids,positions,full
 
 
 def parse(text):
@@ -127,13 +135,28 @@ def random_transform(original,donor,seed):
 def summarize(records):
     result={'capability':[],'interventions':[],
         'scope':'Validation-only custom memory task; not MIB/RAVEL or proof of a latent u variable',
-        'gate':'Each mode needs >=90% baseline AND text-counterfactual exact digit+tag accuracy before a state-codebook study',
+        'gate':'Each mode needs >=90% unique original-prompt accuracy AND >=90% unique edited-input accuracy separately for each donor type before a state-codebook study',
         'uncertainty':'Small finite validation grid, repeated arithmetic values; descriptive counts, no independent-token significance test'}
     for mode in ('explicit_digit','implicit_sum'):
         selected=[r for r in records if r['case']['mode']==mode]
-        baseline=sum(r['baseline_correct'] for r in selected);edited=sum(r['edited_correct'] for r in selected)
-        result['capability'].append({'mode':mode,'n':len(selected),'baseline_correct':baseline,
-            'edited_correct':edited,'passed':bool(baseline/len(selected)>=.9 and edited/len(selected)>=.9)})
+        originals={};edited={}
+        for r in selected:
+            if r['prompt'] in originals:
+                if r['baseline']['generated_ids']!=originals[r['prompt']]['baseline']['generated_ids']:
+                    raise AssertionError('Repeated recipient baseline is not identical')
+            originals[r['prompt']]=r
+            key=(r['case']['pair_type'],r['edited_prompt'])
+            if key in edited and r['edited_baseline']['generated_ids']!=edited[key]['edited_baseline']['generated_ids']:
+                raise AssertionError('Repeated edited baseline is not identical')
+            edited[key]=r
+        baseline=sum(r['baseline_correct'] for r in originals.values());edits=[]
+        for kind in ('different_u','same_u'):
+            values=[r for (label,_),r in edited.items() if label==kind]
+            edits.append({'pair_type':kind,'unique_edited_prompts':len(values),
+                          'edited_correct':sum(r['edited_correct'] for r in values)})
+        result['capability'].append({'mode':mode,'case_pairs':len(selected),'unique_original_prompts':len(originals),
+            'baseline_correct':baseline,'edited_by_type':edits,
+            'passed':bool(baseline/len(originals)>=.9 and all(r['edited_correct']/r['unique_edited_prompts']>=.9 for r in edits))})
         for kind in ('different_u','same_u'):
             subset=[r for r in selected if r['case']['pair_type']==kind]
             names=sorted({p['condition'] for r in subset for p in r['patches']})
@@ -153,6 +176,9 @@ def run():
     ROOT.mkdir(parents=True,exist_ok=True)
     cfg={'model':'Qwen/Qwen2-7B-Instruct','revision':'f2826a00ceef68f0f2b946d945ecc0477ce4450c',
          'layers':[7,14,28],'widths':[1,4,16],'max_new_tokens':16,'cases':cases(),
+         'additional_scope':'entire user memory prefix before later offset/tag, including memory inputs and buffer',
+         'donor_types_paired_within_recipient':True,
+         'scope_energy_note':'Random directions match each scope donor delta per token. Different scopes are not total-energy-matched; no window-size causal superiority claim.',
          'no_codebook_fit':True,'test_split_not_executed':True}
     freeze(ROOT/'plan.json',provenance(cfg,[Path(__file__),Path(__file__).with_name('revision_common.py')]))
     model,tokenizer=load_model(cfg);records=[]
@@ -167,9 +193,14 @@ def run():
         eids,epositions,etext=encode(tokenizer,edited,case['mode'])
         if len(ids)!=len(dids) or len(ids)!=len(eids) or positions!=dpositions or positions!=epositions:
             raise ValueError('Counterfactual prefix shapes/positions must match exactly')
-        original_h,original_logits=capture(model,ids,positions)
-        donor_h,_=capture(model,dids,positions)
-        edited_h,_=capture(model,eids,positions)
+        _,memory_positions,_=encode(tokenizer,recipient,case['mode'],'memory_region')
+        _,dmemory,_=encode(tokenizer,donor,case['mode'],'memory_region')
+        _,ememory,_=encode(tokenizer,edited,case['mode'],'memory_region')
+        if memory_positions!=dmemory or memory_positions!=ememory or memory_positions[-16:]!=positions:
+            raise ValueError('Memory-region positions must match and contain the original tail')
+        original_h,original_logits=capture(model,ids,memory_positions)
+        donor_h,_=capture(model,dids,memory_positions)
+        edited_h,_=capture(model,eids,memory_positions)
         for layer in cfg['layers']:
             # Same memory prefix, different FUTURE offset/tag, exact fixed shape.
             np.testing.assert_array_equal(donor_h[layer],edited_h[layer])
@@ -195,9 +226,15 @@ def run():
                             int(hashlib.sha256(f'{case["id"]}/{layer}/{width}'.encode()).hexdigest()[:8],16)))
                     output=generate(model,tokenizer,ids,model.model.layers[layer-1],positions[-width:],transform)
                     patches.append({'condition':f'{method}_l{layer}_w{width}',**output})
+            for method in ('donor','matched_random'):
+                transform=(full_transform(donor_h[layer]) if method=='donor' else
+                    random_transform(original_h[layer],donor_h[layer],
+                        int(hashlib.sha256(f'{case["id"]}/{layer}/memory_region'.encode()).hexdigest()[:8],16)))
+                output=generate(model,tokenizer,ids,model.model.layers[layer-1],memory_positions,transform)
+                patches.append({'condition':f'{method}_l{layer}_memory_region','positions':memory_positions,**output})
         # Past-position final-block outputs have no downstream block to carry the
         # change. KV at that block is produced BEFORE the output hook.
-        null=generate(model,tokenizer,ids,model.model.layers[27],positions,full_transform(donor_h[28]))
+        null=generate(model,tokenizer,ids,model.model.layers[27],memory_positions,full_transform(donor_h[28]))
         if null['generated_ids']!=baseline['generated_ids']:
             raise AssertionError('Final-block past-position architectural null failed')
         identity=generate(model,tokenizer,ids,model.model.layers[13],positions,lambda h:h)
@@ -205,6 +242,8 @@ def run():
             raise AssertionError('Identity generation mismatch')
         record={'case':case,'prompt':text,'donor_prompt':dtext,'edited_prompt':etext,'input_ids':ids,
             'donor_input_ids':dids,'edited_input_ids':eids,'positions':positions,'baseline':baseline,
+            'memory_region_positions':memory_positions,'saved_activation_positions':'memory_region_positions',
+            'final_block_null_scope':'memory_region',
             'edited_baseline':counterfactual,'embedding_control':embedding_control,'final_block_null':null,
             'identity':identity,'patches':patches,
             'baseline_correct':baseline['digit']==(recipient['u']+recipient['c'])%10 and baseline['tag']==recipient['tag'],
