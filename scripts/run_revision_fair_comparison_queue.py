@@ -46,6 +46,7 @@ def main(root,model_python):
             try:os.kill(geometry['pid'],0)
             except ProcessLookupError:raise RuntimeError('CPU geometry stopped without success receipt')
             save();time.sleep(30)
+        stage('geometry_audit','audit_revision_fair_geometry.py',sys.executable)
         state['state']='waiting_gpu_idle';save()
         while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader,nounits'],text=True).strip():
             time.sleep(30);save()
