@@ -14,6 +14,7 @@ from sklearn.metrics import roc_auc_score,log_loss,brier_score_loss
 
 from revision_common import write_json,paired_ratio_ci
 from revision_statistics import paired_auc_ci
+from revision_token_order import shuffle_questions
 
 
 def code_identity_diagnostics(codes,token_ids,train,test,k):
@@ -66,6 +67,13 @@ def run(root):
         with np.load(d/'question_codes.npz') as z:
             np.testing.assert_array_equal(frame.sample_id.to_numpy(str),z['sample_ids'])
             diag=code_identity_diagnostics(z['codes'],z['token_ids'],frame.split.eq('train').to_numpy(),frame.split.eq('test').to_numpy(),len(z['centers']))
+            train=frame.split.eq('train').to_numpy();k=len(z['centers']);t=z['codes'].shape[1]
+            def active_columns(codes):
+                count=np.bincount((codes+np.arange(t)*k).ravel(),minlength=t*k)
+                return int(((count>0)&(count<len(codes))).sum())
+            diag['ordered_nonconstant_train_columns']=active_columns(z['codes'][train])
+            shuffled=shuffle_questions(z['codes'],z['sample_ids'],42)
+            diag['shuffle42_nonconstant_train_columns']=active_columns(shuffled[train])
         identity.append({'view':name,**diag})
         for metric in s['metrics']:
             method=metric['method'];selection=json.loads((d/method/'selection.json').read_text())
@@ -123,6 +131,7 @@ def run(root):
         'Ordered LR is additive in position. A transition histogram uses adjacent pair features; neither is a general nonlinear sequence model.',
         'Within-question shuffles preserve exact state counts and are used in both train and evaluation. Position marginals can change; this is not a causal intervention.',
         'A state ID may itself reveal its position. In that case occupancy implicitly retains some order; a null order gain does not show order is unimportant. The separate position-decoding diagnostic measures this.',
+        'Shuffling can greatly increase the number of nonconstant position-state features, even with the same nominal dimension. Reduced shuffled-readout performance alone is not evidence of lost task information.',
         'Controls include category, difficulty, prompt length, representation norms and current entropy/margin, never future answer length.',
         'All scalers and vocabularies are fit on train; C chosen by validation log loss. Unknown token IDs have an explicit reserved feature.',
         'Conditional readouts share a single C after feature scaling; no information-theoretic upper bound is inferred from a null gain.',
@@ -139,6 +148,7 @@ def run(root):
         '<h2>簇编号本身透露多少位置／词身份？</h2><img src="state_position.png" alt="State position contingency">',pd.DataFrame([{
             'view':d['view'],'position_accuracy':d['position_from_state_accuracy']['estimate'],
             'position_chance':d['position_chance_accuracy'],'position_entropy_fraction_in_state':d['position_entropy_fraction_in_state'],
+            'ordered_active_columns':d['ordered_nonconstant_train_columns'],'shuffled_active_columns':d['shuffle42_nonconstant_train_columns'],
             'token_from_state_accuracy':d['token_from_state_accuracy']['estimate'],
             'token_from_position_accuracy':d['token_from_position_accuracy']['estimate']} for d in identity]).to_html(index=False,float_format=lambda x:f'{x:.6f}'),
         '<h2>问题级配对比较</h2>',pd.DataFrame(comparisons).to_html(index=False,float_format=lambda x:f'{x:.6f}'),'</html>'])

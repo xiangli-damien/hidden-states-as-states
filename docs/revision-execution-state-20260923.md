@@ -1,5 +1,15 @@
 # Revision experiment execution state
 
+## 2026-09-23 09:25 UTC — token order study complete and audited
+
+Root `/lambda/nfs/dami/hss/revision-token-order-20260923` finished six views,96 readouts,864/864 converged candidates (initial PID431436 now completed). Full coverage, saved prediction SHA, validation selection, all metrics and paired CIs independently audited locally and remotely. Four selected C values at a grid boundary. Code assignments and current token IDs also checksum-checked. Reports/figures/raw predictions synced locally to `results/revision-token-order-20260923`; both scientific figures visually checked. Read §7 of `revision-first-results-20260923.zh-CN.md`.
+
+Actual primary result at block28/generated16 on986 historical-test questions: ordered state AUROC0.62760 vs occupancy0.66746, delta−0.03987 [−0.06715,−0.01144]; continuous mean0.79787. Block14 corresponding ordered0.64382,occupancy0.64896,mean0.80280. Adding ordered states to initial-prompt+controls atblock28 gives−0.00404 [−0.01093,+0.00287]. No general sequence/causal/information-bound claim: finite K64 codebook, additive position readout, early16 tokens, unequal representation budgets and reused test. No new GSM8K target result was consulted.
+
+Important negative control: chat block14/28 state IDs recover position with held-out accuracy100%/99.987%. Thus nominally unordered occupancy already encodes position. Block28 chat occupancy0.751526,ordered0.751480,shuffle42 ordered0.708610. Shuffling increased nonconstant train position-state columns65→1024 (block14:64→1017); a drop does not alone establish essential order. Generated16 position recovery32.6%/30.2%, chance6.25%; question-tail20.6%/24.0%. Audit's `code_identity_diagnostics.json` and state-position heatmap preserve training sort/mapping. MI values are descriptive token contingencies, no independent-token significance test. Accuracy CIs bootstrap questions1000draws; AUROC2000draws.
+
+No need to repeat token-order fitting or enlarge its grid. Next scientific priority stays real reconstruction/behavior and controlled full-donor capability, then selective steering if prerequisites warrant it. Remaining general nonlinear/semantic/causal method gaps remain explicit. GSM8K verified1056/1319 at09:19; functional/behavior still queued with zero outcome files. One decoder process, existing healthy supervisors unchanged. Maintain the30min heartbeat and only notify new audited findings/failures. This study's completed result is being notified once.
+
 ## 2026-09-23 09:01 UTC — healthy collection; within-window state order study running
 
 GSM8K verified published 928/1319 at08:57, then992/1319 at09:08. GPU ~16/40GiB, SSD126GiB free, no collection failure. Primary GPU reconstruction/behavior and transfer/counterfactual followers retain their order; no duplicate decoder process launched.
