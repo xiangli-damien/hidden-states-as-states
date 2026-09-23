@@ -1,5 +1,15 @@
 # Revision experiment execution state
 
+## 2026-09-23 20:25 UTC — saved-output profiles complete; daily Git checkpoint added
+
+New CPU-only profile `/lambda/nfs/dami/hss/revision-output-profile-20260923` complete:128questions/1792 existingconditions,178.98seconds,0GPUcalls. Source8e0bd3e,independentstatisticsaudit1a1e564,readableplots70dd778. Four tests passed local/remote. AllrawJSON/NPZ SHA,reference IDs/length/NLL,full-vocabulary KL/normalization checked. Independent audit:1792rawconditions,336summaries,264pairedrows passed. ReportreceiptSHA b03734d15e5d6281488ae876ded766165b60e60e11df36d8f7b0408fe2a0053c. TwoPNG/PDF viewed,all128questionpages synced;localport8781 HTTP200,serverPID64963. Complete profiles must not be rerun. See `docs/revision-output-profile-results-20260923.zh-CN.md` for measured findings and `docs/revision-next-functional-plan-20260923.zh-CN.md` for priorities.
+
+New findings: historicalMATH local8-shared64 KLmean1.25183 butmedian0.000118;largest4questions account84.6% ofpositivegap. GSM64mean1.36325,median.39082,73.4%positive,largest7 account59.7%;notonlyfewoutliers. After16referencepositions deltaNLL MATH−.000073 CIcross0,GSM+.004460[.001572,.006993]. Firstreferenceposition isresponse17,After16response33onward. Same8coords localbeats shared inlaterreferenceNLL onbothsets. Width16minus1local8 fullNLL+.008469MATH,+.046263GSM;positioncountanderrorenergybothchange. Validationexamples largeKLfrom' power',' aaa',sequenceindex'2',LaTex/punctuation;mustnotlabelallKLchangesreasoning. Characterclasses descriptive, signedKL notcausalcontribution. Newfunctionalcase hypothesis limitednotation/sequencebinding,NOTimplementedorconfirmed;capabilitycheck+fixedgoal/non-target+independenttestneeded. Existingprofilequestions onlydiscovery/descriptive,notnewconfirmatorysamples.
+
+Collection lastchecked20:22UTC:704/1319Llama test,27.32GiB;~8.0s/sample includingtransfer;GPUcollector444718 healthy17GiB/40GiB. Qwen1319alreadycomplete. Fairfollower445332 remainswaiting_collection; do not claimactualFA/MFAreplacementstarted. Estimatedremainingcollection~1.4hbaseplusaudit/variation;fair38smoke+2432+audits/report~30–60min provisional. NoGPUjobsadded. Originalfrozenfactors/evalscientificsourcesunchanged.
+
+User authorizeddailyGitcheckpoints. Existingheartbeat hss-token keeps30minresearchmonitor;21:00America/New_York firsteligiblecheck savescompletedvalidatedchangesonceperlocaldate,ledgerautomationdir/daily-git-checkpoint.json;noemptycommits/unrelatedWIP/data/weights/secrets. ConfirmedauthorandcommitterXiangLi/121291188+xiangli-damien@users.noreply.github.com. Importantfixesstillimmediatecommit. Do notcreateasecondheartbeat:thisthreadsupportsone;dailycheckiscombinedwithmonitor. Noautomerge/forcepush/historyrewrite.
+
 ## 2026-09-23 19:50 UTC — fair decoders and audits implemented; automatic follower waiting for collection
 
 Llama GSM8K collector remains healthy: **448/1319 published**,14shards,17.59GiB at19:47; nextshard running. PID444718 uses~17,004MiB of40,960MiB; SSD125GiB free. Qwen1319 already audited/reused. OpenActv2queuePID444653 still ownsGPU; no restarts or source changes to it.
