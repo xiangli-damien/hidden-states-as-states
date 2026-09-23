@@ -1,7 +1,7 @@
 """Independently validate every saved task, output, and train-only diagnostic count."""
 import argparse
-import hashlib
 import json
+import re
 from pathlib import Path
 
 from transformers import AutoTokenizer, GenerationConfig
@@ -57,12 +57,29 @@ def run(root):
             'parse_failures':sum(r['output']['parse_failed'] for r in unique.values()),
             'meets_training_capability_threshold':correct/n>=.9})
     assert summary==json.loads((root/'summary.json').read_text())
+    formatting=[]
+    for group,unique in sorted(groups.items()):
+        counts={'group':group,'unique_prompts':len(unique),'bare_integer':0,'wrapped_pair':0,
+            'recognized_numeric_answer':0,'numeric_answer_correct':0,'budget_exhausted':0}
+        for r in unique.values():
+            text=r['output']['text'].strip();integer=re.fullmatch(r'[0-9]+',text)
+            pair=re.fullmatch(r'\(?\s*([0-9]+)\s*\|\s*(red|blue)\s*\)?',text)
+            if integer:counts['bare_integer']+=1
+            if pair and text.startswith('('):counts['wrapped_pair']+=1
+            value=int(text) if integer else int(pair[1]) if pair else None
+            if value is not None:
+                counts['recognized_numeric_answer']+=1
+                counts['numeric_answer_correct']+=value==r['task']['gold_digit']
+            counts['budget_exhausted']+=r['output']['generated_ids'][-1] not in eos
+        formatting.append(counts)
     result={'conditions':360,'groups':summary,'plan_sha256':sha(root/'plan.json'),
         'task_definitions_train_split_tokenization_decode_gold_EOS_summary_verified':True,
         'audit_code_sha256':sha(Path(__file__)),
         'interpretation':'Train-only capability diagnosis. Passing a group does not validate a held-out task or establish a causal variable.'}
     write_json(root/'audit.json',result);write_json(root/'audit_input_hashes.json',hashes)
     write_json(root/'errors.json',errors)
+    write_json(root/'formatting_diagnostic.json',{'scope':'Post-hoc error taxonomy only; exact digit/tag capability gate unchanged. Bare integers and parenthesized pairs are inspected, expressions are not interpreted.',
+        'groups':formatting})
     print(json.dumps(result,indent=2))
 
 
