@@ -65,6 +65,5 @@ def run(root,smoke=False):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',required=True,type=Path);p.add_argument('--smoke',action='store_true');a=p.parse_args()
-    from threadpoolctl import threadpool_limits
     torch.set_num_threads(4)
-    with threadpool_limits(limits=4):run(a.root,a.smoke)
+    run(a.root,a.smoke)
