@@ -22,6 +22,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, log_loss, brier_score_loss
 from sklearn.mixture import GaussianMixture
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 from threadpoolctl import threadpool_limits
 
 from revision_common import (config, digest, freeze, provenance, sha, write_json,
@@ -67,14 +68,14 @@ def basis(x, rank, center, seed=42):
     return out
 
 
-def prediction(frame, x, codes, centers):
+def prediction(frame, x, codes, centers, confidence):
     """Exploratory question labels: state-only NB and independently regularized LR.
 
     This is not a causal criterion and not an online confidence claim. Historical
     MATH test labels were explored before this study, explicitly noted in report.
     """
     train = frame.split.eq('train').to_numpy()
-    val = frame.split.eq('val').to_numpy()
+    val = frame.split.eq('validation').to_numpy()
     test = frame.split.eq('test').to_numpy()
     y = 1-frame.label.to_numpy(int)  # source correctness=1; prediction failure=1
     if len(np.unique(y[train])) != 2 or not val.any() or not test.any():
@@ -96,6 +97,23 @@ def prediction(frame, x, codes, centers):
         pred = model.predict_proba(standardized)[:, 1]
         candidates.append((log_loss(y[val], pred[val]), c, pred, model))
     _, c, results['linear_probe'], selected = min(candidates, key=lambda v: v[0])
+    numeric=np.column_stack([np.log1p(frame.n_prompt_tokens.to_numpy(float)),
+        np.linalg.norm(x,axis=1),confidence.next_token_entropy.to_numpy(float),
+        confidence.next_token_logit_margin.to_numpy(float)])
+    control_scaler=StandardScaler().fit(numeric[train])
+    categorical=frame[['category','level']].fillna('unknown').astype(str)
+    encoder=OneHotEncoder(handle_unknown='ignore',sparse_output=False).fit(categorical[train])
+    nuisance=np.column_stack([control_scaler.transform(numeric),encoder.transform(categorical)])
+    state=np.eye(len(centers),dtype=np.float32)[codes]
+    for name,features in [('nuisance',nuisance),('nuisance_plus_state',np.column_stack([nuisance,state]))]:
+        trials=[]
+        for strength in (.001,.01,.1,1):
+            clf=LogisticRegression(C=strength,max_iter=2000,tol=1e-5).fit(features[train],y[train])
+            if clf.n_iter_.max()>=2000:
+                raise RuntimeError('Nuisance readout did not converge')
+            score=clf.predict_proba(features)[:,1]
+            trials.append((log_loss(y[val],score[val]),strength,score))
+        _,_,results[name]=min(trials,key=lambda v:v[0])
     report, out = {}, {'sample_id': frame.sample_id.to_numpy(), 'split': frame.split.to_numpy(), 'failure': y}
     for name, p in results.items():
         out[name] = p
@@ -103,6 +121,7 @@ def prediction(frame, x, codes, centers):
                        'test_log_loss': float(log_loss(y[test], p[test])),
                        'test_brier': float(brier_score_loss(y[test], p[test]))}
     report['linear_probe']['selected_C'] = c
+    report['nuisance_definition']='train-fit category, difficulty, log prompt length, representation norm, current next-token entropy and margin; no future answer length'
     readout = {'nb_likelihood': likelihood, 'nb_prior': prior,
                'scaler_mean': scaler.mean_, 'scaler_scale': scaler.scale_,
                'linear_coef': selected.coef_, 'linear_intercept': selected.intercept_}
@@ -124,12 +143,15 @@ def _fit_one(cfg, prefix, layer, view):
         return json.loads((dest/'summary.json').read_text())
     frame, x = read_view(cfg, prefix, layer, view)
     train = frame.split.eq('train').to_numpy()
-    val = frame.split.eq('val').to_numpy()
+    val = frame.split.eq('validation').to_numpy()
     test = frame.split.eq('test').to_numpy()
     tokens = x.ndim == 3
     # Equal fitting contribution per question (four fixed positions), whereas
     # reconstruction below evaluates ALL 16 actual held-out token vectors.
     xf = x[train][:, [0, 5, 10, 15]].reshape(-1, x.shape[-1]) if tokens else x[train]
+    # Raw values are unchanged. Float64 avoids cancellation in variance updates
+    # on Qwen's large shared coordinates; this is numerical precision, not scaling.
+    xf = xf.astype(np.float64)
     if len(xf) < 100 or not test.any():
         raise ValueError('Insufficient fixed-split data')
     trials, best = [], None
@@ -154,7 +176,7 @@ def _fit_one(cfg, prefix, layer, view):
                     first_iterations = model.n_iter_
                     if not model.converged_:
                         model.set_params(max_iter=600, warm_start=True).fit(xf)
-                posterior = model.predict_proba(xf)
+                posterior = model.predict_proba(xf).astype(np.float64)
                 entropy = float(-(posterior*np.log(np.maximum(posterior, 1e-300))).sum())
                 bic = float(model.bic(xf))
                 row = {'k': k, 'seed': seed, 'bic': bic, 'entropy': entropy, 'icl': bic+2*entropy,
@@ -220,7 +242,8 @@ def _fit_one(cfg, prefix, layer, view):
               'test_scope': 'exploratory reused MATH test; question-level pointwise bootstrap',
               'tokens_per_question_fit': 4 if tokens else 1}
     if not tokens:
-        report, predictions, readout = prediction(frame, x, codes, decoder['centers'])
+        confidence=pd.read_parquet(Path(cfg['output'])/'confidence'/f'prefix_{prefix}.parquet').set_index('sample_id').loc[frame.sample_id]
+        report, predictions, readout = prediction(frame, x, codes, decoder['centers'],confidence)
         result['prediction'] = report
         predictions.to_parquet(dest/'prediction_per_question.parquet',index=False)
         write_npz(dest/'readout.npz', **readout)
@@ -265,6 +288,8 @@ def run(cfg):
     root = Path(cfg['output'])
     if not (root/'prefixes/_SUCCESS.json').exists():
         raise ValueError('Extraction must complete and audit before fitting')
+    if not (root/'confidence/_SUCCESS.json').exists():
+        raise ValueError('Current-prefix confidence controls must be computed before fitting')
     freeze(root/'geometry_plan.json',provenance(cfg,[Path(__file__),Path(__file__).with_name('revision_common.py'),root/'prefixes/plan.json']))
     jobs=[]
     # Actual-token decoders first so functional GPU work can start without waiting
