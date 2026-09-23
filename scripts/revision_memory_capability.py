@@ -11,7 +11,16 @@ from extract_revision_prefixes import load_model
 from revision_common import provenance,freeze,write_json,status,sha
 from revision_counterfactual_gate import memory_split,generate,BUFFER
 
-ROOT=Path('/lambda/nfs/dami/hss/revision-memory-capability-20260923')
+ROOT=Path('/lambda/nfs/dami/hss/revision-memory-capability-20260923-v2')
+
+
+def encode_task(tokenizer,text):
+    rendered=tokenizer.apply_chat_template([{'role':'system','content':'You are a helpful assistant.'},
+        {'role':'user','content':text}],tokenize=False,add_generation_prompt=True)
+    ids=tokenizer(rendered,add_special_tokens=False).input_ids
+    if not ids or not all(isinstance(value,int) for value in ids):
+        raise TypeError('Expected a nonempty flat token-ID list')
+    return ids
 
 
 def tasks():
@@ -51,15 +60,15 @@ def run():
     cfg={'model':'Qwen/Qwen2-7B-Instruct','revision':'f2826a00ceef68f0f2b946d945ecc0477ce4450c',
          'do_sample':False,'repetition_penalty':1.0,'max_new_tokens':16,'tasks':tasks(),
          'scope':'Capability diagnosis only. Composed prompts use train pairs only; no held-out claims, no intervention or codebook fit.',
-         'search_budget':'Exactly two predeclared composed-task wordings; no adaptive expansion.'}
+         'search_budget':'Exactly two predeclared composed-task wordings; no adaptive expansion.',
+         'protocol_version':'v2 fixes Transformers5 chat-template return type before any outcomes; old failed plan/log preserved.'}
     freeze(ROOT/'plan.json',provenance(cfg,[Path(__file__),Path(__file__).with_name('revision_counterfactual_gate.py'),
                                            Path(__file__).with_name('extract_revision_prefixes.py')]))
     model,tokenizer=load_model(cfg);records=[]
     for task in cfg['tasks']:
         path=ROOT/'samples'/(task['id']+'.json')
         if path.exists():records.append(json.loads(path.read_text()));continue
-        ids=tokenizer.apply_chat_template([{'role':'system','content':'You are a helpful assistant.'},
-            {'role':'user','content':task['text']}],tokenize=True,add_generation_prompt=True)
+        ids=encode_task(tokenizer,task['text'])
         out=generate(model,tokenizer,ids,repetition_penalty=1.0)
         record={'task':task,'input_ids':ids,'output':out,
                 'correct':out['digit']==task['gold_digit'] and out['tag']==task['gold_tag']}
