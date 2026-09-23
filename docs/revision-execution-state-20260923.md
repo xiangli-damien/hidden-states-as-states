@@ -1,5 +1,13 @@
 # Revision experiment execution state
 
+## 2026-09-23 22:02 UTC — both full GSM8K collections audited; fair replacement running
+
+Both requested models now have the full official GSM8K main/test 1,319 questions, independently rescored and all tensor files rehashed. Qwen2 has 1,134 correct (85.97%), 53.14 GiB; Llama3-8B has 1,083 correct (82.11%), 51.83 GiB. Two Qwen answers reached the generation limit; all Llama answers ended with EOS. Data are on dami, not downloaded as full tensors to the laptop. The unified manifest completed at21:54:33UTC, SHA **28c06134981c81ec8c70021af61f0f41df92416d00b81380220d2a86c8cd820d**. See `docs/gsm8k-test-collection-complete-20260923.zh-CN.md` for exact paths, versions and audit scope. Collection is complete; do not restart it.
+
+The existing fair FA/MFA follower445332 advanced automatically. Real 7B smoke38/38 completed and its independent raw audit passed (actual bf16 patches recomputed, largest energy arithmetic error8.21e-8). Full functional child447119 is running:1,349/2,432 conditions at~22:02UTC,330.0seconds so far,15,498MiB VRAM. No final scientific comparison yet; wait for full raw and statistics audits. Existing notation follower446507 still waits for fair comparison completion, and must not be duplicated or bypassed.
+
+Daily Git policy remains the first heartbeat after21:00 America/New_York, once per local date, using the user's author/committer identity. It is not due at this18:02EDT check. Completed development and audit documents can still be committed immediately. No source files used by either running scientific job changed in this update.
+
 ## 2026-09-23 21:18 UTC — healthy collection; one bounded interchange follower prepared
 
 Llama GSM8K is still collecting normally: **1088/1319 published**,42.51GiB,most recent publication21:14:59UTC. GPU PID444718 remains the only compute process,17,004MiB/40GiB. SSD124GiB free. Fair FA/MFA follower445332 still `waiting_collection`; no functional result yet. Local time is17:18EDT, so the daily21:00 Git check is not due. Routine monitoring stayed quiet; development commits still used the required source deployment workflow.
