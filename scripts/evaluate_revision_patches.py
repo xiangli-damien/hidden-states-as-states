@@ -42,7 +42,13 @@ def replacement(decoder,method,seed):
         if method=='identity':
             return h
         x=h.float().cpu().numpy()
-        if method.startswith('beta_'):
+        if method=='position_mean':
+            # All interventions use nested tails of the same 16-token window.
+            # Fit by relative slot on training questions, never on held-out h.
+            z=decoder['position_means'][-len(x):].copy()
+            if z.shape!=x.shape:
+                raise ValueError('Position-mean control does not cover selected slots')
+        elif method.startswith('beta_'):
             beta=float(method.split('_')[1]);z=(1-beta)*reconstruct(x,decoder,'centroid')+beta*x
         elif method in ('matched_random','centroid_energy1','matched_random_energy1'):
             delta=reconstruct(x,decoder,'centroid')-x
@@ -114,12 +120,13 @@ def run(cfg,phase):
     frame,tokens=load_questions(cfg);indexed=frame.set_index('sample_id')
     n=cfg['functional_pilot_per_split'] if phase=='functional' else 12
     ids=choose_questions(frame,n)
-    methods=(['identity','zero','mean','centroid','kmeans_centroid','local_pca_8','empirical_pca_8','global_pca_8',
+    methods=(['identity','zero','mean','position_mean','centroid','kmeans_centroid','local_pca_8','empirical_pca_8','global_pca_8',
               'beta_0.25','beta_0.5','beta_0.75','matched_random','centroid_energy1','matched_random_energy1']
-             if phase=='functional' else ['identity','centroid','local_pca_8','empirical_pca_8','matched_random','centroid_energy1'])
+             if phase=='functional' else ['identity','position_mean','centroid','local_pca_8','empirical_pca_8','matched_random','centroid_energy1'])
     layers=cfg['functional_layers'] if phase=='functional' else [14]
     prefixes=cfg['functional_prefixes']
     files=[Path(__file__),Path(__file__).with_name('revision_common.py'),root/'prefixes/plan.json']
+    controls=Path(cfg['intervention_token_controls'])
     decoder_paths=[]
     for prefix in prefixes:
         for layer in layers:
@@ -141,11 +148,17 @@ def run(cfg,phase):
                 if summary['tokens_per_question_fit']!=cfg.get('intervention_positions_per_question',4):
                     raise ValueError('Wrong token fit coverage for intervention')
                 files.extend([path,path.parent/'_SUCCESS.json',path.parent/'summary.json']);decoder_paths.append(str(path))
+                control=controls/path.parent.name/'decoder.npz'
+                control_receipt=json.loads((control.parent/'_SUCCESS.json').read_text())
+                if sha(control)!=control_receipt['decoder_sha256']:
+                    raise ValueError('Position-control decoder checksum mismatch')
+                files.extend([control,control.parent/'_SUCCESS.json',controls/'plan.json'])
     plan=provenance(cfg,files)
     plan.update(phase=phase,sample_ids=ids,methods=methods,layers=layers,
                 observation='pilot; historical MATH test has been explored',
                 positions='nested real-token windows; question-tail separate from chat-tail',
                 scope='single-layer intervention; all unpatched positions remain available')
+    plan['position_mean_control']='train-only 16 relative slot means; separate from GMM and train grand mean'
     freeze(dest/'plan.json',plan)
     model,tokenizer=load_model(cfg)
     eos=model.generation_config.eos_token_id;eos=set(eos if isinstance(eos,list) else [eos])
@@ -171,6 +184,8 @@ def run(cfg,phase):
                 for layer in layers:
                     with np.load(geometry/f'p{prefixn}_l{layer}_{role}'/'decoder.npz') as d:
                         decoder={k:d[k].copy() for k in d.files}
+                    with np.load(controls/f'p{prefixn}_l{layer}_{role}'/'decoder.npz') as d:
+                        decoder['position_means']=d['position_means'].copy()
                     baseline=None
                     for width in cfg['functional_widths']:
                         positions=eligible[-width:]

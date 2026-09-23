@@ -92,6 +92,7 @@ def run(cfg):
            'GMM primary assignment is nearest centroid. Key local_pca means residual SVD about the FIXED GMM mean; empirical_pca is true local PCA about the train-assigned empirical mean in the v2 decoder. Neither is MFA.',
            'Across-prefix AUROC comparisons must use the common-question table; samples that terminate before a prefix are unavailable, not padded or repeated.',
            'Single-layer patch leaves other layers, positions and prompt context available. This does not establish full-model compression.',
+           'Position-mean control uses 16 train-only relative-window-slot centers, distinct from the grand mean. Included before any GPU patch outcomes after a template-confound audit.',
            'All confidence intervals are pointwise question-level bootstrap. No multiple-comparison correction or confirmatory selection is implied.',
            'Selective steering, controlled counterfactuals and frozen-map GSM8K transfer evaluation are pending separate stages. Collection is not a transfer result.']
     parts=['<!doctype html><html lang="zh"><meta charset="utf-8"><title>HSS revision foundations</title>',

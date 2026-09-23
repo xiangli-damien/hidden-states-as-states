@@ -110,6 +110,20 @@ def test_window_energy_control_and_beta_endpoints():
     assert not replacement(decoder,'beta_0',42)(x).any()
 
 
+def test_position_control_uses_training_slot_means_for_nested_windows():
+    torch=pytest.importorskip('torch')
+    pytest.importorskip('transformers')
+    from evaluate_revision_patches import replacement
+    slots=np.arange(32,dtype=np.float32).reshape(16,2)
+    decoder={'position_means':slots}
+    for width in (1,4,16):
+        x=torch.full((width,2),999.)
+        recovered=replacement(decoder,'position_mean',42)(x)
+        np.testing.assert_array_equal(recovered.numpy(),slots[-width:])
+    with pytest.raises(ValueError,match='cover'):
+        replacement(decoder,'position_mean',42)(torch.zeros(17,2))
+
+
 def test_full_small_geometry_stage_with_actual_split_names(tmp_path):
     pytest.importorskip('sklearn')
     import pandas as pd
