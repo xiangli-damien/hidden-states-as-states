@@ -2,10 +2,13 @@
 
 ## 当前任务顺序
 
-1. GSM8K Llama test 1,319 条继续采集，健康作业不重启。Qwen test 全量已完成、已审计。
-2. 已部署的公平 FA/MFA 队列等待采集审计通过、GPU 释放，自动执行 2 题 38 条件 smoke、审计、128 题 2,432 条件、审计、报告和独立统计核对。固定 rank8 主比较，rank4/16 辅助，不扩大搜索。
-3. **现在并行进行 CPU 输出差异分析**，直接使用已完成 MATH/GSM64 locality 的 logits 和逐参考 token 损失，不占 GPU。配置 `configs/revision_output_profile_20260923.json`；新结果根 `/lambda/nfs/dami/hss/revision-output-profile-20260923`。
-4. 从差异画像提出一个有明确反事实目标的功能候选，再冻结独立测试协议。不能先用测试结果选案例，再把同一批结果叫确认实验。
+截至2026-09-23 22:34UTC：
+
+1. GSM8K Qwen/Llama test各1,319题均采集和审计完成，不重跑。
+2. 公平FA/MFA的128题2,432条件及独立统计核对完成，见`revision-fair-factors-results-20260923.zh-CN.md`。
+3. CPU输出差异画像已完成并交付，以下保留原固定范围，不重新运行。
+4. 已冻结的记号交换候选完成validation能力检查：free26/32，prefixed32/32，eligible11/16，未过门槛；不运行test、不修改阈值，见`revision-index-interchange-results-20260923.zh-CN.md`。
+5. 下一项为[同题多生成协议](revision-sameprompt-plan-20260923.zh-CN.md)：224题、4次采样，训练/调参/阈值校准/测试按题隔离，主问题是mean在prompt/current/entropy控制之上的题内增量。CPU准备实现已写，真实生成及读出队列尚未实现或启动。
 
 ## 输出差异画像的固定范围
 
@@ -29,7 +32,7 @@
 
 冻结 recipient/donor 配对规则、目标变量、非目标内容、位置窗口、唯一主指标、样本数和判分器，再用独立题测试。至少比较原 recipient、完整 donor 激活替换、局部坐标交换、相同坐标预算共享方向交换；保留参数预算差异。目标达成率、非目标保留率和整体覆盖率都报告。完整 donor 也不一定选择性成功，不能只留成功样本。
 
-此协议和真实自由生成尚待实现；当前 replacement 的教师强制 KL/NLL 不能代替它。当前不能保证新功能案例与 2,432 条件 replacement 同时完成。
+上述选择性目标原则已落实为独立的记号交换协议，但它停在能力门槛，没有执行测试干预。已完成replacement的教师强制KL/NLL仍不能代替选择性控制证据。
 
 ## 其他线
 

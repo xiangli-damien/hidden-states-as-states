@@ -1,6 +1,6 @@
 # 公平 FA/MFA 比较：执行与检查
 
-截至 2026-09-23 19:50 UTC，**参数拟合、CPU 几何与似然核验已完成；真实 7B 模型的功能比较正在等待 GSM8K 采集释放 GPU。** 这份记录不报告尚未测得的 KL/NLL 优劣。
+截至 2026-09-23 22:34 UTC，**拟合、CPU几何、真实7B模型的2,432条件功能比较及两级审计全部完成。** 功能前向514.77秒，完整结果见[结果记录](revision-fair-factors-results-20260923.zh-CN.md)和[本地报告](http://127.0.0.1:8782/report/index.html)。本轮未发现FA/MFA优于同rank局部PCA的功能保真优势。
 
 ## 固定范围
 
@@ -30,10 +30,10 @@
 - `decoders.npz`、`fitting_summary.json`、`budgets.json`：可复用参数、收敛与预算。
 - `inputs/{math,gsm8k}`：逐题原文、reference token IDs、真实capture。
 - `geometry/`：已完成CPU结果与`audit.json`；不包含功能结论。
-- `smoke/`、`functional/`：GPU释放后生成；先2题38条件冒烟与审计，再全量。
-- `report/`：完整功能审计后自动生成PNG/PDF、两个主指标、全部辅助比较、预算/似然表与128道原题页面，再独立复算统计。
+- `smoke/`、`functional/`：2题38条件冒烟和全量2,432条件均完成且审计通过。
+- `report/`：PNG/PDF、两个主指标、全部辅助比较、预算/似然表与128道原题页面均完成；独立复算285条汇总、270条配对、6条主比较通过。
 
-队列初始PID **445332**，脚本`run_revision_fair_comparison_queue.py`，当前`waiting_collection`。它先核对OpenAct v2队列两模型均完成，再核对CPU几何，确认GPU空闲后继续。真实评估器自身也有采集完成检查。每个条件都使用fresh cache、一次hook、capture精确比对，并保存实际bf16替换向量、原始logprobs和逐reference-token损失。
+队列初始PID **445332**，脚本`run_revision_fair_comparison_queue.py`，当前`complete`，不可重复启动。它核对OpenAct v2两模型均完成后按顺序执行。每个条件都使用fresh cache、一次hook、capture精确比对，并保存实际bf16替换向量、原始logprobs和逐reference-token损失。实际bf16补丁均已独立重算。
 
 检查`queue_status.json`与对应阶段日志；**不要重复启动队列或编辑它即将使用的冻结科学代码**。若冒烟失败，保留失败证据后检查；不能把部分结果包装成全量成功。
 
@@ -46,4 +46,4 @@ HSS `.venv`：拟合、CPU几何、数学/统计测试、报告；有torch/scipy
 
 OpenAct `.venv`：真实模型前向、原始执行审计、CPU小模型hook检查；有transformers，但没有threadpoolctl。队列通过进程环境变量限制BLAS线程，模型执行器不依赖threadpoolctl。
 
-全部源代码经本地测试→GitHub→Lambda fetch/ff-only。普通采集继续独占当前A100；本轮未启动第二个GPU模型。功能保真完成后，才按原计划推进同prompt多次采样、能力门槛后的明确目标交换与跨层分析。
+全部源代码经本地测试→GitHub→Lambda fetch/ff-only。GSM8K采集和本轮功能比较均已释放GPU。后续记号交换在能力门槛未通过后按协议停止，未运行test或真实干预。下一条独立应用线见同prompt多次采样协议，不重跑已完成拟合。
