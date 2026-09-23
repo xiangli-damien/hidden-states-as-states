@@ -28,7 +28,7 @@ def code_identity_diagnostics(codes,token_ids,train,test,k):
     joint=contingency/contingency.sum();state=joint.sum(1);slot=joint.sum(0)
     entropy=lambda p:float(-(p[p>0]*np.log2(p[p>0])).sum())
     information=entropy(state)+entropy(slot)-entropy(joint.ravel())
-    vocabulary,inverse=np.unique(token_ids[train],return_inverse=True)
+    vocabulary,inverse=np.unique(token_ids[train].ravel(),return_inverse=True)
     lexical=np.zeros((k,len(vocabulary)),np.int64)
     np.add.at(lexical,(codes[train].ravel(),inverse),1)
     fallback=int(np.bincount(inverse).argmax())
