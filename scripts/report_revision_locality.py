@@ -158,6 +158,28 @@ def save(fig,dest,name):
     plt.close(fig)
 
 
+def question_pages(root,raw,dest):
+    plan=json.loads((root/'plan.json').read_text());wanted=set(raw.sample_id);metadata={}
+    for marker in (Path(plan['config']['foundation'])/'prefixes').glob('shard_*/_SUCCESS.json'):
+        path=marker.parent/'rows.parquet';assert sha(path)==plan['files'][str(path)]
+        frame=pd.read_parquet(path)
+        metadata.update({r['sample_id']:r for r in frame.loc[frame.sample_id.isin(wanted)].to_dict('records')})
+    assert set(metadata)==wanted
+    (dest/'questions').mkdir(exist_ok=True);links=[]
+    for sid,sub in raw.groupby('sample_id',sort=True):
+        r=metadata[sid];title=f'{sid} · {r["split"]} · 原回答正确={r["label"]}'
+        parts=['<!doctype html><html lang="zh"><meta charset="utf-8"><style>body{font:15px system-ui;margin:30px;line-height:1.5}pre{white-space:pre-wrap}table{border-collapse:collapse;font-size:12px}td,th{border:1px solid #ddd;padding:5px}.scroll{overflow:auto}</style>',
+            '<p><a href="../index.html">返回总报告</a></p><h1>'+html.escape(title)+'</h1>',
+            '<p>这是原始采集的参考回答及对它的teacher-forced功能评估。没有把每个干预重新自由生成，因此下表不能作为干预后的正确率。</p>']
+        for heading,field in [('题目与指令','prompt_text'),('标准答案','ground_truth'),('原模型参考回答','response_text')]:
+            parts+=['<h2>'+heading+'</h2><pre>'+html.escape(str(r[field]))+'</pre>']
+        columns=['prefix_tokens','layer','role','width','individual_method',*METRICS]
+        parts+=['<h2>全部实际干预</h2><div class="scroll">',sub.sort_values(['prefix_tokens','layer','role','width','individual_method'])[columns].to_html(index=False),'</div></html>']
+        (dest/'questions'/f'{sid}.html').write_text('\n'.join(parts))
+        links.append(f'<li><a href="questions/{sid}.html">{html.escape(title)}</a></li>')
+    return links
+
+
 def run(root):
     protocol_path=Path(__file__).resolve().parents[1]/'configs/revision_locality_mse_match_20260923.json'
     protocol=json.loads(protocol_path.read_text())
@@ -172,7 +194,7 @@ def run(root):
         table.to_parquet(dest/f'{name}.parquet',index=False)
         if name in ['summary','paired_methods']:write_json(dest/f'{name}.json',table.to_dict('records'))
     primary=pairs.loc[pairs.primary&pairs.metric.isin(['next_token_kl','delta_nll'])].to_dict('records')
-    write_json(dest/'primary.json',primary);draw(summary,per,dest)
+    write_json(dest/'primary.json',primary);draw(summary,per,dest);question_links=question_pages(root,raw,dest)
     notes=['主比较预先固定为block14、生成16、width16、同一GMM中心local8−shared8；原0.648经验中心PCA单列桥接。',
         '新干预题排除旧64题，但历史MATH测试已探索，不是全新确认集。验证／测试分别报告，所有区间为pointwise。',
         '每个token有自己的region ID和连续坐标；模型其余上下文保留。不是整段推理8维，也不是完整模型压缩。',
@@ -191,11 +213,15 @@ def run(root):
         parts+=[f'<img src="{name}.png"><p><a href="{name}.pdf">PDF</a></p>']
     for title,table in [('全部设置',summary),('配对比较',pairs)]:
         parts+=[f'<details><summary>{title} · {len(table)}行</summary><div class="scroll">',table.to_html(index=False),'</div></details>']
+    parts+=['<details><summary>逐题原文、原回答和全部干预指标</summary><ul>',*question_links,'</ul></details>']
     parts+=['<details><summary>执行审计和bf16控制偏差</summary><pre>',html.escape(json.dumps(audit,indent=2,ensure_ascii=False)),'</pre></details></html>']
     (dest/'index.html').write_text('\n'.join(parts))
     write_json(dest/'_SUCCESS.json',{'source_audit_sha256':sha(root/'functional/audit.json'),
         'primary':primary,'conditions':len(raw),'question_averaged_conditions':len(per),
-        'report_code_sha256':sha(Path(__file__)),'files':{p.name:sha(p) for p in dest.glob('*.parquet')}})
+        'report_code_sha256':sha(Path(__file__)),
+        'dependencies_sha256':{p.name:sha(p) for p in [Path(__file__).with_name('report_revision_functional.py'),Path(__file__).with_name('revision_common.py'),Path(__file__).with_name('revision_locality_common.py')]},
+        'mse_match_plan_sha256':sha(root/'mse_match_plan.json'),
+        'files':{p.name:sha(p) for p in dest.glob('*.parquet')}})
     print(json.dumps({'conditions':len(raw),'primary':primary},indent=2))
 
 
