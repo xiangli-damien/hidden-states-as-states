@@ -1,5 +1,13 @@
 # Revision experiment execution state
 
+## 2026-09-24 07:31 UTC — audited validation complete; frozen 256-question steering test running
+
+**Continue the existing queue453932 / test455119; do not restart or add conditions.** Smoke completed with all8 identity generations exactly matching baseline; independent validation audit passed64questions/384conditions and rescored labels. Selection was frozen before test: **C1 alpha=1**, current-region local8 reconstruction, with256testquestions and6conditions each (baseline, selected C1, shared8, three fixed radial/energy random controls). The selected validation result was37/64correct versus baseline30/64:11wrong→correct and4correct→wrong. C1alpha.1 was35/64; C1alpha.3 and bothC2 candidates were30/64. These are selection-set results, not confirmed test benefits. C2 changed13/64questions and did not improve validation accuracy.
+
+Latest healthy monitor: **224/1536 test conditions**, one GPU process using15,266MiB, SSD125.17GiB free, OMP/OpenBLAS/MKL4threads.170frozen source/input SHA checks passed. Timing-only extrapolation about5.27hours of generation remains; allow length variation plus final audit/report. The selection and test start were already reported to the user at06:59UTC; do not re-notify those old results or routine increments. Test outcomes were not analyzed during monitoring. Preserve256questions and all controls regardless of partial outcomes.
+
+`monitor_latest.json` is current. A/B/D remain delivered and must not be rerun. On completion follow the existing automatic test→audit→summary→statistics audit→report pipeline, then perform actual PNG/renderedPDF/original-page/link/HTTP review and record final delivery. Until then C is running, not delivered. The48hour deadline remains2026-09-26 05:10:20UTC, with6hours reserved for audit; the22hour validation decision gate was already met. The daily Git check for2026-09-24 is not due before21:00America/New_York.
+
 ## 2026-09-24 05:16 UTC — A/B/D delivered; real steering smoke still running
 
 CPU companion453933 is complete:126.64s analysis plus independent audit/report. **Report http://127.0.0.1:8785/report_abd/index.html, server42024**, PNG/renderedPDF/4links/HTTPverified; root`delivery_abd.json`records **A/B/D ONLY**, C remainsrunning. ReportreceiptSHAea32fbad9f825bb16e06a6b3e17b715389b7f8ab25d12275828978367605213f;cachedauditSHAcb578ab21793e2040cc94d0553a3e47abae58cf437f09bb2782b3bf7db70cc5e. Read`docs/revision-completion-initial-results-20260924.zh-CN.md`. Do not repeat this CPU pipeline.
