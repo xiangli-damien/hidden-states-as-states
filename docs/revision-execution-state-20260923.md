@@ -1,5 +1,11 @@
 # Revision experiment execution state
 
+## 2026-09-24 — prompt-last replacement complete
+
+Read **docs/promptlast-replacement-results-20260924.zh-CN.md**. Root **/lambda/nfs/dami/hss/promptlast-replacement-20260924**, queue471570 complete768/768 with independent raw audit and132statistical checks; real functional155.06s,totalqueue300.40s. Frozen source480415c,planSHA9f0d3728ed6ee32b4e10ccb8c95078db7ffae9a98b8dd931c0d158d77ae601db. Report **http://127.0.0.1:8790/report/index.html**. No pending GPU experiment; original tokenmean/primary/v2 remaincomplete.
+
+GSM64 local8 KL.03395 versus shared8 .15280,paired−.11885CI[−.14939,−.08988]. Whole-referenceNLL local−shared+.000298CI[−.000342,.000885],no reliable improvement; later-referenceNLL+.000584CI[.000251,.000942],slightlyhigher. GeometricNMSElocal.1966/shared.4101. GSM59/64inonecluster8,only1/64inside sourcevalidationq95distance;MATH32uses20clusters. Thus local axes help first-token fidelity,not a confirmed general multi-region functional map or accuracy improvement. One prompt position only;otherpromptvectorsretained. DonotcomparetheseKLs directlywith16-generation-tokenpatches. No sentence-mean or new generation job authorized by this completedprotocol. Awaituserdirection;dailyGitpolicyremains.
+
 ## 2026-09-24 — newly authorized prompt-last replacement
 
 User asked to try the frozen prompt-last map. New bounded protocol **docs/promptlast-replacement-20260924.zh-CN.md**, config **configs/promptlast_replacement_20260924.json**, root **/lambda/nfs/dami/hss/promptlast-replacement-20260924**. Original Qwen block14 prompt-last K32 min-ICL map and local axes frozen; source3011 training questions. Same-center shared8 newly fit only on these source training residuals. Eight conditions × historical MATH32/previous GSM64 =768 forward records; only final chat-prompt position is replaced once. First-token KL, geometric error and whole/early/later original-reference NLL; no new free generation or accuracy labels. Source/GPU smoke tests precede full run, then independent raw/statistical audit and delivery. Read actualqueue_status.json rather than infer launch from this record. Previous studies remain complete and unchanged; do not restart their queues.
