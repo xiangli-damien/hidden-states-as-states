@@ -1,0 +1,23 @@
+{
+  "output": "/lambda/nfs/dami/hss/tokenmean-replacement-20260924",
+  "mean_source": "/lambda/nfs/dami/hss/qwen-math-ablation-20260918",
+  "mean_cache": "/home/ubuntu/hss-cache/data/473f2199a8742bdf18996361",
+  "foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "locality": "/lambda/nfs/dami/hss/revision-locality-20260923",
+  "gsm": "/lambda/nfs/dami/hss/revision-locality-confirmation-20260923",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "layer": 14,
+  "prefix_tokens": 16,
+  "window": 16,
+  "mean_icl_tolerance": 0.02,
+  "expected_mean_k": 33,
+  "rank": 8,
+  "seeds": [42, 137, 271],
+  "bootstrap": 2000,
+  "bootstrap_seed": 924241,
+  "threads": 4,
+  "primary": "GSM64 mean_shift_local8 minus mean_shift_shared8: paired next-token KL and whole original-reference mean NLL. Both metrics, pointwise question bootstrap. This preserves centered token residuals, not eight-coordinate compression.",
+  "secondary": "Prefix-mean posterior selects one common region, then each token is projected. Compare local/shared/wrong bases and frozen original per-token K64 decoder. Identity and rank0 under both operators. No future mean enters interventions.",
+  "scope": "Reuse exact previous MATH historical-test32 and GSM64 functional questions: exploratory method comparison, not a new independent confirmation. Mean GMM fit all5000 MATH without labels; MATH is transductive. Local/shared mean bases fit only3011 designated MATH training means; no target fitting. K33 versus token K64 and assignment rules differ, so map comparisons are protocol-level, not isolated pooling effects. No normalization, new GMM fitting, parameter search or free-generation accuracy claim."
+}
