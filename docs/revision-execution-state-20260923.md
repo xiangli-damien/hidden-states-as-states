@@ -1,5 +1,15 @@
 # Revision experiment execution state
 
+## 2026-09-24 16:29 UTC — changed-answer reading and partial-review scoring diagnostic complete
+
+Read **docs/projection-first-v2/scoring-reviewed-sensitivity-20260924.zh-CN.md**. Automaticv2 all2336/30comparisons and independentstatsaudit complete. All128new exactfullanswers actually read with method/labels hidden; notes sealed before v2 aggregate/key reveal, SHAe70765f97d5b69117edcefe4074f33a4b962bbd339e361de8e12e59ccbfa70ef. Earlier aggregates known; not independenthumanreview. All186v2changedlabels have new or exactreused readings. v2 still disagrees with10source records (9old+1new), preserved in diagnostic.
+
+New **scoring_reviewed_sensitivity_v2/** applies all known exacttext judgments uniformly across ALLconditions, otherwise automaticv2.359uniqueanswers/438sourcerecords read;1898source records remain unreviewed. SummarySHA43464782a738d8e7fb21cc271aea73c8bd4b0d4865e9e0e25afedfe9dc0e1837. Independent provenance/uniformjoin/four-version/30-comparison audit passed. Tests cover exactreuse/conflictingverdicts/missingnotes/tamperedtext. Report http://127.0.0.1:8787/scoring_reviewed_sensitivity_v2/index.html, browser24 screenshot viewed; delivery_scoring_reviewed_v2.json holds link/HTTP/hash verification.
+
+Partial-AI-review MATHprimary baseline154/local8151 of256;delta−1.171875pp CI[−5.859375,3.125],15repairs18damages. Originalvalidation35→43 of64 remains selectiondata,notconfirmation. GSMfrozentransferbaseline63/local862 of64,delta−1.5625pp CI[−4.6875,0];shared/wronglocal also62. Allthese are posthoc partialreview sensitivity,notfullhumanaccuracy. Frozenoriginalscores/configs/selection unchanged; noindependentsteeringbenefit established. Final-answercorrect does notmeanreasoningvalid.
+
+BothGPUqueuescomplete, noGPUworker,SSD~125GiB. No rank0 or extraGPUjob started; prioroptional rank0scopequestion remains unanswered. The bounded changed-answer scoring audit is now complete; do not repeatedly rebuild scores, restart completedqueues, launch rank0, or turn this into an unbounded scorer-tuning loop. Full2336semanticgoldreview was NOT achieved; report that limit. Await user scientific direction; keep existing dailyGit policy21EDT (notdue at12:29EDT). Importantcompletedsource/docs follow local→GitHub→Lambdauff-only; artifacts rsync separately.
+
 ## 2026-09-24 15:19 heartbeat — full automatic sensitivity v1 computed, not accepted as clean scoring
 
 Read **docs/projection-first-v2/scoring-sensitivity-v1.zh-CN.md**. CPU-only full2336/all-condition sensitivity and independent30-comparison statistics audit ran successfully in separate **scoring_sensitivity_v1/**. All original generation/source/labels/selection remain unchanged. Source cd033e3,18remote tests passed;local16passed/2SymPy skips executed remotely. SummarySHA8cd800cca85e1153b93cb3b1a42e86c1434d76af3325f2ec7f200107a4a14f0e.153labels changed,138false→true/15true→false,476flagged records. These are automatic diagnostics, not verified semantic corrections.
