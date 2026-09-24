@@ -1,0 +1,14 @@
+{
+  "source": "/lambda/nfs/dami/hss/qwen-math-ablation-20260918",
+  "mfa_source": "/lambda/nfs/dami/hss/qwen-math-mfa-24h-20260920",
+  "cache": "/home/ubuntu/hss-cache/data",
+  "output": "/lambda/nfs/dami/hss/qwen-math-layer-distribution-20260924",
+  "seed": 9242026,
+  "threads": 2,
+  "pair_samples": 12000,
+  "silhouette_samples": 1024,
+  "gaussian_radius_repeats": 3,
+  "subsample_size": 512,
+  "subsample_repeats": 5,
+  "delta_icl_per_dimension_budgets": [0.005, 0.01, 0.02, 0.05, 0.1]
+}
