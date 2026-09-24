@@ -1,6 +1,6 @@
 # Hidden States as States
 
-Layer-wise state maps, Mixture of Factor Analyzers (MFA), and reproducible experiment grids over **OpenAct** activations. Analysis does not load language-model weights or run generation.
+Layer-wise state maps, Mixture of Factor Analyzers (MFA), and reproducible experiment grids over **OpenAct** activations. Core clustering and saved-result analysis do not load language-model weights. Separate, explicitly launched research scripts run model readouts and activation-replacement experiments.
 
 ## Start here
 
@@ -72,7 +72,18 @@ uv run hss suite /lambda/nfs/dami/hss/studies/paper/suite.json --only default_ma
 
 The suite covers geometry, seed/subsample/K-range reliability, fixed-K center comparisons, cross-model/dataset profiles, before-generation prediction, sentence monitoring, characterization, construction controls, and MFA/RMS extensions. Dataset locations are explicit editable configs. Generating a suite does not start experiments or collect missing data.
 
-**A runnable protocol is not evidence that every reported paper number has been reproduced.** Full data collection is ongoing. The supplied manuscript and user-selected dataset sizes differ, safety benchmarks differ from the existing collection, and output-only prefix baselines need additional metrics. See the [reproduction contract](docs/reproduction.md).
+**A runnable protocol is not evidence that every reported paper number has been reproduced.** Data and metric coverage vary by study; the supplied manuscript and user-selected dataset sizes and safety benchmarks differ. Consult the dated [execution state](docs/revision-execution-state-20260923.md) for completed work and the [reproduction contract](docs/reproduction.md) for protocol differences.
+
+### Research studies and evidence
+
+The `scripts/` and `configs/` directories also contain separately versioned studies of cluster geometry, state routes, token/layer changes, reconstruction, cross-dataset transfer and activation replacement. They preserve source hashes, frozen selections, original outputs and independent statistical audits. Dated plans are historical protocols, not instructions to restart completed runs.
+
+- [Research execution plan and experiment boundaries](docs/revision-execution-plan-20260923.zh-CN.md)
+- [FA/MFA versus PCA replacement: measured output fidelity](docs/revision-fair-factors-results-20260923.zh-CN.md)
+- [Completed full GSM8K test collections](docs/gsm8k-test-collection-complete-20260923.zh-CN.md)
+- [Steering confirmation and scoring sensitivity](docs/projection-first-v2/scoring-reviewed-sensitivity-20260924.zh-CN.md)
+
+Reconstruction fidelity, answer correctness and causal interpretation are separate endpoints. The current independent steering test has not established a net correctness benefit; partial AI answer review is not full human adjudication. Raw activations, model weights and full answer/report artifacts remain outside Git. The source archive includes study scripts/configurations and the wheel includes the report templates.
 
 ## Organization
 

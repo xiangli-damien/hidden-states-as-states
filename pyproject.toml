@@ -42,6 +42,9 @@ package-dir = {"" = "src", "experiments" = "experiments", "hss_workbench" = "hss
 where = ["src", "."]
 include = ["hss*", "experiments*", "hss_workbench*"]
 
+[tool.setuptools.package-data]
+hss = ["reporting/templates/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
