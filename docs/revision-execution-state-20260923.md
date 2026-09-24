@@ -1,5 +1,13 @@
 # Revision experiment execution state
 
+## 2026-09-24 13:53 UTC — v2 all640 generated/audited; semantic completion pending
+
+Read **docs/projection-first-v2/completion-and-rank0-20260924.zh-CN.md**. Queue456206 finished all11batches, raw/statisticalaudit and report at13:53:09UTC; noGPUworker remains. Do not restart or extend the640-conditionqueue. SummarySHAb3f46f4bd02031f40ce0a3963b66dfd0daaf8fc231030249c869a3c7458637e2. Audit2336records/28comparisons/182flippairs. NewGSM64 frozenautomaticcounts baseline62/local8 61/shared8 60/wronglocal8 60;local-baseline−1.5625pp CI[−6.25,+3.125]. OriginalMATH32validation local16 16correct versus originalselectedlocal8 20;exploratory,notrankoptimum. No newconfirmedcorrectiongain.
+
+PNG/renderedPDFactuallyviewed;569reporthashes/954localreferences/567HTMLHTTPexactchecks passed. Localreport8787/report/index.html,server33023. Semanticreview remainspartial:33primary+15originalvalidationpairs previouslyread/sealedAIreview;other134pairs notfullyread. Reuse only exactcaseID/method-side matches and retainreviewprovenance. Allfrozenautomaticresults must carry known MATHanswer-extraction/matching limitations; versionedALL-condition rescoring stillpending, noselective corrections. Continuealready-authorized semanticreview/scoringwork, notexpandedGPUsearch.
+
+Latestattachment arguesforrank0same-centerdiagnostic;primaryisalreadycomplete so itsrunning-testpremiseisstale. Optionalasyncscopequestionpending:old64validationcentroidalpha1/.3,128newgenerations;fullmatchedshared8requiresanother64becauseoriginalvalidationhasnoshared8. Newdiagnosticnotstarted;separateprotocolifuserselectsit. Do not infer launch from thisproposal or silentlyalterv2plan.
+
 ## 2026-09-24 13:31 UTC — original64 validation flips fully read to explain failed confirmation
 
 User asked why small-set gains did not persist. Read **docs/projection-first-v2/validation-vs-confirmation.zh-CN.md**. All15 originalvalidation local8/baseline auto-flips actually read with methods and auto-labels masked; AI notes sealed beforekeyreveal, not independenthumanreview. **Four scoring-conflict pairs,2auto-repairs/2auto-damages**, netcancel in inspectedflips. Remainingfinal-answerchanges9repairs/2damages, versus11repairs/14damages in reviewedprimaryflips. These are selected-flip diagnostics, NOT full64/256rescoring. Earlybenefit cannot be wholly blamed onformat; selectionamong5candidates on64 and unstable repair/damagebalance remain plausible. Do not claim statisticalcauseproven or full-effectabsence.
