@@ -1,5 +1,11 @@
 # Revision experiment execution state
 
+## 2026-09-24 13:31 UTC — original64 validation flips fully read to explain failed confirmation
+
+User asked why small-set gains did not persist. Read **docs/projection-first-v2/validation-vs-confirmation.zh-CN.md**. All15 originalvalidation local8/baseline auto-flips actually read with methods and auto-labels masked; AI notes sealed beforekeyreveal, not independenthumanreview. **Four scoring-conflict pairs,2auto-repairs/2auto-damages**, netcancel in inspectedflips. Remainingfinal-answerchanges9repairs/2damages, versus11repairs/14damages in reviewedprimaryflips. These are selected-flip diagnostics, NOT full64/256rescoring. Earlybenefit cannot be wholly blamed onformat; selectionamong5candidates on64 and unstable repair/damagebalance remain plausible. Do not claim statisticalcauseproven or full-effectabsence.
+
+Artifacts root **semantic_review_validation/**, preview **http://127.0.0.1:8785/semantic_review_validation/index.html**, browser/HTTPchecked anddelivery.jsonsaved. NotesSHA4840b5ec2b238d2f3cb7efcf55968e22627aea90930695e329c71389997d99ce. CaseIDs exactlymatchv2 originalvalidation64 group; combine these15notes withprimary33notes in finalv2 reviewcoverage. Frozenqueueandselectionunchanged. The current implementation's boxed x=50 versus reference50 also produced a mismatch, in addition to fallbackextraction defects; capture in any separatefullrescoringdiagnostic.
+
 ## 2026-09-24 12:25 UTC — primary confirmation complete; 33 pairs read, eight scoring conflicts found
 
 Primary **1536/1536** completed, raw and statistics audits passed. Read **docs/projection-first-v2/primary-confirmation-20260924.zh-CN.md**. Frozen automatic results: baseline129/256, local8130/256, shared8127/256, random3seedmean49.35%. Local8 repairs17,damages16,delta+.39pp CI[-3.91,+4.69]; shared/random contrasts also includezero. Validation benefit not confirmed. Original summarySHA c22e0fae0b5810b9281c25ab915996dba89d6a452aaea92cea853ee5039e81aa remains unchanged.
