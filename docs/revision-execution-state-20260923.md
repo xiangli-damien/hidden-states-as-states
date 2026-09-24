@@ -1,5 +1,13 @@
 # Revision experiment execution state
 
+## 2026-09-24 14:46 UTC — all 182 flip comparisons read; versioned full rescoring remains
+
+Read **docs/projection-first-v2/semantic-review-complete-20260924.zh-CN.md**. All 182 auto-score flip comparisons have sealed AI readings: prior 48 plus additional 134, the latter through 146 exact question/reference/answer texts. This is method-masked AI reading with aggregate results already known, not independent human review. Counts across overlapping comparisons: 42 both-final-correct, 73 repairs, 67 damages. Never turn these totals into independent question counts or a corrected full-data accuracy. New GSM8K also has extraction errors: final 30 read as trailing 20; 742 read as 10; 286 read as display-math opener. Real errors/looping and benchmark ambiguities are separately noted.
+
+New report **http://127.0.0.1:8787/semantic_review_v2/index.html** and all 182 case pages are complete. Mapping/source verification passed on real records; 184 files hash/HTTP matched, 366 local references checked, browser screenshot actually viewed. Notes SHA85de6e01728774fab6be56b57f66ffc7ed8f0e45199ef8b905e388826bac3aed; summary SHA9dd3f3824d488e50d4d8979bd962142f0d0c24502c5240ab41db0fe6130f43d4. Use delivery_semantic_v2.json, preserving historical receipts. Source report_projection_v2_review.py validates/join notes, does not perform semantic judging or full rescoring.
+
+Both GPU queues complete, GPU idle, SSD125.17GiB at14:46UTC. Do not restart generation. Continue separate-version ALL2336/all-condition scoring correction; raw scores/protocol/selection unchanged. No new rank0 job has started; previous optional scope question remains unanswered. Daily Git at21:00America/New_York not yet due; completed report source/docs can be committed immediately through the normal GitHub→Lambda workflow.
+
 ## 2026-09-24 13:53 UTC — v2 all640 generated/audited; semantic completion pending
 
 Read **docs/projection-first-v2/completion-and-rank0-20260924.zh-CN.md**. Queue456206 finished all11batches, raw/statisticalaudit and report at13:53:09UTC; noGPUworker remains. Do not restart or extend the640-conditionqueue. SummarySHAb3f46f4bd02031f40ce0a3963b66dfd0daaf8fc231030249c869a3c7458637e2. Audit2336records/28comparisons/182flippairs. NewGSM64 frozenautomaticcounts baseline62/local8 61/shared8 60/wronglocal8 60;local-baseline−1.5625pp CI[−6.25,+3.125]. OriginalMATH32validation local16 16correct versus originalselectedlocal8 20;exploratory,notrankoptimum. No newconfirmedcorrectiongain.
