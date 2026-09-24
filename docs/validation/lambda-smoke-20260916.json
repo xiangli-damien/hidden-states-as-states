@@ -1,0 +1,60 @@
+{
+  "runtime": {
+    "python": "3.11.16",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "scikit-learn": "1.9.1",
+    "pandas": "3.0.5",
+    "zarr": "2.18.7",
+    "torch": "2.14.0"
+  },
+  "source_version": "cbb43d860b6899d332864776",
+  "source": "/lambda/nfs/dami/openact/runs/math_full_20260916/llama32",
+  "checks": {
+    "mean_exact": true,
+    "pre_rms_exact": true,
+    "prefix_exact": true,
+    "sweep_and_resume": true,
+    "real_mfa_cuda_parity": true
+  },
+  "prepare_first_seconds": 0.38806745200417936,
+  "prepare_reuse_seconds": 0.01294166999286972,
+  "pre_mean_seconds": 0.5452412390004611,
+  "pre_prompt_last_seconds": 0.5814015110081527,
+  "prefix_seconds": 0.32424857099249493,
+  "sweep_first_seconds": 3.0745810860098572,
+  "sweep_reuse_seconds": 0.12453168700449169,
+  "mfa_raw_seconds": 0.8649500019964762,
+  "mfa_profile": [
+    {
+      "layer": 0,
+      "relative_depth": 0.0,
+      "k": 2,
+      "criterion": -1898593.677473836,
+      "criterion_name": "icl",
+      "self_transition": null
+    },
+    {
+      "layer": 16,
+      "relative_depth": 1.0,
+      "k": 2,
+      "criterion": 322462.1903138074,
+      "criterion_name": "icl",
+      "self_transition": 0.0
+    }
+  ],
+  "mfa_raw_cuda_seconds": 1.2283827679930255,
+  "cuda_peak_allocated_mib": 14.78271484375,
+  "cache_bytes": 1638400,
+  "rows": 100,
+  "layers": [
+    0,
+    16
+  ],
+  "hidden_dim": 2048,
+  "trials": [
+    "/lambda/nfs/dami/hss-benchmark-final-20260916/d3fc957a0d98afde38892482",
+    "/lambda/nfs/dami/hss-benchmark-final-20260916/0a8b92dc70803c7cdb1de502",
+    "/lambda/nfs/dami/hss-benchmark-final-20260916/ce14ade369677cc655e84b4d"
+  ]
+}

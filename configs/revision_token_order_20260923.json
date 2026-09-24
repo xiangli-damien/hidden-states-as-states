@@ -1,0 +1,14 @@
+{
+  "source_root": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "token_decoders": "/lambda/nfs/dami/hss/revision-token-decoders-v2-20260923/geometry",
+  "output": "/lambda/nfs/dami/hss/revision-token-order-20260923",
+  "views": [[0,14,"tokens"],[0,28,"tokens"],[0,14,"question_tokens"],[0,28,"question_tokens"],[16,14,"tokens"],[16,28,"tokens"]],
+  "C_grid": [0.0001,0.0003,0.001,0.003,0.01,0.03,0.1,1.0,10.0],
+  "shuffle_seeds": [42,137,271],
+  "workers": 3,
+  "blas_threads": 2,
+  "max_iter": 2000,
+  "seed": 42,
+  "primary": "block28/prefix16: ordered state LR versus state occupancy LR; questionwise-shuffled seed42 is the predeclared order control",
+  "scope": "Exploratory reused historical MATH test. No target GSM8K tuning; no causal or state information upper-bound claim."
+}

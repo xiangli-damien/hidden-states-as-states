@@ -1,0 +1,22 @@
+{
+  "output": "/lambda/nfs/dami/hss/revision-locality-20260923",
+  "foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "geometry": "/lambda/nfs/dami/hss/revision-token-decoders-v2-20260923/geometry",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "layers": [7, 14, 21, 28],
+  "ranks": [4, 8, 16, 32],
+  "shared_ranks": [4, 8, 16, 32, 64, 128, 256, 512],
+  "seeds": [42, 137, 271],
+  "alphas": [0.25, 0.5, 1.0],
+  "questions_per_split": 32,
+  "blas_threads": 2,
+  "workers": 2,
+  "views": [[16,14,"tokens"], [0,14,"tokens"], [0,14,"question_tokens"], [16,28,"tokens"]],
+  "primary": {"prefix":16,"layer":14,"role":"tokens","width":16,"rank":8},
+  "primary_contrast": "local residual SVD8 minus shared residual SVD8, both anchored at the identical fitted GMM centers; next-token KL and full-reference mean NLL",
+  "scope": "Exploratory historical MATH; new intervention questions excluding all prior functional-pilot questions. Not a fresh confirmation set, not selective steering.",
+  "normalization": "none; bases from raw training residual second moments without adding another mean",
+  "multiple_testing": "one primary locality contrast; all other rank, permutation, corruption, dose and replication comparisons secondary; pointwise question bootstrap intervals",
+  "budget_scope": "Both same-coordinate ranks and shared-rank256/512 versus local-rank4/8 at K64 are reported. The latter match stored basis scalar counts, but preserve more continuous coordinates per token. Report encoder/anchors separately; neither comparison equates every budget simultaneously."
+}

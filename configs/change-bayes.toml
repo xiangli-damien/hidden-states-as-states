@@ -1,0 +1,12 @@
+# Supervised readouts of the already frozen train-only change-space GMMs.
+source = "/lambda/nfs/dami/hss/change-clusters-20260921"
+output = "/lambda/nfs/dami/hss/change-clusters-20260921/bayes"
+alpha = 1.0
+probe_layers = [1, 7, 14, 21, 28]
+last_layer = 28
+crossfit_folds = 5
+seed = 9212601
+bootstrap = 2000
+far = 0.1
+logistic_c = [0.01, 0.1, 1.0, 10.0]
+cpu_threads = 2

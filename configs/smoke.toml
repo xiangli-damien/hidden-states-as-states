@@ -1,0 +1,21 @@
+extends = "base.toml"
+name = "llama32_math_smoke"
+
+[data]
+expected_samples = 100
+max_shards = 1
+max_samples = 100
+layers = [0, -1]
+
+[cluster]
+k_values = [2, 3]
+n_init = 1
+max_iter = 5
+
+[execution]
+workers = 2
+threads_per_worker = 1
+memory_gib = 4
+
+[grid]
+"alignment.threshold" = [0.4, 0.6]

@@ -94,6 +94,10 @@ def _run_sklearn(method: str, X_train: np.ndarray, y_train: np.ndarray, X_test: 
 
 
 def run_prediction(provider: StateProvider, global_labels: np.ndarray, y: np.ndarray, layers: List[int], cfg: PredictionConfig, *, store: Optional[ExperimentStore] = None) -> PredictionResult:
+    import warnings
+    warnings.warn('Legacy prediction cross-validates a supplied map and cannot verify map-training isolation. '
+                  'For paper reproduction use hss run with evaluation.mode=prediction; it fits the map on train only.',
+                  FutureWarning, stacklevel=2)
     if len(y) == 0:
         empty = pd.DataFrame(columns=['method', 'fold', 'auroc', 'accuracy', 'f1'])
         summary = pd.DataFrame(columns=['method', 'mean_auroc', 'std_auroc', 'mean_accuracy', 'std_accuracy', 'mean_f1', 'std_f1'])

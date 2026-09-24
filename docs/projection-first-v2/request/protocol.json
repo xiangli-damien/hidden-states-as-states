@@ -1,0 +1,163 @@
+{
+  "title": "HSS 24-hour steering v2: projection-first",
+  "created_on": "2026-09-24",
+  "status": "proposed_plan_only_not_an_executable_repo_runner_no_remote_jobs_started",
+  "scope": "replace_prior_day_schedule_not_the_existing_experiment",
+  "supersedes_schedule_files": [
+    "hss_24h_steering_plan.json",
+    "hss_24h_coarse_210.jsonl"
+  ],
+  "prior_plan_sha256": "92d1d069c415d0962ca566b6d7ffa1af8d965d03700952e9594ccc9e636ab3f8",
+  "source_status": "latest validation and live-run figures are user-reported, not live-verified",
+  "deadline_hours_from_adoption": 24,
+  "resource_policy": {
+    "gpu": "one existing A100; original runner exclusive until finished",
+    "cpu_parallel_allowed": true,
+    "no_new_gpu_batch_after_hour": 20
+  },
+  "reported_validation": {
+    "n": 64,
+    "baseline_correct": 30,
+    "local_alpha_0_1_correct": 35,
+    "local_alpha_0_3_correct": 30,
+    "local_alpha_1_correct": 37,
+    "wrong_to_correct": 11,
+    "correct_to_wrong": 4,
+    "cross_region_coverage": 13,
+    "cross_region_correct_both_strengths": 30,
+    "nominal_uncorrected_exact_mcnemar_p": 0.11846923828125,
+    "selected_for_test": {
+      "model": "Qwen2-7B-Instruct",
+      "model_revision": "inherit_frozen_run_manifest",
+      "reported_layer": 14,
+      "actual_hook_and_module_index": "inherit_frozen_run_manifest_do_not_translate_silently",
+      "prefix_answer_tokens": 16,
+      "history_width": 4,
+      "patch_answer_positions_one_based": [
+        13,
+        14,
+        15,
+        16
+      ],
+      "rank": 8,
+      "alpha": 1.0,
+      "operator": "h + alpha * (R_s(h) - h)",
+      "R_s": "a_s + U_s @ U_s.T @ (h - a_s)",
+      "assignment": "inherit_frozen_run_manifest",
+      "anchor_id": "inherit_exact_current_decoder_not_assumed_GMM_center",
+      "basis_id": "inherit_frozen_run_manifest",
+      "normalization": "inherit_frozen_run_manifest",
+      "schedule": "one_history_window_patch_then_unmodified_free_continuation",
+      "generation_and_scoring": "inherit_all_frozen_settings_including_token_budget_and_repetition_penalty"
+    }
+  },
+  "protected_primary": {
+    "status": "already_running_as_reported_do_not_restart_or_modify",
+    "problems": 256,
+    "condition_count": 6,
+    "target_generations": 1536,
+    "reported_completed_generations": 86,
+    "reported_remaining_generation_hours": 6,
+    "reported_total_remaining_hours_including_audit": [
+      7,
+      10
+    ],
+    "conditions": [
+      "baseline",
+      "local8_selected_frozen",
+      "shared8_frozen",
+      "random_slot_1_inherit_manifest",
+      "random_slot_2_inherit_manifest",
+      "random_slot_3_inherit_manifest"
+    ],
+    "random_slot_semantics": "unknown_from_summary_must_read_existing_manifest",
+    "partial_effect_peeking": "not_for_selection_or_stopping",
+    "mutation_allowed": false,
+    "statistics": "inherit_existing_analysis_plan; do_not_retroactively_claim_preregistration",
+    "primary_estimate": "paired_accuracy_difference_local_minus_baseline",
+    "secondary_comparisons": "local_minus_shared_and_frozen_random_conditions; direct paired contrasts",
+    "inferential_unit": "original_problem",
+    "random_replicates": "average_within_problem_only_if_same_random_mechanism; otherwise_separate",
+    "best_of_controls_forbidden": true
+  },
+  "new_transfer": {
+    "freeze_rule": "before_new_transfer_outcomes_and_without_adapting_to_primary_test_effects",
+    "dataset": "GSM8K",
+    "standard_n": 64,
+    "eligibility": "unseen_in_all_map_fit_and_steering_selection_roles_relevant_to_claim; exclude_previous_confirmation64_and_duplicates",
+    "conditions": [
+      "baseline",
+      "original_frozen_local8",
+      "same_anchor_shared8",
+      "same_anchor_wrong_local8_fixed_permutation"
+    ],
+    "rule_transfer": "no_refit_no_alpha_or_layer_change",
+    "short_response_policy": "if_EOS_before_trigger_keep_baseline_noop_include_in_denominator_report_coverage",
+    "available_data_policy": "skip_if_new_disjoint_sample_cannot_be_established_do_not_rebrand_old_data"
+  },
+  "validation_ablations": {
+    "config_file": "validation_ablation_10.jsonl",
+    "n_per_config": 32,
+    "n_configs": 10,
+    "new_generations": 320,
+    "reuse_existing_outputs": "only_if_model_code_prefix_decoder_scoring_and_rng_hashes_match",
+    "replace_primary_winner": false,
+    "confirmation_of_new_winner": "not_included_in_today_package"
+  },
+  "budget": {
+    "standard": {
+      "transfer_generations": 256,
+      "validation_generations": 320,
+      "total_new_generations": 576,
+      "extra_rerun_reserve": 64
+    },
+    "reduced": {
+      "transfer_n": 32,
+      "transfer_conditions": [
+        "baseline",
+        "original_frozen_local8",
+        "same_anchor_shared8"
+      ],
+      "transfer_generations": 96,
+      "validation_ids": [
+        "D01",
+        "D02",
+        "D03",
+        "D05"
+      ],
+      "validation_generations": 128,
+      "total_new_generations": 224
+    },
+    "tier_selection": "based_only_on_measured_throughput_asset_availability_and_deadline_before_new_outcomes",
+    "priority_order": [
+      "complete_protected_primary",
+      "frozen_transfer",
+      "D01",
+      "D02",
+      "D03",
+      "D05",
+      "other_ablations",
+      "report"
+    ],
+    "never_reduce_existing_256_or_drop_frozen_controls": true
+  },
+  "deferred": [
+    "old210_grid",
+    "toy_template_search",
+    "new_layer_maps",
+    "sentence_or_delta_clustering",
+    "multilayer_lineage_control",
+    "new_dynamic_gate",
+    "continuous_all_step_projection",
+    "new_MFA_SAE_VQ_ReFT",
+    "new896_long_trajectories"
+  ],
+  "deliverables": [
+    "primary_256_paired_results",
+    "frozen_transfer_results",
+    "all_exploratory_ablations",
+    "repair_damage_case_audit",
+    "geometry_vs_behavior_diagnostics",
+    "paper_ready_tables_and_scope"
+  ]
+}

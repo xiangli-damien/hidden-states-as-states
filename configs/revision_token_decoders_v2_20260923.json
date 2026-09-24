@@ -1,0 +1,19 @@
+{
+  "schema": 2,
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "output": "/lambda/nfs/dami/hss/revision-token-decoders-v2-20260923",
+  "prefix_root": "/lambda/nfs/dami/hss/revision-foundations-20260923/prefixes",
+  "layers": [7, 14, 21, 28],
+  "train_token_positions": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+  "k_grid": [1,4,8,16,32,64],
+  "seeds": [42,137],
+  "pca_ranks": [8,16,32],
+  "blas_threads": 2,
+  "workers": 3,
+  "views": [
+    [0,14,"tokens"], [0,28,"tokens"],
+    [16,14,"tokens"], [16,28,"tokens"],
+    [0,14,"question_tokens"], [0,28,"question_tokens"]
+  ]
+}

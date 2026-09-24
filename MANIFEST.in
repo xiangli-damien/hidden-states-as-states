@@ -1,0 +1,5 @@
+recursive-include configs *.toml *.json
+recursive-include docs *.md *.json *.jsonl
+recursive-include scripts *.py
+recursive-include src/hss/reporting/templates *.html
+include uv.lock

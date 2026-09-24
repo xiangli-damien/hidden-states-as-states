@@ -27,7 +27,7 @@ def silhouette_sampled(
 
 
 def compute_icl(model: Any, X: np.ndarray, mode: str) -> float:
-    if not isinstance(model, GMMModel):
+    if not hasattr(model, 'bic') or not hasattr(model, 'predict_proba'):
         return float('nan')
     bic = model.bic(X)
     tau = model.predict_proba(X)

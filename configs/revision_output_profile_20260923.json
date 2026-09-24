@@ -1,0 +1,25 @@
+{
+  "output": "/lambda/nfs/dami/hss/revision-output-profile-20260923",
+  "sources": {
+    "math": "/lambda/nfs/dami/hss/revision-locality-20260923",
+    "gsm8k": "/lambda/nfs/dami/hss/revision-locality-confirmation-20260923/interventions"
+  },
+  "view": {"prefix_tokens": 16, "layer": 14, "role": "tokens"},
+  "methods_by_width": {
+    "1": ["identity", "centroid", "local_8", "shared_8"],
+    "4": ["identity", "centroid", "local_8", "shared_8"],
+    "16": ["identity", "centroid", "local_8", "shared_8", "shared_64", "remove_local_8_1.0"]
+  },
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 42,
+  "top_tokens": 15,
+  "scope": "Exploratory post hoc profiling of already audited saved outputs; no new model calls, fitting, rank selection, or generation. Historical MATH validation/test and GSM64 confirmation remain separate. Functional-candidate discovery uses MATH validation only; a new independent protocol is required before confirmatory donor interventions.",
+  "limitations": [
+    "Reference losses score the original model continuation, not ground-truth reasoning or intervention accuracy.",
+    "Vocabulary categories are deterministic token-fragment descriptions, not inferred computational functions.",
+    "Individual KL terms can be negative. Category sums are signed accounting, not causal contributions.",
+    "Shared64 was selected by historical MATH validation MSE only; no shared64 width1/4 results exist.",
+    "Width contrasts change the number of fully replaced positions and total perturbation energy together.",
+    "All intervals are pointwise question bootstrap; tokens and conditions are not independent samples."
+  ]
+}

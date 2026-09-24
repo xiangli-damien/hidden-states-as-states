@@ -1,0 +1,16 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --extra dev
+      - run: uv run --extra dev pytest -q
+      - run: uv build

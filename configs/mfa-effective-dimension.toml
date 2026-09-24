@@ -1,0 +1,11 @@
+study = "/lambda/nfs/dami/hss/qwen-math-mfa-24h-20260920"
+cache = "/home/ubuntu/hss-cache/data"
+output = "/lambda/nfs/dami/hss/mfa-effective-dimension-20260921"
+expected_samples = 5000
+hidden_dim = 3584
+last_layer = 28
+matched_size = 100
+matched_repeats = 20
+inference_audit_rows = 256
+seed = 9212602
+cpu_threads = 4

@@ -1,0 +1,33 @@
+extends = "base.toml"
+name = "qwen2_math_raw_ablation"
+
+[data]
+paths = ["/lambda/nfs/dami/openact/runs/math_full_20260916/qwen2"]
+expected_model = "Qwen/Qwen2-7B-Instruct"
+expected_samples = 5000
+representation = "mean"
+final_norm = "post"
+
+[cluster]
+n_init = 3
+max_iter = 2000
+tol = 0.00001
+require_convergence = true
+save_candidate_assignments = true
+mfa_init = "svd"
+assignment = "posterior"
+parsimony_tolerance = 0.0
+
+[transform]
+standardize = false
+whiten = false
+
+[execution]
+cache_root = "/home/ubuntu/hss-cache"
+artifact_cache_root = "/lambda/nfs/dami/hss/qwen-math-ablation-20260918/cache"
+output_root = "/lambda/nfs/dami/hss/qwen-math-ablation-20260918/trials"
+workers = 10
+threads_per_worker = 2
+memory_gib = 96
+min_available_gib = 32
+

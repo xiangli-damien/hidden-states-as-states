@@ -1,0 +1,16 @@
+# Full raw response means; no feature scaling, normalization, whitening or PCA.
+base = "qwen_math_raw.toml"
+directory = "/lambda/nfs/dami/hss/qwen-math-ablation-20260918"
+ranks = [0, 1, 2, 4, 8, 16, 32]
+icl_tolerances = [0.0, 0.005, 0.01, 0.02]
+criteria = ["icl", "bic"]
+reference_tolerance = 0.02
+include_pre_final = true
+kmeans_n_init = 10
+# GMM and KMeans exhaust every integer K in [2, 80]. MFA first uses fixed GMM K,
+# then an independent coarse-to-fine K search. This is NOT an exhaustive MFA scan.
+mfa_initial_k = [2, 4, 8, 16, 32, 64, 80]
+refine_radius = 2
+refine_rounds = 2
+stability_seeds = [43, 44]
+
