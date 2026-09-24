@@ -1,5 +1,9 @@
 # Revision experiment execution state
 
+## 2026-09-24 — native token/mean vector examples delivered
+
+User asked to see actual vector magnitude/direction examples. Read **docs/vector-examples-20260924.zh-CN.md**. New read-only export and visualization root **/lambda/nfs/dami/hss/vector-examples-20260924**; report **http://127.0.0.1:8789/report/index.html**. First three preselected historical MATH cases,1329tokens,Qwen block14 raw3584D. Full means exactly match old HSS cache; norm/Gram/energy identities checked. Interactive exact two-vector planes, per-token norm/angle tables, cosine matrices and cumulative-mean plots saved locally and on Dami. Not a new GMM fit, GPU experiment, correctness comparison or representative population estimate. No prompt-last replacement job started. Earlier frozen experiments remain complete and unchanged; await scientific direction and retain daily Git policy.
+
 ## 2026-09-24 23:03 UTC — frozen token-mean replacement complete; no mean-local advantage
 
 Read **docs/tokenmean-replacement-results-20260924.zh-CN.md**. Queue468175 completed96questions×16conditions=1536records; real functional stage329.50s. Independent arithmetic/provenance audit and210summary checks passed. All384 historical token-map bridge logprob/NLL arrays exactly reproduced. Frozen summarySHA **c40fdb57996e771f72e74327533a9d8964e42a0f88710903d76b1a52fbd2700a**. No failed science stage, no new accuracy labels or free-generation experiment. Originalmean GMMK33 and tokenGMMK64 unchanged.

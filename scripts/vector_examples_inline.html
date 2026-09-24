@@ -1,0 +1,84 @@
+<div id="hss-vector-examples">
+  <h3>真实 token 与均值：长度和方向</h3>
+  <div class="viz-controls">
+    <label class="form-label">例子 <select class="form-select" id="hve-case"></select></label>
+    <label class="form-label">前16个生成 token：<span id="hve-position"></span><input class="form-range" id="hve-token" type="range" min="1" max="16" value="1"></label>
+  </div>
+  <div id="hve-text" aria-live="polite"></div>
+  <div class="hve-pairs"><section><h3>与前16个 token 的均值</h3><div id="hve-prefix"></div></section><section><h3>与完整回答的均值</h3><div id="hve-full"></div></section></div>
+  <div id="hve-norms"></div>
+  <div id="hve-detail" class="text-small" aria-live="polite"></div>
+</div>
+<style>
+#hss-vector-examples .hve-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#hss-vector-examples .hve-pairs h3{margin-block:12px 0}
+#hss-vector-examples svg{display:block;width:100%;overflow:visible}
+#hss-vector-examples svg text{fill:var(--foreground);font-size:12px}
+#hss-vector-examples #hve-text{overflow-wrap:anywhere}
+@media(max-width:600px){#hss-vector-examples .hve-pairs{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script type="application/json" id="hve-data">__GEOMETRY_DATA__</script>
+<script>
+(()=>{
+  const root=document.getElementById('hss-vector-examples');
+  const data=JSON.parse(document.getElementById('hve-data').textContent);
+  const select=root.querySelector('#hve-case'), slider=root.querySelector('#hve-token');
+  data.cases.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${['不等式的整数解','连续分数相乘','100次多项式'][i]} · ${c.n_tokens} tokens`;select.append(o)});
+  const series=['var(--viz-series-1)','var(--viz-series-2)','var(--viz-series-3)'];
+  const line=(g,a,b,color,marker)=>g.append('line').attr('x1',a[0]).attr('y1',a[1]).attr('x2',b[0]).attr('y2',b[1]).attr('stroke',color).attr('stroke-width',2.3).attr('marker-end',`url(#${marker})`);
+  function plane(id, tokenNorm, meanNorm, angle, index){
+    const host=root.querySelector(id), width=host.clientWidth, height=290;
+    host.replaceChildren();
+    const svg=d3.select(host).append('svg').attr('viewBox',`0 0 ${width} ${height}`).attr('role','img').attr('aria-label',`token长度${tokenNorm.toFixed(2)}，均值长度${meanNorm.toFixed(2)}，夹角${angle.toFixed(2)}度`);
+    const defs=svg.append('defs');[0,index].forEach(j=>defs.append('marker').attr('id',`${id.slice(1)}-arrow-${j}`).attr('viewBox','0 0 10 10').attr('refX',9).attr('refY',5).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 Z').attr('fill',series[j]));
+    const size=Math.min(width-100,height-95), left=64, bottom=height-52;
+    const c=data.cases[+select.value], maxLength=Math.max(tokenNorm,c.mean16_norm,c.full_mean_norm)*1.20;
+    const scale=size/maxLength, origin=[left,bottom], theta=angle*Math.PI/180;
+    const tip=[left+scale*tokenNorm*Math.cos(theta),bottom-scale*tokenNorm*Math.sin(theta)];
+    const meanTip=[left+scale*meanNorm,bottom];
+    svg.append('rect').attr('data-chart-frame','').attr('x',left-12).attr('y',bottom-size-12).attr('width',size+24).attr('height',size+24).attr('fill','none').attr('stroke','var(--border)');
+    line(svg,origin,tip,series[0],`${id.slice(1)}-arrow-0`);
+    line(svg,origin,meanTip,series[index],`${id.slice(1)}-arrow-${index}`);
+    svg.append('text').attr('x',tip[0]+5).attr('y',tip[1]-8).text('token');
+    svg.append('text').attr('x',meanTip[0]).attr('y',meanTip[1]-10).attr('text-anchor','end').text('均值');
+    svg.append('text').attr('x',left-6).attr('y',bottom+5).attr('text-anchor','end').text('0');
+    const radius=32;
+    svg.append('path').attr('d',`M${left+radius},${bottom} A${radius},${radius} 0 0 0 ${left+radius*Math.cos(theta)},${bottom-radius*Math.sin(theta)}`).attr('stroke','var(--foreground)').attr('fill','none');
+    svg.append('text').attr('x',left+48*Math.cos(theta/2)).attr('y',bottom-48*Math.sin(theta/2)).text(`${angle.toFixed(1)}°`);
+    svg.append('text').attr('x',left).attr('y',21).text(`长度：token ${tokenNorm.toFixed(1)} / 均值 ${meanNorm.toFixed(1)}`);
+    svg.append('text').attr('class','axis-title').attr('data-axis','x').attr('x',left+size/2).attr('y',height-9).attr('text-anchor','middle').text('沿均值方向的分量');
+    svg.append('text').attr('class','axis-title').attr('data-axis','y').attr('transform',`translate(19,${bottom-size/2}) rotate(-90)`).attr('text-anchor','middle').text('垂直于均值的分量');
+  }
+  function norms(c, selected){
+    const host=root.querySelector('#hve-norms'), width=host.clientWidth, height=210;
+    host.replaceChildren();const svg=d3.select(host).append('svg').attr('viewBox',`0 0 ${width} ${height}`).attr('role','img').attr('aria-label','前16个token长度，与前16均值和完整回答均值长度对照');
+    const margin={left:64,right:16,top:28,bottom:46}, w=width-margin.left-margin.right, h=height-margin.top-margin.bottom;
+    const vals=c.norms.slice(0,16), all=[...vals,c.mean16_norm,c.full_mean_norm];
+    const x=d3.scaleBand().domain(d3.range(1,17)).range([margin.left,margin.left+w]).padding(.2);
+    const y=d3.scaleLinear().domain([0,d3.extent(all)[1]*1.14]).range([margin.top+h,margin.top]);
+    svg.append('rect').attr('data-chart-frame','').attr('x',margin.left).attr('y',margin.top).attr('width',w).attr('height',h).attr('stroke','var(--border)').attr('fill','none');
+    svg.selectAll('rect.bar').data(vals).join('rect').attr('class','bar').attr('x',(_,i)=>x(i+1)).attr('y',v=>y(v)).attr('height',v=>y(0)-y(v)).attr('width',x.bandwidth()).attr('fill',series[0]).attr('opacity',(_,i)=>i===selected?1:.45);
+    [[c.mean16_norm,1],[c.full_mean_norm,2]].forEach(([v,j])=>svg.append('line').attr('x1',margin.left).attr('x2',margin.left+w).attr('y1',y(v)).attr('y2',y(v)).attr('stroke',series[j]).attr('stroke-width',2).attr('stroke-dasharray',j===2?'5 3':null));
+    const ticks=width<400?[1,6,11,16]:[1,4,8,12,16];
+    svg.append('g').attr('transform',`translate(0,${y(0)})`).call(d3.axisBottom(x).tickValues(ticks).tickSizeOuter(0));
+    svg.append('g').attr('transform',`translate(${margin.left},0)`).call(d3.axisLeft(y).ticks(3).tickSizeOuter(0));
+    svg.append('text').attr('class','axis-title').attr('data-axis','x').attr('x',margin.left+w/2).attr('y',height-5).attr('text-anchor','middle').text('生成 token 位置');
+    svg.append('text').attr('class','axis-title').attr('data-axis','y').attr('transform',`translate(18,${margin.top+h/2}) rotate(-90)`).attr('text-anchor','middle').text('向量长度');
+    svg.append('text').attr('x',margin.left).attr('y',17).text('柱：单个 token；实线：前16均值；虚线：整段均值');
+    svg.selectAll('.domain,.tick line').attr('stroke','var(--border)');
+    // Explicit range selection supplies the per-token detail without a hover dependency.
+  }
+  function draw(){
+    const c=data.cases[+select.value], i=+slider.value-1;
+    root.querySelector('#hve-position').textContent=`${i+1} / 16`;
+    root.querySelector('#hve-text').textContent=`当前 token：${JSON.stringify(c.tokens[i])}　·　长度 ${c.norms[i].toFixed(2)}`;
+    plane('#hve-prefix',c.norms[i],c.mean16_norm,c.mean16_angle[i],1);
+    plane('#hve-full',c.norms[i],c.full_mean_norm,c.full_mean_angle[i],2);
+    norms(c,i);
+    root.querySelector('#hve-detail').textContent=`两个均值夹角 ${c.prefix_full_angle.toFixed(1)}° · 前16均值长度 / 前16平均token长度 ${(c.prefix_norm_retention*100).toFixed(1)}% · 原始3584维`;
+  }
+  select.addEventListener('change',draw);slider.addEventListener('input',draw);
+  new ResizeObserver(draw).observe(root);draw();
+})();
+</script>
