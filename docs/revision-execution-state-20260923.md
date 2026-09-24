@@ -1,5 +1,25 @@
 # Revision experiment execution state
 
+## 2026-09-24 23:03 UTC — frozen token-mean replacement complete; no mean-local advantage
+
+Read **docs/tokenmean-replacement-results-20260924.zh-CN.md**. Queue468175 completed96questions×16conditions=1536records; real functional stage329.50s. Independent arithmetic/provenance audit and210summary checks passed. All384 historical token-map bridge logprob/NLL arrays exactly reproduced. Frozen summarySHA **c40fdb57996e771f72e74327533a9d8964e42a0f88710903d76b1a52fbd2700a**. No failed science stage, no new accuracy labels or free-generation experiment. Originalmean GMMK33 and tokenGMMK64 unchanged.
+
+GSM64 mean-shift local8 KL.091497 versus shared8 .088600;paired+.002897 CI[-.009726,.015888];referenceNLLdelta+.000479[-.000126,.001112]. Mean-shift preserves full centered token residuals: cannot call its smaller KL an equal-budget compression win. Mean-region per-token local8 KL8.9594 versus originaltokenlocal8 2.8931;difference+6.0663[5.0147,7.1392]. Both mean-map operators lack reliable local8/shared8 superiority in this finite comparison.
+
+Strong scope issue: frozen whole-response-mean map applied to prefix16 means assigns63/64GSMquestions to onecluster;MATH32 uses4clusters and agreeswith originalwhole-responsecluster only4/32. All96prefixmeans fall belowfullmeantrain5%densityquantile. This is distribution shift evidence, not proofitcausedallperformance differences or that tokenmean is intrinsically useless. Maps have differentK and routingrules; same96questions reused. No newprefixmeanmap fit or time/layer search authorized by this completedprotocol.
+
+Report **http://127.0.0.1:8788/report/index.html**,105staticfiles/197referencesHTTPverified;comparisonPNGviewed and browser28accessibilitypage inspected. Rootdelivery.json records presentation checks. Keep root **/lambda/nfs/dami/hss/tokenmean-replacement-20260924** and all frozen outputs. Do not restart queue or repeat audit; awaitusernextscientificdirection and retain21EDTdailyGit. Previousprimary/v2 also remaincomplete.
+
+## 2026-09-24 22:51 UTC — newly authorized frozen token-mean replacement running
+
+User explicitly asked to test the old token-mean clusters after distinguishing them from the per-token decoder. Read **docs/tokenmean-replacement-20260924.zh-CN.md**. New isolated root **/lambda/nfs/dami/hss/tokenmean-replacement-20260924**, source **a7b44bf**, branch **codex/tokenmean-replacement-20260924**. Previous primary/v2 remain complete and unchanged; do not restart them or launch rank0 free-generation work.
+
+Old raw full-response-mean GMM at block14,2% ICL tolerance,K33 is reused unchanged (fit all5000MATH, hence MATH transductive). Mean residual local/shared rank8 bases fit3011 designated training means only; each cluster has17–197 training questions. Original posterior assignments replay exactly on all5000. Inference selects one region from ONLY the first16 generated tokens' mean, never the future answer. Mean-shift preserves all centered token residuals; token-project separately compresses each token into the same region basis. Do not equate these budgets or silently treat this as fitting a prefix-mean GMM.
+
+**Queue468175, real GPU worker468278** is running fixed96questions×16conditions (32historicalMATHtest+64previousGSMfunctionalquestions), no expanded search or new labels. Two-question32-condition smoke and independent arithmetic/legacy audit passed; eight token-map bridge outputs exactly equal historical logprobs/NLL. Local6tests passed/1torch skipped; GPU-environment7tests passed including real tinyQwen cached/full replay. Full stage then independentaudit→paired statistics→report runs automatically. Do not start duplicate queue. Final visual/HTML/HTTP review pending. This is functional KL/original-reference-NLL evaluation, not new free generation or correctness improvement. PrimaryGSM mean-shift local8−shared8 was frozen before outcomes; all other comparisons exploratory and all96questions reused. Files frozen by plan; recovery must preserve failures and old artifacts.
+
+DailyGit policy remains21:00America/New_York. New source already pushed under XiangLi identity and Lambda fetched it; no model/environment upgrade.
+
 ## 2026-09-24 16:29 UTC — changed-answer reading and partial-review scoring diagnostic complete
 
 Read **docs/projection-first-v2/scoring-reviewed-sensitivity-20260924.zh-CN.md**. Automaticv2 all2336/30comparisons and independentstatsaudit complete. All128new exactfullanswers actually read with method/labels hidden; notes sealed before v2 aggregate/key reveal, SHAe70765f97d5b69117edcefe4074f33a4b962bbd339e361de8e12e59ccbfa70ef. Earlier aggregates known; not independenthumanreview. All186v2changedlabels have new or exactreused readings. v2 still disagrees with10source records (9old+1new), preserved in diagnostic.
