@@ -1,0 +1,15 @@
+{
+  "output": "/lambda/nfs/dami/hss/projection-first-v2-20260924",
+  "protected_primary": "/lambda/nfs/dami/hss/revision-completion-20260924",
+  "prior_confirmation": "/lambda/nfs/dami/hss/revision-locality-confirmation-20260923",
+  "adopted_utc": "2026-09-24T07:40:59+00:00",
+  "dataset": "openai/gsm8k",
+  "dataset_config": "main",
+  "dataset_revision": "740312add88f781978c0658806c59bc2815b9866",
+  "template_hash": "507f30ec8346341e",
+  "validation_salt": "projection-first-v2-validation-20260924",
+  "transfer_salt": "projection-first-v2-new-gsm8k-20260924",
+  "permutation_seed": 9242026,
+  "near_zero_norm": 1e-12,
+  "cpu_threads": 4
+}
