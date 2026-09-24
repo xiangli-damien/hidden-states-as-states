@@ -1,5 +1,13 @@
 # Revision experiment execution state
 
+## 2026-09-24 05:16 UTC — A/B/D delivered; real steering smoke still running
+
+CPU companion453933 is complete:126.64s analysis plus independent audit/report. **Report http://127.0.0.1:8785/report_abd/index.html, server42024**, PNG/renderedPDF/4links/HTTPverified; root`delivery_abd.json`records **A/B/D ONLY**, C remainsrunning. ReportreceiptSHAea32fbad9f825bb16e06a6b3e17b715389b7f8ab25d12275828978367605213f;cachedauditSHAcb578ab21793e2040cc94d0553a3e47abae58cf437f09bb2782b3bf7db70cc5e. Read`docs/revision-completion-initial-results-20260924.zh-CN.md`. Do not repeat this CPU pipeline.
+
+Original536GSMconfirmation/70failures: frozenfour-blockpromptlastNB AUROC.61560[.55325,.67435],sourcecontinuousblock28.72078[.65623,.78222],fixedmap+adapt128NB.58096[.50696,.65646]. All1319 frozenNB.60990 andlinear.66797;alltarget figures descriptive. Supportsmoderaterankingtransfer,notNBsuperiority;128adaptationdidnotimprovepointestimate. Sourceq95distancecoverage targetblock14only12.9%,not groundsfortargetexclusion. Dheldout986 flow7→14/14→21/21→28 =31.85/20.99/41.68%versuschance3.23/3.09/3.27%;correspondence,notfunctionalcausalidentity.
+
+**GPUqueue453932 / smoke453967 remainsactive**:17/56conditions at05:16UTC,3questions;~41tokens/s,16smeancondition,length681mean,preliminaryonly. Full8questionrawauditpending,thenautomatic64validation,selection,testifeligible. Local/remote5testsnowpassincludingSYNTHETICselection/statistics/tamperpipeline;actualtinyQwen cachetestpassed. Expectedvalidation2–4h,ifpositivecandidate test6–12h plusaudit;wholebranch10–18h provisional. Preserveoriginal48hdeadline/22hdecision/6hauditreserve, source andinputs remainfrozen. Latestdeployedsource56b2cb9 adds onlytests/executiondocs afterd879c82implementation. Do notalterlivequeuefiles orrestartfinishedA/B/D.
+
 ## 2026-09-24 05:12 UTC — bounded final experiments started on real Qwen
 
 New user authorization: finish reconstruction synthesis, frozen prompt-last transfer and a finite real-MATH correction pilot within48hours. Read **`docs/revision-completion-plan-20260924.zh-CN.md`** and`configs/revision_completion_20260924.json`; oldsameprompt is terminal, not a prerequisite. Source **d879c82** deployed throughGitHub. Root **`/lambda/nfs/dami/hss/revision-completion-20260924`**. Preparation fixed64validation+256testquestions, excludeddecodertrain andoldfunctionalpilotquestions;3011trainingquestions supportall64regions. PlanSHA **bbeead52dbd7af72af5d56ee502d217b15ce3b53570839378b3d8daaed3db01c**. Deadline2026-09-26 05:10:20UTC, reserve6hours forfinalaudit;validationdecisioncutoff22hours.
