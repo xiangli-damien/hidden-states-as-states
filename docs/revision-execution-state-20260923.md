@@ -1,5 +1,15 @@
 # Revision experiment execution state
 
+## 2026-09-24 12:25 UTC — primary confirmation complete; 33 pairs read, eight scoring conflicts found
+
+Primary **1536/1536** completed, raw and statistics audits passed. Read **docs/projection-first-v2/primary-confirmation-20260924.zh-CN.md**. Frozen automatic results: baseline129/256, local8130/256, shared8127/256, random3seedmean49.35%. Local8 repairs17,damages16,delta+.39pp CI[-3.91,+4.69]; shared/random contrasts also includezero. Validation benefit not confirmed. Original summarySHA c22e0fae0b5810b9281c25ab915996dba89d6a452aaea92cea853ee5039e81aa remains unchanged.
+
+All33 primary local8/baseline flips were actually read by Codex AI, method/auto-label masked, notes sealed before revealing key. **Not independent human review. Eight pairs have correct final answers on both sides**, caused by parser extraction (6auto-repairs,2auto-damages). Among the remaining reviewedflips11repairs/14damages; DO NOT infer corrected256accuracy from selected-case review. Correct final answers sometimes have faulty reasoning. Parse_failure=0 did not detect these wrong nonempty extractions. Keep all raw scores/protocol unchanged; any full re-score must be separate, cover all conditions/questions, retain original selection. Do not edit frozenOpenActparser whilev2 runs.
+
+Presentation and all33notes are in root paper_primary/ and semantic_review_primary/. Preview **http://127.0.0.1:8785/semantic_review_primary/index.html**. PNG andrenderedPDF reviewed, browserpage verified. delivery_primary.json records review scope. V2 will produce samecaseIDs for reuse; original64validation andnewtransfer/ablation casepairs remain pending. Afterv2 summary, include scoring limitation in a separate deliverypage/sidecar, not by overwriting sealedreport. A complete versioned rescoring audit is necessary before treating automatic scores as clean mathematical correctness, but do not change scientific generation queue or reselectwinner.
+
+V2 follower456206 chose **standard640** bytiming before outcomes. NewGSM64×4 generationandrawauditcomplete; D01 running at12:20UTC. Preserve all10variants/fixedorder, oneGPU, sourcepins. Finishoriginalpipeline then actualnewPNG/PDF/linkreview and remainingsemanticcases. Do not stop or change extensionbecauseprimaryeffectisnull. Halfhourmonitor remainsactive; dailyGitnotduebefore21:00EDT.
+
 ## 2026-09-24 07:57 UTC — projection-first v2 adopted, frozen and actually queued
 
 User supplied **hss_24h_projection_first_v2.zip** and its final576-generation proposal. The adopted v2 supersedes earlier broad-search suggestions, while preserving the running primary256×6 test. Read **docs/projection-first-v2/execution.zh-CN.md**; the original supplied specification is preserved under itsrequest/ directory. New source **f3d1eac**, deployed throughGitHub. Local andLambda10tests passed, including synthetic reporting/statistics/tamper checks. A CPU random tinyQwen check covered all10operators, exactno-op generation and modified-cache/full-replay agreement(maxlogiterror2.086e-7); this is execution validation only.
