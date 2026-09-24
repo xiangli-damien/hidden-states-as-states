@@ -1,0 +1,16 @@
+{
+  "output": "/lambda/nfs/dami/hss/promptlast-replacement-20260924",
+  "foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "cases_source": "/lambda/nfs/dami/hss/tokenmean-replacement-20260924/cases.json",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "layer": 14,
+  "rank": 8,
+  "expected_k": 32,
+  "seeds": [42, 137, 271],
+  "bootstrap": 2000,
+  "bootstrap_seed": 924243,
+  "threads": 4,
+  "primary": "GSM64 prompt-last local8 minus same-center shared8: next-token KL and whole original-reference mean NLL, reported together with paired question bootstrap. First16 and later reference NLL distinguish opening-token fidelity from continuation fidelity.",
+  "scope": "Frozen MATH prompt-last GMM K32, min training ICL over original grid [1,4,8,16,32,64], nearest-center routing. Original local residual-SVD directions frozen; only shared same-center rank8 directions newly fit on3011 MATH training prompt-last vectors. No normalization. Historical MATH32 plus previous GSM64, exploratory reused cases. Patch only final chat-prompt position at block14 once, fresh cache; all other prompt states remain intact. Not whole-prompt compression, free-generation accuracy or new independent confirmation."
+}

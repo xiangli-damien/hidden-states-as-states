@@ -1,5 +1,9 @@
 # Revision experiment execution state
 
+## 2026-09-24 — newly authorized prompt-last replacement
+
+User asked to try the frozen prompt-last map. New bounded protocol **docs/promptlast-replacement-20260924.zh-CN.md**, config **configs/promptlast_replacement_20260924.json**, root **/lambda/nfs/dami/hss/promptlast-replacement-20260924**. Original Qwen block14 prompt-last K32 min-ICL map and local axes frozen; source3011 training questions. Same-center shared8 newly fit only on these source training residuals. Eight conditions × historical MATH32/previous GSM64 =768 forward records; only final chat-prompt position is replaced once. First-token KL, geometric error and whole/early/later original-reference NLL; no new free generation or accuracy labels. Source/GPU smoke tests precede full run, then independent raw/statistical audit and delivery. Read actualqueue_status.json rather than infer launch from this record. Previous studies remain complete and unchanged; do not restart their queues.
+
 ## 2026-09-24 — native token/mean vector examples delivered
 
 User asked to see actual vector magnitude/direction examples. Read **docs/vector-examples-20260924.zh-CN.md**. New read-only export and visualization root **/lambda/nfs/dami/hss/vector-examples-20260924**; report **http://127.0.0.1:8789/report/index.html**. First three preselected historical MATH cases,1329tokens,Qwen block14 raw3584D. Full means exactly match old HSS cache; norm/Gram/energy identities checked. Interactive exact two-vector planes, per-token norm/angle tables, cosine matrices and cumulative-mean plots saved locally and on Dami. Not a new GMM fit, GPU experiment, correctness comparison or representative population estimate. No prompt-last replacement job started. Earlier frozen experiments remain complete and unchanged; await scientific direction and retain daily Git policy.
