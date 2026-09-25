@@ -1,0 +1,20 @@
+{
+  "output": "/lambda/nfs/dami/hss/sink-direction-20260925",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "layer": 14,
+  "fit": "/lambda/nfs/dami/hss/qwen-math-ablation-20260918/cache/fits/99f47c99d7500b80b7a962cc",
+  "mean_cache": "/home/ubuntu/hss-cache/data/473f2199a8742bdf18996361",
+  "foundation": "/lambda/nfs/dami/hss/revision-foundations-20260923",
+  "expected_k": 33,
+  "minimum_train_cluster": 50,
+  "maximum_train_boxed_rate": 0.3,
+  "dev_questions": 16,
+  "test_sink_cap": 64,
+  "normal_questions": 100,
+  "alphas": [0.1, 0.3, 1.0],
+  "seed": 20260925,
+  "max_new_tokens": 2048,
+  "max_gpu_hours": 6,
+  "bootstrap": 10000
+}
