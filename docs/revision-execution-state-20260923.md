@@ -1,3 +1,11 @@
+# 2026-09-25 queued MMLU diagonal-GMM work
+
+User confirmed Llama is **Llama-3.2-1B-Instruct**. After the existing sink follow-up finishes, run **Qwen2 MMLU then Llama-3.2 MMLU**, all14,042 rows each, raw token means, diagonal GMM only. See `docs/mmlu-diagonal-gmm-20260925.zh-CN.md` and `configs/mmlu_diagonal_gmm_20260925.json`. New root `/lambda/nfs/dami/hss/mmlu-diagonal-gmm-20260925`. CPU cache preparation may proceed; GPU fitting waits for predecessor terminal receipt AND no GPU process. Do not stop current Step2/3A. User confirms no original3B detector was saved; if D6 selects3B, leave it unavailable and proceed to MMLU after worker exit. No replacement detector training.
+
+K initially up to160, boundary-triggered extension240, then dense integer refinement around ICL leaders and 0/2/3/4/5% selections. Three restarts, converged-only, float64GPU diagonal EM. Save all fits, probabilities, assignments and reusable HSS exports. No normalization. No MFA, no standalone KMeans fits, no Llama-3-8B. Read launch/status/failure and test receipts before claiming launched or validated.
+
+---
+
 # 2026-09-25 sink follow-up execution handoff
 
 - Predecessor `/lambda/nfs/dami/hss/sink-direction-20260925` completed **529/529**; CPU hash/statistics audit passed. Final boxed sink counts zero/HSS/random=26/26/29; automatic correct=7/4/6. No preregistered success. See `sink-direction-final-20260925.zh-CN.md`.
