@@ -27,6 +27,7 @@ def run():
     summaries={};ASSETS.mkdir(parents=True,exist_ok=True)
     for i in [1,2,3,4]:
         p=ROOT/f'exp{i}'
+        if i==4 and (ROOT/'exp4-v2/audit_SUCCESS.json').exists():p=ROOT/'exp4-v2'
         if not (p/'audit_SUCCESS.json').exists():continue
         a=json.loads((p/'audit_SUCCESS.json').read_text());assert a['passed'] and sha(p/'summary.json')==a['summary_sha256']
         summaries[i]=json.loads((p/'summary.json').read_text())
@@ -88,7 +89,7 @@ def run():
             c=v['groups']['in']['contrast'];xx.append(v['cluster']);vv.append(c);types=v['training_types'];dominant=max(types,key=types.get)
             lines += [f"| {v['cluster']} | {v['training_count']} | {v['training_correctness']:.1%} | {dominant} | {effect(c)} | {effect(v['groups']['out']['contrast'])} | {effect(v['in_minus_out'])} |"]
         plot(axs[2],range(len(xx)),[v['mean'] for v in vv],[v['ci'][0] for v in vv],[v['ci'][1] for v in vv]);axs[2].set_xticks(range(len(xx)),[str(x) for x in xx]);axs[2].set_xlabel('Local cluster ID');axs[2].set_title('Other states: 98.75% CI')
-        lines += ['\n只检验预选的四个高占用状态。in-state 显著而 in−out 不显著时，不能声称状态特异；多数成立也不能外推所有状态。']
+        lines += ['\n只检验预选的四个高占用状态。in-state 显著而 in−out 不显著时，不能声称状态特异；多数成立也不能外推所有状态。组间自然截断剂量不同，in−out的95%区间为次要、未作四重校正。']
     else:
         axs[2].set_axis_off();axs[2].text(.5,.5,'Other states pending audit',ha='center',color='#666',transform=axs[2].transAxes)
         lines += ['\n## 3. 四个其他高占用状态','\n已按训练集占用人数预选，队列运行中；完整审核结果尚未同步，不报告部分效应。每个状态的 in-B 最多100条，out-B最多100条，不重复采样补足。']
@@ -107,7 +108,8 @@ def run():
         for c,v in sink['primary_comparisons'].items():
             lines += [f"\nC1 对 {c}：改善{v['wins']}题，损伤{v['losses']}题，净{v['net']:+d}；双侧精确p={v['p_two_sided_exact']:.6g}，Holm校正p={v['holm_p']:.6g}。"]
         lines += [f"\n预定‘对两组均改善且显著’规则：**{s['decision']['improves_vs_both']}**。",'\n在线对照匹配本组当前激活上的更新规则，各组文本分叉后不保证累计能量相同。重新编码是在无干预模型上对新文本重放，不能等同于被干预时的在线轨迹。']
-    else:lines += ['\n## 4. 自由生成','\n已冻结、按依赖顺序运行；完整审核结果尚未同步，当前不报告部分效应。152道sink题+50道正常题，zero/C1/ORTH_MAN_1，共606条记录。']
+    else:lines += ['\n## 4. 自由生成','\n已冻结；完整审核结果尚未同步，当前不报告部分效应。152道sink题+50道正常题，zero/C1/ORTH_MAN_1，共606条记录。']
+    lines += ['\n[在线数值修正 v2](sink-next-generation-numerical-amendment-v2-20260925.md)：原exp4在50条记录后被一个极小BF16更新的能量校验阻止；更严格内部求解通过原门槛，exp4-v2保留、校验并导入原50条成功记录。原失败文件保留，不放宽门槛、不删题。']
     lines += ['\n## 范围与追溯','\n第二个模型按用户规格留到讨论期。所有结果须在用户指定2026-09-26 01:59 UTC之前完成审核才能进入投稿版；这里不核实会议官方截止日期。',
         '\n| 实验 | 完成审核 UTC | 投稿冻结前 | Plan SHA256 |\n|---|---|---|---|']
     for i,s in summaries.items():lines += [f"| {i} | {s['completed_utc']} | {s['submission_eligible']} | `{s['plan_sha256']}` |"]
@@ -115,7 +117,7 @@ def run():
     REPORT.write_text('\n'.join(lines)+'\n')
     archive=ROOT.parent/'sink-next-results-20260925.zip'
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-        for p in [REPORT,REPO/'docs/sink-next-protocol-20260925.zh-CN.md',*ASSETS.rglob('*')]:
+        for p in [REPORT,REPO/'docs/sink-next-protocol-20260925.zh-CN.md',REPO/'docs/sink-next-generation-numerical-amendment-v2-20260925.md',*ASSETS.rglob('*')]:
             if p.is_file():z.write(p,p.relative_to(REPO/'docs'))
     print(json.dumps(dict(report=str(REPORT),experiments=list(summaries),zip_bytes=archive.stat().st_size)))
 
