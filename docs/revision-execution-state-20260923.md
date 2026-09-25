@@ -1,5 +1,9 @@
 # Revision experiment execution state
 
+## 2026-09-25 — newly authorized direct per-layer delta error lookup
+
+User corrected the scientific target: **each layer's cluster gets its raw training-token error proportion**, then each new token directly looks up that number. No cross-layer Bayes, no transitions, no entropy fusion, no question-equal weighting. Read **docs/delta-cluster-lookup-20260925.zh-CN.md**, config **configs/delta_cluster_lookup_20260925.json**. New root **/lambda/nfs/dami/hss/delta-cluster-lookup-20260925**. Reuse five frozen K32 delta GMMs, train3011 full-token counts; preserve previous fusion study unchanged. Current-token lookup and same-layer prefix arithmetic mean are separately evaluated, prefix1/16/32/64/128, primary64. Historical labels, not local-step truth. Four tests pass including synthetic end-to-end report and independent-bootstrap validation; real launch/status must be checked in root status.json. CPU only, no GMM refit or live/free generation. Finish independent audits, visual/HTTP review, delivery. Do not restart the completed delta-online-pilot queue. Daily Git policy retained.
+
 ## 2026-09-25 — delta online pilot complete and delivered
 
 Read **docs/delta-online-pilot-results-20260925.zh-CN.md**. Queue476010 completed every stage at03:05:10UTC, total885.63seconds: confidence5000/5000; all four prefix risk analyses; functional1024/1024. Independent risk119704checks and every functional raw record passed. SummarySHA **509ccf38ca489cf2e6b57880104d35372b6ce2ee4da9b09ea520acc2710506c6**; original frozen source1de47ae and plan unchanged. No GPU worker remains. **Do not restart this queue or launch a new Δh free-generation strategy.** No such policy has been frozen or tested.

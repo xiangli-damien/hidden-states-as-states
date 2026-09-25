@@ -1,0 +1,14 @@
+{
+  "source": "/lambda/nfs/dami/hss/local-depth-changes-20260921",
+  "previous": "/lambda/nfs/dami/hss/delta-online-pilot-20260925",
+  "output": "/lambda/nfs/dami/hss/delta-cluster-lookup-20260925",
+  "layers": [1, 7, 14, 21, 28],
+  "prefixes": [1, 16, 32, 64, 128],
+  "primary_prefix": 64,
+  "seed": 9252612,
+  "bootstrap": 2000,
+  "case_count": 32,
+  "threads": 4,
+  "tokenizer": "/home/ubuntu/.cache/huggingface/hub/models--Qwen--Qwen2-7B-Instruct/snapshots/f2826a00ceef68f0f2b946d945ecc0477ce4450c/tokenizer.json",
+  "tokenizer_python": "/lambda/nfs/dami/openact/.venv/bin/python"
+}
