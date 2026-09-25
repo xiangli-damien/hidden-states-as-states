@@ -1,0 +1,172 @@
+{
+  "completed_utc": "2026-09-25T22:13:31.082034+00:00",
+  "plan_sha256": "e97aab910a200e18c589f63ef3ea5730a5ffe680ddd18ff19f4cad16c661a51d",
+  "records": 606,
+  "groups": {
+    "normal": {
+      "n": 50,
+      "arms": {
+        "zero": {
+          "primary_count": 36,
+          "boxed": 36,
+          "correct": 23,
+          "mean_tokens": 537.94,
+          "sink_count": 1,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 0,
+          "net_exit": 0,
+          "mean_update_norm": 0.0,
+          "mean_total_update_energy": 0.0
+        },
+        "C1": {
+          "primary_count": 35,
+          "boxed": 35,
+          "correct": 21,
+          "mean_tokens": 501.44,
+          "sink_count": 1,
+          "exit_vs_zero": 1,
+          "entry_vs_zero": 1,
+          "net_exit": 0,
+          "mean_update_norm": 0.5771450193226337,
+          "mean_total_update_energy": 2012.0477067947388
+        },
+        "ORTH_MAN_1": {
+          "primary_count": 39,
+          "boxed": 39,
+          "correct": 21,
+          "mean_tokens": 528.64,
+          "sink_count": 2,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 1,
+          "net_exit": -1,
+          "mean_update_norm": 0.7233981455117464,
+          "mean_total_update_energy": 4365.352015886307
+        }
+      },
+      "primary_comparisons": {
+        "zero": {
+          "n": 50,
+          "wins": 3,
+          "losses": 4,
+          "net": -1,
+          "difference": -0.02,
+          "ci95": [
+            -0.12,
+            0.08
+          ],
+          "p_two_sided_exact": 1.0
+        },
+        "ORTH_MAN_1": {
+          "n": 50,
+          "wins": 2,
+          "losses": 6,
+          "net": -4,
+          "difference": -0.08,
+          "ci95": [
+            -0.2,
+            0.02
+          ],
+          "p_two_sided_exact": 0.2890625
+        }
+      },
+      "strata": {}
+    },
+    "sink": {
+      "n": 152,
+      "arms": {
+        "zero": {
+          "primary_count": 72,
+          "boxed": 72,
+          "correct": 19,
+          "mean_tokens": 1022.4868421052631,
+          "sink_count": 76,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 0,
+          "net_exit": 0,
+          "mean_update_norm": 0.0,
+          "mean_total_update_energy": 0.0
+        },
+        "C1": {
+          "primary_count": 90,
+          "boxed": 90,
+          "correct": 21,
+          "mean_tokens": 1082.7368421052631,
+          "sink_count": 34,
+          "exit_vs_zero": 50,
+          "entry_vs_zero": 8,
+          "net_exit": 42,
+          "mean_update_norm": 1.5805128021410813,
+          "mean_total_update_energy": 10974.900936302385
+        },
+        "ORTH_MAN_1": {
+          "primary_count": 81,
+          "boxed": 81,
+          "correct": 15,
+          "mean_tokens": 1074.2302631578948,
+          "sink_count": 70,
+          "exit_vs_zero": 23,
+          "entry_vs_zero": 17,
+          "net_exit": 6,
+          "mean_update_norm": 2.6177449162657322,
+          "mean_total_update_energy": 24225.052862870067
+        }
+      },
+      "primary_comparisons": {
+        "zero": {
+          "n": 152,
+          "wins": 36,
+          "losses": 18,
+          "net": 18,
+          "difference": 0.11842105263157894,
+          "ci95": [
+            0.02631578947368421,
+            0.21052631578947367
+          ],
+          "p_two_sided_exact": 0.01983432672806828,
+          "holm_p": 0.03966865345613656
+        },
+        "ORTH_MAN_1": {
+          "n": 152,
+          "wins": 31,
+          "losses": 22,
+          "net": 9,
+          "difference": 0.05921052631578947,
+          "ci95": [
+            -0.03289473684210526,
+            0.1513157894736842
+          ],
+          "p_two_sided_exact": 0.27167916606550335,
+          "holm_p": 0.27167916606550335
+        }
+      },
+      "strata": {
+        "historical_test": {
+          "n": 55,
+          "counts": {
+            "zero": 26,
+            "C1": 31,
+            "ORTH_MAN_1": 29
+          }
+        },
+        "S_B": {
+          "n": 97,
+          "counts": {
+            "zero": 46,
+            "C1": 59,
+            "ORTH_MAN_1": 52
+          }
+        }
+      }
+    }
+  },
+  "submission_eligible": true,
+  "decision": {
+    "improves_vs_both": false
+  },
+  "limitations": [
+    "Reused, previously inspected questions; exploratory.",
+    "Online rule matching uses each arm current activation; realized paths and aggregate energy can differ.",
+    "Boxed completion is not mathematical correctness; report both.",
+    "Post-generation membership uses unhooked replay of the new text, not hooked online activations."
+  ]
+}

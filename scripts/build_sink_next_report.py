@@ -109,6 +109,16 @@ def run():
         for c,v in sink['primary_comparisons'].items():
             lines += [f"\nC1 对 {c}：改善{v['wins']}题，损伤{v['losses']}题，净{v['net']:+d}；双侧精确p={v['p_two_sided_exact']:.6g}，Holm校正p={v['holm_p']:.6g}。"]
         lines += [f"\n预定‘对两组均改善且显著’规则：**{s['decision']['improves_vs_both']}**。",'\n在线对照匹配本组当前激活上的更新规则，各组文本分叉后不保证累计能量相同。重新编码是在无干预模型上对新文本重放，不能等同于被干预时的在线轨迹。']
+        generated=REPO/'results/sink-generation-review-20260925/report'
+        manifest=generated/'final_report_manifest.json'
+        if manifest.exists():
+            m=json.loads(manifest.read_text());assert m['summary_sha256']==sha(ROOT/'exp4-v3/summary.json')
+            for extension in ['png','pdf']:
+                name=f'final_generation.{extension}'
+                assert sha(generated/name)==m['files'][name]
+                shutil.copy2(generated/name,ASSETS/f'generation.{extension}')
+            lines += ['\n![在线自由生成完整结果](sink-next-20260925/generation.png)',
+                '\n[完整结果与英文段落](sink-next-generation-results-20260925.zh-CN.md)。202题的606条原文已提供；目前43题完成AI辅助全文复核，另159题仍待语义检查。']
     else:lines += ['\n## 4. 自由生成','\n已冻结；完整审核结果尚未同步，当前不报告部分效应。152道sink题+50道正常题，zero/C1/ORTH_MAN_1，共606条记录。']
     lines += ['\n[在线数值修正 v2](sink-next-generation-numerical-amendment-v2-20260925.md)：原exp4在50条记录后被一个极小BF16更新的能量校验阻止；更严格内部求解通过原门槛，exp4-v2保留、校验并导入原50条成功记录。原失败文件保留，不放宽门槛、不删题。']
     lines += ['\n[在线数值修正 v3](sink-next-generation-numerical-amendment-v3-20260925.md)：v2在128条成功记录后耗尽32次舍入修复；延长同一算法的迭代预算后通过原门槛。v3逐字节导入128条成功记录，参数、终点和验收规则不变。']
@@ -119,7 +129,7 @@ def run():
     REPORT.write_text('\n'.join(lines)+'\n')
     archive=ROOT.parent/'sink-next-results-20260925.zip'
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-        for p in [REPORT,REPO/'docs/sink-next-protocol-20260925.zh-CN.md',REPO/'docs/sink-next-generation-numerical-amendment-v2-20260925.md',REPO/'docs/sink-next-generation-numerical-amendment-v3-20260925.md',*ASSETS.rglob('*')]:
+        for p in [REPORT,REPO/'docs/sink-next-generation-results-20260925.zh-CN.md',REPO/'docs/sink-next-protocol-20260925.zh-CN.md',REPO/'docs/sink-next-generation-numerical-amendment-v2-20260925.md',REPO/'docs/sink-next-generation-numerical-amendment-v3-20260925.md',*ASSETS.rglob('*')]:
             if p.is_file():z.write(p,p.relative_to(REPO/'docs'))
     print(json.dumps(dict(report=str(REPORT),experiments=list(summaries),zip_bytes=archive.stat().st_size)))
 

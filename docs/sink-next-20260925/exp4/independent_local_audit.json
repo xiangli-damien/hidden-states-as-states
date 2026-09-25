@@ -1,0 +1,202 @@
+{
+  "passed": true,
+  "utc": "2026-09-25T22:14:07.000767+00:00",
+  "records": 606,
+  "questions": 202,
+  "plan_sha256": "e97aab910a200e18c589f63ef3ea5730a5ffe680ddd18ff19f4cad16c661a51d",
+  "summary_sha256": "ca9d19d7a5ffd5822a4c4bd3821f108b5a3e8e5862f057b5b736176014b30ef7",
+  "all_record_and_array_hashes_verified": true,
+  "all_primary_endpoints_reparsed": true,
+  "checked_online_steps": 378959,
+  "max_relative_step_energy_error": 0.0016941147166606174,
+  "groups": {
+    "sink": {
+      "n": 152,
+      "arms": {
+        "zero": {
+          "n": 152,
+          "primary_count": 72,
+          "correct": 19,
+          "boxed": 72,
+          "at_cap": 17,
+          "mean_tokens": 1022.4868421052631,
+          "sink_count": 76,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 0
+        },
+        "C1": {
+          "n": 152,
+          "primary_count": 90,
+          "correct": 21,
+          "boxed": 90,
+          "at_cap": 21,
+          "mean_tokens": 1082.7368421052631,
+          "sink_count": 34,
+          "exit_vs_zero": 50,
+          "entry_vs_zero": 8
+        },
+        "ORTH_MAN_1": {
+          "n": 152,
+          "primary_count": 81,
+          "correct": 15,
+          "boxed": 81,
+          "at_cap": 19,
+          "mean_tokens": 1074.2302631578948,
+          "sink_count": 70,
+          "exit_vs_zero": 23,
+          "entry_vs_zero": 17
+        }
+      },
+      "contrasts": {
+        "zero": {
+          "primary": {
+            "n": 152,
+            "wins": 36,
+            "losses": 18,
+            "net": 18,
+            "difference": 0.11842105263157894,
+            "p_two_sided_exact": 0.019834326728068286,
+            "exact_bootstrap_ci95": [
+              0.02631578947368421,
+              0.21052631578947367
+            ],
+            "holm_p": 0.03966865345613657
+          },
+          "automatic_correctness": {
+            "n": 152,
+            "wins": 11,
+            "losses": 9,
+            "net": 2,
+            "difference": 0.013157894736842105,
+            "p_two_sided_exact": 0.8238029479980469,
+            "exact_bootstrap_ci95": [
+              -0.046052631578947366,
+              0.07236842105263158
+            ]
+          }
+        },
+        "ORTH_MAN_1": {
+          "primary": {
+            "n": 152,
+            "wins": 31,
+            "losses": 22,
+            "net": 9,
+            "difference": 0.05921052631578947,
+            "p_two_sided_exact": 0.27167916606550335,
+            "exact_bootstrap_ci95": [
+              -0.03289473684210526,
+              0.1513157894736842
+            ],
+            "holm_p": 0.27167916606550335
+          },
+          "automatic_correctness": {
+            "n": 152,
+            "wins": 13,
+            "losses": 7,
+            "net": 6,
+            "difference": 0.039473684210526314,
+            "p_two_sided_exact": 0.26317596435546875,
+            "exact_bootstrap_ci95": [
+              -0.019736842105263157,
+              0.09868421052631579
+            ]
+          }
+        }
+      }
+    },
+    "normal": {
+      "n": 50,
+      "arms": {
+        "zero": {
+          "n": 50,
+          "primary_count": 36,
+          "correct": 23,
+          "boxed": 36,
+          "at_cap": 3,
+          "mean_tokens": 537.94,
+          "sink_count": 1,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 0
+        },
+        "C1": {
+          "n": 50,
+          "primary_count": 35,
+          "correct": 21,
+          "boxed": 35,
+          "at_cap": 2,
+          "mean_tokens": 501.44,
+          "sink_count": 1,
+          "exit_vs_zero": 1,
+          "entry_vs_zero": 1
+        },
+        "ORTH_MAN_1": {
+          "n": 50,
+          "primary_count": 39,
+          "correct": 21,
+          "boxed": 39,
+          "at_cap": 2,
+          "mean_tokens": 528.64,
+          "sink_count": 2,
+          "exit_vs_zero": 0,
+          "entry_vs_zero": 1
+        }
+      },
+      "contrasts": {
+        "zero": {
+          "primary": {
+            "n": 50,
+            "wins": 3,
+            "losses": 4,
+            "net": -1,
+            "difference": -0.02,
+            "p_two_sided_exact": 1.0,
+            "exact_bootstrap_ci95": [
+              -0.12,
+              0.08
+            ]
+          },
+          "automatic_correctness": {
+            "n": 50,
+            "wins": 2,
+            "losses": 4,
+            "net": -2,
+            "difference": -0.04,
+            "p_two_sided_exact": 0.6875,
+            "exact_bootstrap_ci95": [
+              -0.14,
+              0.06
+            ]
+          }
+        },
+        "ORTH_MAN_1": {
+          "primary": {
+            "n": 50,
+            "wins": 2,
+            "losses": 6,
+            "net": -4,
+            "difference": -0.08,
+            "p_two_sided_exact": 0.2890625,
+            "exact_bootstrap_ci95": [
+              -0.2,
+              0.02
+            ]
+          },
+          "automatic_correctness": {
+            "n": 50,
+            "wins": 4,
+            "losses": 4,
+            "net": 0,
+            "difference": 0.0,
+            "p_two_sided_exact": 1.0,
+            "exact_bootstrap_ci95": [
+              -0.12,
+              0.12
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scope": "Independent complete-cohort counts, exact McNemar/Holm, exact paired-bootstrap distribution; original automatic correctness unchanged. Original remote audit additionally replayed frozen GMM assignment.",
+  "semantic_review": "Separate; this audit does not verify mathematical derivations or final-answer equivalence."
+}
