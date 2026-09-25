@@ -91,6 +91,7 @@ def run():
         lines += ['\n只检验预选的四个高占用状态。in-state 显著而 in−out 不显著时，不能声称状态特异；多数成立也不能外推所有状态。']
     else:
         axs[2].set_axis_off();axs[2].text(.5,.5,'Other states pending audit',ha='center',color='#666',transform=axs[2].transAxes)
+        lines += ['\n## 3. 四个其他高占用状态','\n已按训练集占用人数预选，队列运行中；完整审核结果尚未同步，不报告部分效应。每个状态的 in-B 最多100条，out-B最多100条，不重复采样补足。']
     for ax in axs:ax.spines[['top','right']].set_visible(False)
     fig.savefig(ASSETS/'effects.png',dpi=170);fig.savefig(ASSETS/'effects.svg');plt.close(fig)
     lines += ['\n![固定人群与预选层/状态的效应](sink-next-20260925/effects.png)']

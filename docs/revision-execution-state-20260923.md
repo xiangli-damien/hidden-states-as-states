@@ -1,3 +1,13 @@
+# 2026-09-25 17:28 UTC — depth scan completed, other-state experiment started
+
+Experiment2 completed14112/14112 forwards in2693.96s; raw audit passed17:25:50UTC. PlanSHA9beb353f32435eb2a993784671ba9e7645bc0e05edc0b23838c5bdad96dedaaa; summarySHAda2790b53893c3cf51a2d126cba155551f355153901e98e529f63feee9065a6d. Local lightweight tables/summary and independent20k numerical check saved in results/sink-next-20260925/exp2. Report `docs/sink-next-results-20260925.zh-CN.md` and small ZIP updated.
+
+Six-layer primary sink contrasts C1−control mean,99.1667%Bonferroni intervals: index4 +.014831[.012203,.017513];8 +.021964[.017584,.026433];12 +.042140[.034370,.049987];16 +.099673[.082532,.116992];20 +.114655[.093125,.136495];24 +.004024[−.002513,.011056]. Five of six new layers positive after correction;24 inconclusive. Each layer energy matched internally, but cross-layer dose differs (sink norms1.316,2.723,4.049,5.344,9.609,19.475), so no dose-independent importance claim, no switch of generation layer14. Normal C1−NONE changes small; all in report. Same previously inspected96/100 questions.
+
+Experiment3 automatically started17:26UTC. Prespecified states2,1,9,29 have training occupancy186,179,157,150; in-B91,88,77,73 plus100out each =729questions across separate state comparisons,8748forwards. Do not inflate to100in by duplicates. PlanSHAd170892abcc888659434d05ab907eee5e737804cd3d99e5104b63128f586deda. Dependency queue for exp4 still waits for exp3/audit_SUCCESS. No failures at this checkpoint, 118GiB SSD free, >210GiB RAM available. Continue existing queues and half-hour monitor; no new science.
+
+---
+
 # 2026-09-25 16:45 UTC — authorized generalization experiments 1–4
 
 The latest user specification supersedes the older no-new-experiments notes below. Read `docs/sink-next-protocol-20260925.zh-CN.md`. Root `/lambda/nfs/dami/hss/sink-next-20260925`; each experiment has a separate frozen `plan.json`, source/input hashes and UTC. Scripts `run_sink_next.py` / `report_sink_next.py` (experiments 1–3), `run_sink_next_generation.py` / `report_sink_next_generation.py` (experiment 4). Code caebcac / 4f04865. Existing queue PID493893 runs 1→2→3; dependency waiter PID494551 starts experiment4 only after exp3 audit success. Check actual live processes before resuming; do not duplicate. GPU uses pinned OpenAct .venv, CPU audit HSS .venv. Logs `queue.log` and `generation_queue.log` at root.
