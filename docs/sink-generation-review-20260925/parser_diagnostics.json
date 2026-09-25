@@ -1,0 +1,56 @@
+[
+  {
+    "question_id": "math_2734",
+    "condition": "zero",
+    "extracted": "2",
+    "normalized": "2",
+    "is_correct": false,
+    "ground_truth": "1,2",
+    "parse_failed": false
+  },
+  {
+    "question_id": "math_2734",
+    "condition": "C1",
+    "extracted": "4",
+    "normalized": "4",
+    "is_correct": false,
+    "ground_truth": "1,2",
+    "parse_failed": false
+  },
+  {
+    "question_id": "math_3670",
+    "condition": "zero",
+    "extracted": "40",
+    "normalized": "40",
+    "is_correct": false,
+    "ground_truth": "8",
+    "parse_failed": false
+  },
+  {
+    "question_id": "math_3670",
+    "condition": "C1",
+    "extracted": "** 8",
+    "normalized": "** 8",
+    "is_correct": false,
+    "ground_truth": "8",
+    "parse_failed": false
+  },
+  {
+    "question_id": "math_79",
+    "condition": "zero",
+    "extracted": "27",
+    "normalized": "27",
+    "is_correct": false,
+    "ground_truth": "108",
+    "parse_failed": false
+  },
+  {
+    "question_id": "math_79",
+    "condition": "C1",
+    "extracted": "27",
+    "normalized": "27",
+    "is_correct": false,
+    "ground_truth": "108",
+    "parse_failed": false
+  }
+]

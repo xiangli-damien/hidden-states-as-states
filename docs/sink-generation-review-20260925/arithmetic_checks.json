@@ -1,0 +1,49 @@
+{
+  "math_2508_factorization": [
+    65,
+    -46,
+    26,
+    -6,
+    1
+  ],
+  "math_1073_factorization": [
+    12,
+    -8,
+    -5,
+    1
+  ],
+  "math_1073_bad_root_residual": 30,
+  "math_2734_factorization_b1": [
+    1,
+    2,
+    2,
+    1
+  ],
+  "math_2734_factorization_b2": [
+    0,
+    2,
+    2,
+    1
+  ],
+  "math_2584_direct_integer": 384,
+  "math_3670_common_divisors": [
+    1,
+    2,
+    4,
+    5,
+    8,
+    10,
+    20,
+    40
+  ],
+  "math_79_revolutions": 108,
+  "math_2443_correct_polynomial_squared": [
+    1,
+    -10,
+    21,
+    20,
+    4
+  ],
+  "math_4508_circle": "x/(x²+y²)=1/6 -> x²+y²−6x=0 -> (x−3)²+y²=9; radius 3, area 9π; omitted origin has zero area",
+  "scope": "Exact arithmetic spot checks support qualitative review; not a complete formal proof checker."
+}

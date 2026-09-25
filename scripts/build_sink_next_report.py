@@ -28,6 +28,7 @@ def run():
     for i in [1,2,3,4]:
         p=ROOT/f'exp{i}'
         if i==4 and (ROOT/'exp4-v2/audit_SUCCESS.json').exists():p=ROOT/'exp4-v2'
+        if i==4 and (ROOT/'exp4-v3/audit_SUCCESS.json').exists():p=ROOT/'exp4-v3'
         if not (p/'audit_SUCCESS.json').exists():continue
         a=json.loads((p/'audit_SUCCESS.json').read_text());assert a['passed'] and sha(p/'summary.json')==a['summary_sha256']
         summaries[i]=json.loads((p/'summary.json').read_text())
@@ -110,6 +111,7 @@ def run():
         lines += [f"\n预定‘对两组均改善且显著’规则：**{s['decision']['improves_vs_both']}**。",'\n在线对照匹配本组当前激活上的更新规则，各组文本分叉后不保证累计能量相同。重新编码是在无干预模型上对新文本重放，不能等同于被干预时的在线轨迹。']
     else:lines += ['\n## 4. 自由生成','\n已冻结；完整审核结果尚未同步，当前不报告部分效应。152道sink题+50道正常题，zero/C1/ORTH_MAN_1，共606条记录。']
     lines += ['\n[在线数值修正 v2](sink-next-generation-numerical-amendment-v2-20260925.md)：原exp4在50条记录后被一个极小BF16更新的能量校验阻止；更严格内部求解通过原门槛，exp4-v2保留、校验并导入原50条成功记录。原失败文件保留，不放宽门槛、不删题。']
+    lines += ['\n[在线数值修正 v3](sink-next-generation-numerical-amendment-v3-20260925.md)：v2在128条成功记录后耗尽32次舍入修复；延长同一算法的迭代预算后通过原门槛。v3逐字节导入128条成功记录，参数、终点和验收规则不变。']
     lines += ['\n## 范围与追溯','\n第二个模型按用户规格留到讨论期。所有结果须在用户指定2026-09-26 01:59 UTC之前完成审核才能进入投稿版；这里不核实会议官方截止日期。',
         '\n| 实验 | 完成审核 UTC | 投稿冻结前 | Plan SHA256 |\n|---|---|---|---|']
     for i,s in summaries.items():lines += [f"| {i} | {s['completed_utc']} | {s['submission_eligible']} | `{s['plan_sha256']}` |"]
@@ -117,7 +119,7 @@ def run():
     REPORT.write_text('\n'.join(lines)+'\n')
     archive=ROOT.parent/'sink-next-results-20260925.zip'
     with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-        for p in [REPORT,REPO/'docs/sink-next-protocol-20260925.zh-CN.md',REPO/'docs/sink-next-generation-numerical-amendment-v2-20260925.md',*ASSETS.rglob('*')]:
+        for p in [REPORT,REPO/'docs/sink-next-protocol-20260925.zh-CN.md',REPO/'docs/sink-next-generation-numerical-amendment-v2-20260925.md',REPO/'docs/sink-next-generation-numerical-amendment-v3-20260925.md',*ASSETS.rglob('*')]:
             if p.is_file():z.write(p,p.relative_to(REPO/'docs'))
     print(json.dumps(dict(report=str(REPORT),experiments=list(summaries),zip_bytes=archive.stat().st_size)))
 

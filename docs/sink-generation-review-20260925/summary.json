@@ -1,0 +1,104 @@
+{
+  "snapshot_utc": "2026-09-25T19:05:55.375647+00:00",
+  "source": "/lambda/nfs/dami/hss/sink-next-20260925/exp4-v2",
+  "records": 128,
+  "pairs": 43,
+  "complete_triples": 42,
+  "pending_pairs": 159,
+  "stats": {
+    "all": {
+      "zero": {
+        "n": 43,
+        "boxed": 23,
+        "frozen_auto_correct": 8,
+        "reviewed_final_correct": 11,
+        "supported_solution": 11,
+        "mean_tokens": 864.6976744186046
+      },
+      "C1": {
+        "n": 43,
+        "boxed": 28,
+        "frozen_auto_correct": 10,
+        "reviewed_final_correct": 12,
+        "supported_solution": 10,
+        "mean_tokens": 915.2790697674419
+      }
+    },
+    "sink": {
+      "zero": {
+        "n": 35,
+        "boxed": 18,
+        "frozen_auto_correct": 6,
+        "reviewed_final_correct": 7,
+        "supported_solution": 7,
+        "mean_tokens": 932.2285714285714
+      },
+      "C1": {
+        "n": 35,
+        "boxed": 22,
+        "frozen_auto_correct": 8,
+        "reviewed_final_correct": 8,
+        "supported_solution": 6,
+        "mean_tokens": 1002.1428571428571
+      }
+    },
+    "normal": {
+      "zero": {
+        "n": 8,
+        "boxed": 5,
+        "frozen_auto_correct": 2,
+        "reviewed_final_correct": 4,
+        "supported_solution": 4,
+        "mean_tokens": 569.25
+      },
+      "C1": {
+        "n": 8,
+        "boxed": 6,
+        "frozen_auto_correct": 2,
+        "reviewed_final_correct": 4,
+        "supported_solution": 4,
+        "mean_tokens": 535.25
+      }
+    }
+  },
+  "final_answer_gains": [
+    "math_2508",
+    "math_2576",
+    "math_4508"
+  ],
+  "final_answer_losses": [
+    "math_2734",
+    "math_2786"
+  ],
+  "boxed_gains": [
+    "math_1073",
+    "math_1681",
+    "math_2262",
+    "math_2331",
+    "math_2335",
+    "math_2364",
+    "math_2508",
+    "math_2717"
+  ],
+  "boxed_losses": [
+    "math_2147",
+    "math_2467",
+    "math_4549"
+  ],
+  "categories": {
+    "format_only": 7,
+    "no_clear_gain": 13,
+    "same_wrong": 4,
+    "completion_regression": 3,
+    "partial_algebra_gain": 1,
+    "answer_gain_invalid_proof": 2,
+    "same_correct": 6,
+    "answer_and_reasoning_loss": 2,
+    "same_correct_scoring_miss": 2,
+    "less_loop_no_solution": 1,
+    "clean_repair": 1,
+    "identical_correct": 1
+  },
+  "scope": "Separate final-answer correctness, solution support, completion and repetition. No frozen labels changed. No inferential statistics on this partial sample. Controls supplied for inspection but not all semantically adjudicated.",
+  "snapshot_sha256": "b7367ad2dc2d5e8c03faa08c1d37cb0d07ac47de73df64960e09686d10bd3ff6"
+}
