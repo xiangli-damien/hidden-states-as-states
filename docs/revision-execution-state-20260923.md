@@ -1,3 +1,9 @@
+# 2026-09-25 — authorized C1 per-token energy-matched controls
+
+Latest user authorizes the bounded GPU teacher-forced experiment in `docs/sink-energy-matched-protocol-20260925.zh-CN.md`, config `configs/sink_energy_matched_20260925.json`. Root `/lambda/nfs/dami/hss/sink-energy-matched-20260925`;196questions,12conditions=2352forwards. Old axis/tau, same96sink/same100normal,10original directions orthogonalized; BF16 actual per-token C1 norm matched by deterministic bisection, same mask, strict audit. No generation/refitting. Check root status, preflight and failure before any recovery; do not duplicate. This authorization supersedes the prior no-new-GPU-work note only for this experiment. MMLU already complete. Correct cohort prose: Step2 M_B100 were selected automated-correct+boxed (verified100/100); earlier pilot normal100 did not require correctness. Original secondary statistics unchanged.
+
+---
+
 # 2026-09-25 — CPU secondary sink analysis and English results paragraph
 
 Read `docs/sink-secondary-results-20260925.zh-CN.md`. User requested fixed behavior association and all4 P4 suffix-NLL analyses; no GPU generation. Config SHA13aee7ee640295d88caed353454658236d5829b6e5ea600215dfe8ec42c5898f; CPU script `scripts/analyze_sink_secondary.py`;100,000 bootstrap draws. In155questions,50sink-discordant pairs:17concordant/8opposite/25behavior-unchanged. Exact question-conditional permutation p=.196927, independently verified; do not claim significant behavior coupling. Historicalsink55 HSS10exits/4entries,p=.179565;4of10exits newlyboxed,1keptboxed,3lostboxed,2unboxed. Random9exits/6entries.

@@ -58,7 +58,7 @@ HSS **11出／4进**，p=0.1185；随机 **10出／7进**，p=0.6291。加入正
 
 原始变量 `m_loop` 实际是截断点之后、固定历史续写的**平均每token NLL**，包含保存的EOS。NLL增大代表模型更不支持原来那段续写。
 
-97道sink B题里，96题后缀长度达到冻结要求；`math_2831`后缀过短，所有条件统一排除。正常对照100题的 `m_col_nll` 是完整历史回答的平均每token NLL。这些正常题不保证数学正确。
+97道sink B题里，96题后缀长度达到冻结要求；`math_2831`后缀过短，所有条件统一排除。正常对照100题的 `m_col_nll` 是完整历史回答的平均每token NLL。**选题勘误：这100题按原自动评分正确且有完整boxed选入，但未经独立人工逐题确认；此前将它与早先自由生成的normal组混写。所有数值不变，旧冻结配置的文字元数据不作追溯改写。**
 
 下表均为nats/token，正值表示固定文本受到抑制。每题配对bootstrap100,000次，**98.75%区间在每个明确的比较族内对4个候选作Bonferroni校正**；不声称对整个项目所有事后分析控制了整体错误率。
 
@@ -121,7 +121,7 @@ C1改变量与原token norm的“每题均值之比、再按题平均”为sink 
 
 ### 表注／方法脚注
 
-Degeneration was fixed as an absent complete nonempty boxed answer or reaching the 2,048-token generation limit. NLL intervals use 100,000 paired question bootstrap resamples; 98.75% intervals adjust over four candidates within each reported endpoint/comparison family, while the 40 individual candidate–control contrasts use 99.875% intervals. The repeated-sentence subset is descriptive. These analyses were specified after the primary outcomes were known and do not alter the original screening decision. The normal-response cohort was not restricted to mathematically correct answers. Historical cohort collection used repetition_penalty=1.05, whereas pilot generation used 1.0; all pilot arms shared the latter setting. Existing representation maps were fitted before the follow-up A/B split.
+Degeneration was fixed as an absent complete nonempty boxed answer or reaching the 2,048-token generation limit. NLL intervals use 100,000 paired question bootstrap resamples; 98.75% intervals adjust over four candidates within each reported endpoint/comparison family, while the 40 individual candidate–control contrasts use 99.875% intervals. The repeated-sentence subset is descriptive. These analyses were specified after the primary outcomes were known and do not alter the original screening decision. The Step2 normal-response cohort was selected for automated correctness and complete boxed answers, without independent human verification; the earlier free-generation normal cohort did not require correctness. Historical cohort collection used repetition_penalty=1.05, whereas pilot generation used 1.0; all pilot arms shared the latter setting. Existing representation maps were fitted before the follow-up A/B split.
 
 ## 8. 这是否满足想展示的“至少有用”？
 
