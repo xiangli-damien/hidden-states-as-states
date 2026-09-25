@@ -37,7 +37,7 @@ NONE与C1重新计算，并与原每题NLL比对，容差1e−5。初始实现�
 配置：`configs/sink_energy_matched_20260925.json`。
 
 ```bash
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 .venv/bin/python scripts/run_sink_energy_matched.py --config configs/sink_energy_matched_20260925.json
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 /lambda/nfs/dami/openact/.venv/bin/python scripts/run_sink_energy_matched.py --config configs/sink_energy_matched_20260925.json
 ```
 
 完整输出：`/lambda/nfs/dami/hss/sink-energy-matched-20260925`。先源码提交GitHub，Lambda fetch/ff-only后运行。现有MMLU已完成，本实验不抢占其他GPU任务。
