@@ -1,5 +1,11 @@
 # Sink C1：逐token能量匹配对照
 
+## BF16数值修订v2（新对照效应比较前）
+
+首版在31/2352条记录后因一个token的BF16量化跳跃未达到1%norm容差而自动停止；首版失败与记录保存在原目录，没有计算新对照组间效应。v2使用新目录 `sink-energy-matched-20260925-v2`、新配置 `configs/sink_energy_matched_20260925_v2.json`、新脚本 `scripts/run_sink_energy_matched_v2.py`，原冻结文件保持不变。
+
+不改变任何统计规则、方向、题目、容差。仅对无法通过标量二分匹配的token，沿既定方向的各坐标作确定性的相邻BF16舍入修正：在不超过目标能量的前提下，优先选择距同一理想方向的平方距离成本／增加能量最小的舍入。记录修正token数量、实际方向余弦；不声称BF16后的向量严格共线。此算法只看activation和norm，不看NLL。第二版仍必须通过原先所有能量门槛。
+
 ## 固定范围
 
 Qwen2-7B-Instruct、原block14、原96道可评分sink B题与100道normal M_B题。沿用原始prompt、回答token、评分截断点、sink轴与75%分位阈值。执行NONE、C1与10个对照，共2,352次teacher-forced前向；不生成、不拟合、不重新分词或判分。模型和数据版本写入运行plan并校验哈希。
@@ -34,10 +40,10 @@ NONE与C1重新计算，并与原每题NLL比对，容差1e−5。初始实现�
 
 ## 运行
 
-配置：`configs/sink_energy_matched_20260925.json`。
+当前配置：`configs/sink_energy_matched_20260925_v2.json`。
 
 ```bash
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 /lambda/nfs/dami/openact/.venv/bin/python scripts/run_sink_energy_matched.py --config configs/sink_energy_matched_20260925.json
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 /lambda/nfs/dami/openact/.venv/bin/python scripts/run_sink_energy_matched_v2.py --config configs/sink_energy_matched_20260925_v2.json
 ```
 
-完整输出：`/lambda/nfs/dami/hss/sink-energy-matched-20260925`。先源码提交GitHub，Lambda fetch/ff-only后运行。现有MMLU已完成，本实验不抢占其他GPU任务。
+当前完整输出：`/lambda/nfs/dami/hss/sink-energy-matched-20260925-v2`。首版原目录保留。先源码提交GitHub，Lambda fetch/ff-only后运行。现有MMLU已完成，本实验不抢占其他GPU任务。

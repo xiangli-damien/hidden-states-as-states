@@ -1,5 +1,7 @@
 # 2026-09-25 — authorized C1 per-token energy-matched controls
 
+**Current worker is v2:** root `/lambda/nfs/dami/hss/sink-energy-matched-20260925-v2`, config `configs/sink_energy_matched_20260925_v2.json`, runner `scripts/run_sink_energy_matched_v2.py`, source7ee72f9. First worker491196 stopped at31records on strict BF16 token norm gate; preserve its files and do not restart it. V2 repairs only rounding failures with deterministic coordinate rounding, unchanged hypotheses/data/directions/tolerances; no new-control outcome contrasts inspected before amendment. Check current v2 launch/status/failure/COMPLETE, not old-root running status. Do not duplicate or modify frozen source files while running.
+
 Latest user authorizes the bounded GPU teacher-forced experiment in `docs/sink-energy-matched-protocol-20260925.zh-CN.md`, config `configs/sink_energy_matched_20260925.json`. Root `/lambda/nfs/dami/hss/sink-energy-matched-20260925`;196questions,12conditions=2352forwards. Old axis/tau, same96sink/same100normal,10original directions orthogonalized; BF16 actual per-token C1 norm matched by deterministic bisection, same mask, strict audit. No generation/refitting. Check root status, preflight and failure before any recovery; do not duplicate. This authorization supersedes the prior no-new-GPU-work note only for this experiment. MMLU already complete. Correct cohort prose: Step2 M_B100 were selected automated-correct+boxed (verified100/100); earlier pilot normal100 did not require correctness. Original secondary statistics unchanged.
 
 ---
