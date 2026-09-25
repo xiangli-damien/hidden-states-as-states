@@ -1,3 +1,13 @@
+# 2026-09-25 09:55 UTC — both MMLU GMM jobs complete; audit/delivery complete
+
+Read `docs/mmlu-diagonal-final-results-20260925.zh-CN.md`. Queue finished **09:39:37UTC**,7591.23s from launch (~2h6m31s including preparation/waiting),GPU idle at09:54. Qwen2379 candidates/30layer-views/82.8min; Llama1386/18layer-views/37.7min. All3765candidates have converged solutions; total11295restarts,11258converged,37excluded but saved. No upper-bound warnings. Both CPU independent audits pass: all candidate/restart metadata,240selections,20full-hash HSS exports and48primary-array checks. Nonselected restart arrays were not all rehashed; no claims beyond audit scope.
+
+Llama2%postK=[3,7,9,10,18,16,14,12,12,13,20,24,32,35,46,42,43],pre_final16K42. Qwen numbers below. Both raw full-response means,14,042rows each,no extra normalization,no MFA or prediction. K search adaptive to160,not exhaustive; no240extension triggered. Both plots viewed and light tables/receipts synced under local `results/mmlu-diagonal-gmm-20260925`; full models/probabilities stayDami. Llama completionSHA434532eb9a3616ae5262de263e7e7ca4c82897289d50a2d08941adff477c3bed.
+
+**All current bounded experiments are finished. Do not restart any queue or launch further scientific work.** Sinkfollowup previously concluded with no D6 candidate;3A not run,3B unavailable,not pending. Half-hour heartbeat stays quiet on unchanged completion; preserve dailyGit check policy21:00America/New_York and user notifications only for meaningful new issues. No shutdown or environment changes authorized.
+
+---
+
 # 2026-09-25 09:22 UTC — Qwen MMLU complete and independently audited; Llama running
 
 Read `docs/mmlu-diagonal-qwen-results-20260925.zh-CN.md`. Qwen all14,042 raw token means, post0–28 plus pre_final28 finished in4965.79s (~82.8min), **2379/2379 candidates with a converged solution**. Of7137 restarts,7122 converged;15 excluded but preserved. All150 ICL selections independently recomputed,10 HSS exports full-hash validated,30 primary selected arrays checked; CPU audit passed44.32s. No upper-bound warning; actual K search adaptive, not exhaustive. 2% postK=[7,15,21,22,27,23,29,32,27,43,46,36,43,34,38,31,38,38,37,38,56,49,49,38,37,33,28,25,29]; pre_finalK24. L20 0%=59,2–5%=56 is descriptive, not proof of distinct computational modes.

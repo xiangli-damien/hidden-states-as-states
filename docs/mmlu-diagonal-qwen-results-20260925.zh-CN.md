@@ -1,6 +1,6 @@
 # Qwen2 × MMLU 对角 GMM：完成结果
 
-**Qwen2-7B-Instruct 的 MMLU 全量 14,042 条已完成。** 覆盖存储层 0–28，以及单独的最后一层 pre-RMSNorm，共 30 组向量。拟合和导出用时 **4,965.8 秒，约 82.8 分钟**；此前缓存准备与等待 steering 的时间不包含在内。Llama-3.2-1B 已随后接续，本文只报告完成的 Qwen 结果。
+**Qwen2-7B-Instruct 的 MMLU 全量 14,042 条已完成。** 覆盖存储层 0–28，以及单独的最后一层 pre-RMSNorm，共 30 组向量。拟合和导出用时 **4,965.8 秒，约 82.8 分钟**；此前缓存准备与等待 steering 的时间不包含在内。Llama-3.2-1B 随后也已完成，见 [两模型最终结果](mmlu-diagonal-final-results-20260925.zh-CN.md)；本文保留完整 Qwen 表格。
 
 ## 数据与选择规则
 
