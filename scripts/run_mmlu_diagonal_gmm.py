@@ -111,6 +111,26 @@ def wait_predecessor(root,cfg):
         time.sleep(30)
 
 
+def gpu_preflight(root):
+    """Only called after the predecessor exits; compare identical parameters."""
+    path=root/'gpu_preflight.json'
+    if path.exists():return
+    rng=np.random.default_rng(11);x=rng.normal(size=(137,9))+10000
+    cpu=ResidentDiagonalEM(x,device='cpu',chunk_size=31)
+    p,_=cpu.initialize(4,42);initial=cpu.model(p,False,0)
+    ll,updated,ent,prob=cpu.evaluate(p,probabilities=True)
+    gpu=ResidentDiagonalEM(x,device='cuda:0',chunk_size=31)
+    gl,gu,ge,gp=gpu.evaluate(gpu.parameters(initial),probabilities=True)
+    np.testing.assert_allclose(gp,prob,atol=1e-8,rtol=1e-7)
+    np.testing.assert_allclose([ll,ent],[gl,ge],atol=1e-8,rtol=1e-8)
+    cm,gm=cpu.model(updated,False,1),gpu.model(gu,False,1)
+    np.testing.assert_allclose(cm.means_,gm.means_,atol=1e-8,rtol=0)
+    np.testing.assert_allclose(cm.covariances_,gm.covariances_,atol=1e-8,rtol=0)
+    write_json(path,dict(passed=True,max_probability_error=float(abs(gp-prob).max()),
+        mean_loglik_error=abs(gl-ll),entropy_error=abs(ge-ent),
+        covariance_max_error=float(abs(cm.covariances_-gm.covariances_).max())))
+
+
 def load_candidate(path):
     marker=json.loads((path/'complete.json').read_text())
     for f,digest_value in marker['files'].items():assert sha(path/f)==digest_value
@@ -289,6 +309,7 @@ def run(config,prepare_only=False):
         gpu_lock=Path('/tmp/hss-gpu-cuda_0.lock').open('a');fcntl.flock(gpu_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         import torch
         torch.set_num_threads(cfg['threads'])
+        gpu_preflight(root)
         for model in cfg['models']:
             if not (root/model['key']/'COMPLETE.json').exists():run_model(root,cfg,model,snapshots[model['key']])
         write_json(root/'COMPLETE.json',dict(models=[m['key'] for m in cfg['models']],completed_utc=datetime.now(timezone.utc).isoformat()))
