@@ -1,3 +1,11 @@
+# 2026-09-25 — complete steering report delivered
+
+Read `docs/steering-complete-report-20260925.zh-CN.md` for the consolidated sink pilot, follow-up C0–C3, original local projection, correctness-targeted region intervention, all ten exploratory ablations and scoring sensitivity. Small sourced metrics and three figures live in `docs/steering-report-20260925`; portable result-only bundle under `results/steering-complete-20260925.zip`. Builder verifies six source hashes and all ten ablation count pairs. This is a report/export only, with no new experiments or rescoring. Preserve original primary scores and explicit historical repetition-penalty mismatch (1.05 versus 1.0). No stable held-out correction benefit established; D10 remains exploratory and not better than original Local8 on the same subset. 3A not run, 3B unavailable.
+
+**All current bounded experiments are finished. Do not restart any queue or launch further scientific work.** Preserve existing quiet half-hour monitoring and daily Git policy.
+
+---
+
 # 2026-09-25 09:55 UTC — both MMLU GMM jobs complete; audit/delivery complete
 
 Read `docs/mmlu-diagonal-final-results-20260925.zh-CN.md`. Queue finished **09:39:37UTC**,7591.23s from launch (~2h6m31s including preparation/waiting),GPU idle at09:54. Qwen2379 candidates/30layer-views/82.8min; Llama1386/18layer-views/37.7min. All3765candidates have converged solutions; total11295restarts,11258converged,37excluded but saved. No upper-bound warnings. Both CPU independent audits pass: all candidate/restart metadata,240selections,20full-hash HSS exports and48primary-array checks. Nonselected restart arrays were not all rehashed; no claims beyond audit scope.

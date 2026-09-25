@@ -1,0 +1,3188 @@
+{
+  "scope": "Qwen2-7B-Instruct steering; frozen results through 2026-09-25; no new fitting or rescoring",
+  "pilot": {
+    "complete": true,
+    "selection": {
+      "alpha": 0.3,
+      "dev": [
+        {
+          "alpha": 0.1,
+          "boxed_count": 7,
+          "questions": 16
+        },
+        {
+          "alpha": 0.3,
+          "boxed_count": 9,
+          "questions": 16
+        },
+        {
+          "alpha": 1.0,
+          "boxed_count": 8,
+          "questions": 16
+        }
+      ],
+      "criterion": "Max dev complete-boxed count; ties prefer smallest alpha",
+      "test_gate": "Run held-out comparison even if dev shows no gain; do not search more",
+      "dev_record_hashes": {
+        "outputs/math_2956/zero.json": "903ab2170df6c3e1208472322f95cc69d541197ed2147fe6146bd6e757b69bf8",
+        "outputs/math_2956/hss_0.1.json": "98a3d9f716e6414a277fa5af6f14bbe938e9380f6947ebf1e7a72ab6422d2ac3",
+        "outputs/math_2956/hss_0.3.json": "fa6389d77bce8277cb79eb9b0cc046fc01bd10006acc5f911f4505e7413609f3",
+        "outputs/math_2956/hss_1.json": "46e52863ecf07203df4128299ea797a7755447efc6440d78e98bac662eca1055",
+        "outputs/math_2299/zero.json": "eb02c6c117453e3fbce03c8fb256a07dc25526a1df08ab6dd47219c88fe0fb89",
+        "outputs/math_2299/hss_0.1.json": "db437226431d67fc033b75ea23e51d11cb2b031e5da51aa4a764d8a7ddbfe818",
+        "outputs/math_2299/hss_0.3.json": "266d827a8e8e3517dba0c79147671262962854566c19ffd214f9ed5984850dbc",
+        "outputs/math_2299/hss_1.json": "eac4b8ec67f8fd95929f5ad969e86888b4ac674f9bc74876a342220414c0c9c8",
+        "outputs/math_2968/zero.json": "8f60c5d4ac74f6f0fc67b16656211e02a6129bf57277a28bf7c433f1fb4d1b7c",
+        "outputs/math_2968/hss_0.1.json": "57e92ee75844f2967b84c4f54a38c6d9234201daf6aa07a062793b36d507c2df",
+        "outputs/math_2968/hss_0.3.json": "2f3d2177d1806637164094bd3cd3c570ea94a28901807b44c345c49f23192fef",
+        "outputs/math_2968/hss_1.json": "8700a0335b3e2ea57f0665b764c3b5447023cd1461c3f7fc87af0202c8a37678",
+        "outputs/math_2409/zero.json": "c6b0a406dad3c896f35845e6335c40608ccf895c50cc69b80f867100c47adfb3",
+        "outputs/math_2409/hss_0.1.json": "f770e03e7923e709c33c15188d8a764d1e60633d1fc0f35e20abef7156eb2701",
+        "outputs/math_2409/hss_0.3.json": "e2b4a8095dfbc8f33a9368e4e063831c3c4b6478e98aab15da5ef7024999be9e",
+        "outputs/math_2409/hss_1.json": "8e1e3452c85406945166d6ac3a665436347058605cfff7ca5e002d4a9dd78066",
+        "outputs/math_2223/zero.json": "ec6f9901c094e050a52a39722ee15b6bad5b44f99c75a7f2dc5e926ba9138c4c",
+        "outputs/math_2223/hss_0.1.json": "cbcc794d89996cd1c3d93d0fa00d3fb0b6a690e765f7b7af53032323a224c31b",
+        "outputs/math_2223/hss_0.3.json": "d3f0bd242e7b6a86be1d6403e218a88eea09ec31453a7e12eb074c2fcfef779d",
+        "outputs/math_2223/hss_1.json": "ad33335dc6aa525303f829d0542ceb487d97f3e12cd588382a6b4d37b1cfa0b1",
+        "outputs/math_2507/zero.json": "e1de3a86c1212dbd9398b5b00ef5d0a4ea01e08d33225b1f4834b3fa1db37065",
+        "outputs/math_2507/hss_0.1.json": "456f4ce5a57049ecddbcec569e0735a4cf9f7ce4459826b43bebad4548654d61",
+        "outputs/math_2507/hss_0.3.json": "1f87f4283b1fdfae0fe98e93b4a1d98d52f9a502d8103827880c0a306b246387",
+        "outputs/math_2507/hss_1.json": "41648fdeaf9dc6725f486a20a6e58ee80fcda5bf63acabd3f9ae767387145b78",
+        "outputs/math_2406/zero.json": "ed50444ad11470f6926ac71a7e3b7e05286fb99f69f13596d11824a73d07c5c8",
+        "outputs/math_2406/hss_0.1.json": "750f85d115df2f7855f6f366fe54626a01816e219802aea95b659c19e3aa9ebb",
+        "outputs/math_2406/hss_0.3.json": "905716614ab2ea69bcdd0e862b8571a60a4273c9d9d4daecd4d0dc772b710926",
+        "outputs/math_2406/hss_1.json": "a5973a8232c9d1f30e2a71bdca7556061433c8ecdc413c11d28b3421181a232c",
+        "outputs/math_4566/zero.json": "418ab5895195bc432cab7d68fef937bf6442d39fe60b0e7f90992ad9a0fb0b5c",
+        "outputs/math_4566/hss_0.1.json": "9793bd6cdbcb3ca78d17d1657e189122929329c224af16bbd6294b9a842aa94c",
+        "outputs/math_4566/hss_0.3.json": "0e5c726328636296b447fc5c92d62efa17aafe30faaa47b292e82c7762169385",
+        "outputs/math_4566/hss_1.json": "6195343cad545c78b2b68e28002b3d9d91bfd3651b365f4f0ebd9b4124bb21d3",
+        "outputs/math_2148/zero.json": "e31992e03bc46d00e0cb78a8425aaf3e140ae30bd5932920c90ec5709c3caf4a",
+        "outputs/math_2148/hss_0.1.json": "a248df61e86bc93ad22e3de216151dc6f299b2f4fb030b0f0f471de1fd56645d",
+        "outputs/math_2148/hss_0.3.json": "966d6a6c165cc1b083a0af542ee53c9bc9115de1eacb8e761621f08be29dfac2",
+        "outputs/math_2148/hss_1.json": "fb92c120254464fb30ed3de00fd52824ff52e380b7d2d2876d032191c5322096",
+        "outputs/math_447/zero.json": "350cc81eaeefc64d8cf04675993ae7b39ec0cabf467fa3139212c70e3b4699c2",
+        "outputs/math_447/hss_0.1.json": "046fa3315a2f74bdb41d9c045bf75db5fb9f277c457da8e1e89f61d0f1fba722",
+        "outputs/math_447/hss_0.3.json": "323853bd92010ac135aa69e2aacae7590fd462fa10cf6577a70ced50ed8cead3",
+        "outputs/math_447/hss_1.json": "d65825dfeb6e091b393ab70f207d25a46fe78b3d2b5066d78b57c23370fe9a8d",
+        "outputs/math_4934/zero.json": "3a7b3f3486b75aeca26b9e89247928859dec38e1b23530391e155d3eb378dcef",
+        "outputs/math_4934/hss_0.1.json": "34b6b2ee6970978ab948905f632c1a1fb53fb4ed45dd2a10bc0dc7e54e67223a",
+        "outputs/math_4934/hss_0.3.json": "ffdeab6d97be1b31c881a1b05927a463954af7099eb25f604e4046c29a7c4901",
+        "outputs/math_4934/hss_1.json": "f17d94d0c3c4fa6da1adeb5e958e381d5becf92e560f826eeacfddfecc289217",
+        "outputs/math_2783/zero.json": "e7fefb55686d66106c203fb406f4abe473df56607c3c02d1b7bc7f24e4baa039",
+        "outputs/math_2783/hss_0.1.json": "25b10f9b6fd308b92e33119f2b74f949ffa9318852afb7b5a23d4c9426b3f90c",
+        "outputs/math_2783/hss_0.3.json": "0e3a5cceb691be2eebd89f77a3c45111994a7e247da3dcd60ae4a9dc25c57f24",
+        "outputs/math_2783/hss_1.json": "891e1d305c3c774168696ad268c740a0a6b6815f2888ae57ea8090b5280a83fc",
+        "outputs/math_2379/zero.json": "2738daf34267326c4cd99f8edc916b0dee484248fc1b37a24e06aebe78d3144c",
+        "outputs/math_2379/hss_0.1.json": "21cdf154d821dfabb23057d08a51e06711e200366c84768b90178219637babbb",
+        "outputs/math_2379/hss_0.3.json": "038f44d5addd7fbb30d631c4f92b660abb2fb9c9a21484f6e0b1260912405711",
+        "outputs/math_2379/hss_1.json": "6de7330c5ad5c0362b074a46c14ff8fa56ba080217c184c8528cd481a3664210",
+        "outputs/math_2555/zero.json": "f7d29d0c267dc004deadc3f838b5d8d348e87362e058b3f971f8a9920afc950d",
+        "outputs/math_2555/hss_0.1.json": "755bddef061e22848d1103a70828eece806c6726f13b7477bb0a1b18b9c486a1",
+        "outputs/math_2555/hss_0.3.json": "1331413fb7dfb3f7d30e12a79eb8398b6f6e08604572bde54828eebf29503922",
+        "outputs/math_2555/hss_1.json": "c42b0315aaa726a5da54c3997c264f294d0caf12b6e2c2d464e0599341fdcfdc",
+        "outputs/math_3062/zero.json": "7ecaaca8e773d50b991afed07ad28fb866ae576afda543ef05e4e70ce7e779c3",
+        "outputs/math_3062/hss_0.1.json": "9826d1dc3509db316ae525b0f2dc9da366904b10377d11ad6113f62fe2ac248d",
+        "outputs/math_3062/hss_0.3.json": "3143a2c79f7a8edcd06e6a9edb0888d2acec0e8e349d321ab62b77fc857370d8",
+        "outputs/math_3062/hss_1.json": "504b307c9cd377c9727f9bec22ef4ff5dbbf6fa2b819f1ea727a117857735e84",
+        "outputs/math_4607/zero.json": "c527cc10ca7f731dd720534eddb715e08c69065ce7f8aaf5df59f31e7fae0069",
+        "outputs/math_4607/hss_0.1.json": "33fdfa22c2e36be302663c972e0d58862a3296c514508097d80f1bb0bd3fbc7f",
+        "outputs/math_4607/hss_0.3.json": "683a9580d5166b5bb98337cd9954eb2654b832dea7f6431dfc2058404ac7d8ad",
+        "outputs/math_4607/hss_1.json": "dd2d33af20c67de79572ddb429b021a312e419df9f3dc0e3e98c16c1cc778f43"
+      }
+    },
+    "results": {
+      "sink_test": {
+        "zero": {
+          "n": 55,
+          "boxed_count": 26,
+          "boxed_rate": 0.4727272727272727,
+          "correct_count": 7,
+          "correct_rate": 0.12727272727272726,
+          "permissive_parse_rate": 1.0,
+          "truncated": 4,
+          "mean_tokens": 918.6363636363636
+        },
+        "hss": {
+          "n": 55,
+          "boxed_count": 26,
+          "boxed_rate": 0.4727272727272727,
+          "correct_count": 4,
+          "correct_rate": 0.07272727272727272,
+          "permissive_parse_rate": 1.0,
+          "truncated": 8,
+          "mean_tokens": 983.0727272727273
+        },
+        "random": {
+          "n": 55,
+          "boxed_count": 29,
+          "boxed_rate": 0.5272727272727272,
+          "correct_count": 6,
+          "correct_rate": 0.10909090909090909,
+          "permissive_parse_rate": 1.0,
+          "truncated": 6,
+          "mean_tokens": 986.8727272727273
+        }
+      },
+      "normal_test": {
+        "zero": {
+          "n": 100,
+          "boxed_count": 78,
+          "boxed_rate": 0.78,
+          "correct_count": 44,
+          "correct_rate": 0.44,
+          "permissive_parse_rate": 1.0,
+          "truncated": 5,
+          "mean_tokens": 514.71
+        },
+        "hss": {
+          "n": 100,
+          "boxed_count": 78,
+          "boxed_rate": 0.78,
+          "correct_count": 43,
+          "correct_rate": 0.43,
+          "permissive_parse_rate": 1.0,
+          "truncated": 3,
+          "mean_tokens": 502.95
+        },
+        "random": {
+          "n": 100,
+          "boxed_count": 81,
+          "boxed_rate": 0.81,
+          "correct_count": 45,
+          "correct_rate": 0.45,
+          "permissive_parse_rate": 1.0,
+          "truncated": 3,
+          "mean_tokens": 534.51
+        }
+      }
+    },
+    "paired": {
+      "sink_test": {
+        "complete_boxed_hss_minus_random": {
+          "n": 55,
+          "difference": -0.05454545454545454,
+          "ci95": [
+            -0.2,
+            0.10909090909090909
+          ],
+          "wins": 8,
+          "losses": 11,
+          "one_sided_exact_p": 0.8203582763671875
+        },
+        "complete_boxed_hss_minus_zero": {
+          "n": 55,
+          "difference": 0.0,
+          "ci95": [
+            -0.14545454545454545,
+            0.14545454545454545
+          ],
+          "wins": 9,
+          "losses": 9,
+          "one_sided_exact_p": 0.5927352905273438
+        },
+        "correct_hss_minus_random": {
+          "n": 55,
+          "difference": -0.03636363636363636,
+          "ci95": [
+            -0.12727272727272726,
+            0.05454545454545454
+          ],
+          "wins": 2,
+          "losses": 4,
+          "one_sided_exact_p": 0.890625
+        },
+        "correct_hss_minus_zero": {
+          "n": 55,
+          "difference": -0.05454545454545454,
+          "ci95": [
+            -0.12727272727272726,
+            0.0
+          ],
+          "wins": 0,
+          "losses": 3,
+          "one_sided_exact_p": 1.0
+        }
+      },
+      "normal_test": {
+        "complete_boxed_hss_minus_random": {
+          "n": 100,
+          "difference": -0.03,
+          "ci95": [
+            -0.12,
+            0.05
+          ],
+          "wins": 8,
+          "losses": 11,
+          "one_sided_exact_p": 0.8203582763671875
+        },
+        "complete_boxed_hss_minus_zero": {
+          "n": 100,
+          "difference": 0.0,
+          "ci95": [
+            -0.09,
+            0.09
+          ],
+          "wins": 10,
+          "losses": 10,
+          "one_sided_exact_p": 0.5880985260009766
+        },
+        "correct_hss_minus_random": {
+          "n": 100,
+          "difference": -0.02,
+          "ci95": [
+            -0.07,
+            0.03
+          ],
+          "wins": 2,
+          "losses": 4,
+          "one_sided_exact_p": 0.890625
+        },
+        "correct_hss_minus_zero": {
+          "n": 100,
+          "difference": -0.01,
+          "ci95": [
+            -0.06,
+            0.04
+          ],
+          "wins": 3,
+          "losses": 4,
+          "one_sided_exact_p": 0.7734375
+        }
+      }
+    },
+    "predeclared_success": false,
+    "limitations": [
+      "Frozen unsupervised map fit on all5000 responses (transductive); historical test is not fresh data",
+      "One frozen random direction only; no claim of superiority to all random directions",
+      "Boxed compliance measures answer formatting; correctness is a separate secondary endpoint",
+      "Cohort selected by historical baseline response; no online sink detector is being validated"
+    ]
+  },
+  "followup_step1": {
+    "groups": {
+      "sink_test": {
+        "historical": {
+          "n": 55,
+          "in_sink": 55,
+          "correct": 2,
+          "boxed": 14,
+          "unboxed": 41,
+          "forced_correct": 1,
+          "original_or_forced_correct": 3
+        },
+        "zero": {
+          "n": 55,
+          "in_sink": 25,
+          "correct": 7,
+          "boxed": 26,
+          "unboxed": 29,
+          "forced_correct": 2,
+          "original_or_forced_correct": 8
+        },
+        "hss": {
+          "n": 55,
+          "in_sink": 19,
+          "correct": 4,
+          "boxed": 26,
+          "unboxed": 29,
+          "forced_correct": 2,
+          "original_or_forced_correct": 5
+        },
+        "random": {
+          "n": 55,
+          "in_sink": 22,
+          "correct": 6,
+          "boxed": 29,
+          "unboxed": 26,
+          "forced_correct": 1,
+          "original_or_forced_correct": 7
+        },
+        "Q0_n": 25,
+        "exit_hss_vs_random": {
+          "n": 25,
+          "a_success": 10,
+          "b_success": 9,
+          "only_a": 5,
+          "only_b": 4,
+          "both": 5,
+          "neither": 11,
+          "mcnemar_p": 1.0
+        },
+        "text_reproduction_rate": 0.0,
+        "reproduction_warning": false,
+        "direction_shift": {
+          "14": {
+            "mean_hss": 0.5359317929991945,
+            "mean_random": 0.37130159220065584,
+            "wilcoxon_two_sided_p": 0.989405085059867
+          },
+          "27": {
+            "mean_hss": 3.7084827976855,
+            "mean_random": 2.8446675726904487,
+            "wilcoxon_two_sided_p": 0.8008062575570309
+          }
+        }
+      },
+      "normal_test": {
+        "historical": {
+          "n": 100,
+          "in_sink": 0,
+          "correct": 52,
+          "boxed": 100,
+          "unboxed": 0,
+          "forced_correct": 0,
+          "original_or_forced_correct": 52
+        },
+        "zero": {
+          "n": 100,
+          "in_sink": 2,
+          "correct": 44,
+          "boxed": 78,
+          "unboxed": 22,
+          "forced_correct": 7,
+          "original_or_forced_correct": 50
+        },
+        "hss": {
+          "n": 100,
+          "in_sink": 1,
+          "correct": 43,
+          "boxed": 78,
+          "unboxed": 22,
+          "forced_correct": 9,
+          "original_or_forced_correct": 49
+        },
+        "random": {
+          "n": 100,
+          "in_sink": 2,
+          "correct": 45,
+          "boxed": 81,
+          "unboxed": 19,
+          "forced_correct": 7,
+          "original_or_forced_correct": 50
+        },
+        "Q0_n": 2,
+        "exit_hss_vs_random": {
+          "n": 2,
+          "a_success": 1,
+          "b_success": 1,
+          "only_a": 1,
+          "only_b": 1,
+          "both": 0,
+          "neither": 0,
+          "mcnemar_p": 1.0
+        },
+        "text_reproduction_rate": 0.0,
+        "reproduction_warning": true,
+        "direction_shift": {
+          "14": {
+            "mean_hss": 0.05889331732876599,
+            "mean_random": 0.012262065103277564,
+            "wilcoxon_two_sided_p": 0.8885175660122755
+          },
+          "27": {
+            "mean_hss": 0.023695859446911695,
+            "mean_random": 0.28362888371627865,
+            "wilcoxon_two_sided_p": 0.2721701147382193
+          }
+        }
+      }
+    },
+    "sink_global": 24,
+    "L_late": 27,
+    "limitation": "Descriptive re-encoding of the single-random-direction historical test cohort; forced suffixes are unhooked."
+  },
+  "followup_decision": {
+    "spec_version": "1.1-reviewed",
+    "params": {
+      "alpha": 0.3,
+      "tau_percentile": 75.0,
+      "n_ctrl_iso": 5,
+      "n_ctrl_man": 5,
+      "bootstrap_B": 10000,
+      "seed": 20260925,
+      "collateral_abs_bound": -0.1,
+      "tie_order": [
+        "C1",
+        "C3",
+        "C2",
+        "C0"
+      ],
+      "min_repeat_chars": 20,
+      "min_loop_tokens": 20,
+      "type_min_correct": 20,
+      "type_min_sink": 10,
+      "tau_sample_responses": 300,
+      "tau_max_tokens_per_response": 200,
+      "force_string": "\n\nTherefore, the final answer is $\\boxed{",
+      "force_max_new_tokens": 40,
+      "retry_k": 4,
+      "retry_temperature": 0.7,
+      "controls_fraction": 0.95,
+      "hook_layer": 14,
+      "chart_rank": 8,
+      "projection_zero_relative": 1e-06,
+      "normal_screen_questions": 100,
+      "max_new_tokens": 2048,
+      "freeze_utc": "2026-09-26T01:59:00+00:00",
+      "finish_reserve_seconds": 3600,
+      "identity_replay_questions": 10,
+      "retry_top_p": 1.0
+    },
+    "c0_generation_beats_random": false,
+    "per_candidate": {
+      "C0": {
+        "null_family": "CTRL_ADD",
+        "n_sink": 97,
+        "n_loop": 96,
+        "n_normal": 100,
+        "n_normal_nll": 100,
+        "mean_d_ans": -0.055349930045530966,
+        "ci95_d_ans": [
+          -0.17688124499370142,
+          0.06184256568397443
+        ],
+        "ctrl_mean_d_ans": {
+          "CTRL_ADD_iso_1": 0.09607397649706025,
+          "CTRL_ADD_iso_2": -0.015748269779165994,
+          "CTRL_ADD_iso_3": 0.03223111457431439,
+          "CTRL_ADD_iso_4": 0.08196030449621457,
+          "CTRL_ADD_iso_5": 0.06985026290736247,
+          "CTRL_ADD_man_1": -0.03618031924532861,
+          "CTRL_ADD_man_2": -0.04139584610142659,
+          "CTRL_ADD_man_3": -0.07682324438979946,
+          "CTRL_ADD_man_4": -0.027738364701418532,
+          "CTRL_ADD_man_5": -0.01709300955546271
+        },
+        "n_controls_exceeded": 1,
+        "n_controls_needed": 10,
+        "mean_d_loop": 0.004887042677570195,
+        "mean_d_col_ans": -0.006560688018798828,
+        "ctrl_min_d_col_ans": -0.0038181114196777343,
+        "ctrl_median_d_col_ans": -0.0012371349334716797,
+        "mean_d_col_nll": 0.0003386188853302696,
+        "P1_ci_above_zero": false,
+        "P2_beats_controls": false,
+        "P3_collateral_ok": false,
+        "P4_loop_up_reported": true,
+        "passed": false
+      },
+      "C1": {
+        "null_family": "CTRL_CLAMP",
+        "n_sink": 97,
+        "n_loop": 96,
+        "n_normal": 100,
+        "n_normal_nll": 100,
+        "mean_d_ans": 0.0572440353865476,
+        "ci95_d_ans": [
+          -0.08064436273476512,
+          0.19133890977839824
+        ],
+        "ctrl_mean_d_ans": {
+          "CTRL_CLAMP_iso_1": 0.01850525374265061,
+          "CTRL_CLAMP_iso_2": 0.013326428600193299,
+          "CTRL_CLAMP_iso_3": 0.016913935081245973,
+          "CTRL_CLAMP_iso_4": 0.017921388763742347,
+          "CTRL_CLAMP_iso_5": 0.02829750296995812,
+          "CTRL_CLAMP_man_1": 0.029096632888636637,
+          "CTRL_CLAMP_man_2": 0.023429624813119162,
+          "CTRL_CLAMP_man_3": 0.04066239189855831,
+          "CTRL_CLAMP_man_4": 0.04143925303036405,
+          "CTRL_CLAMP_man_5": 0.009931357865481032
+        },
+        "n_controls_exceeded": 10,
+        "n_controls_needed": 10,
+        "mean_d_loop": 0.08671072941870994,
+        "mean_d_col_ans": -0.0003691864013671875,
+        "ctrl_min_d_col_ans": -0.003680534362792969,
+        "ctrl_median_d_col_ans": -0.0008548355102539063,
+        "mean_d_col_nll": -0.00035438922077871084,
+        "P1_ci_above_zero": false,
+        "P2_beats_controls": true,
+        "P3_collateral_ok": true,
+        "P4_loop_up_reported": true,
+        "passed": false
+      },
+      "C2": {
+        "null_family": "CTRL_ADD",
+        "n_sink": 97,
+        "n_loop": 96,
+        "n_normal": 100,
+        "n_normal_nll": 100,
+        "mean_d_ans": -0.0552994049701494,
+        "ci95_d_ans": [
+          -0.16362423306887908,
+          0.050584078818252345
+        ],
+        "ctrl_mean_d_ans": {
+          "CTRL_ADD_iso_1": 0.09607397649706025,
+          "CTRL_ADD_iso_2": -0.015748269779165994,
+          "CTRL_ADD_iso_3": 0.03223111457431439,
+          "CTRL_ADD_iso_4": 0.08196030449621457,
+          "CTRL_ADD_iso_5": 0.06985026290736247,
+          "CTRL_ADD_man_1": -0.03618031924532861,
+          "CTRL_ADD_man_2": -0.04139584610142659,
+          "CTRL_ADD_man_3": -0.07682324438979946,
+          "CTRL_ADD_man_4": -0.027738364701418532,
+          "CTRL_ADD_man_5": -0.01709300955546271
+        },
+        "n_controls_exceeded": 1,
+        "n_controls_needed": 10,
+        "mean_d_loop": 0.003867890582689659,
+        "mean_d_col_ans": -0.003814716339111328,
+        "ctrl_min_d_col_ans": -0.0038181114196777343,
+        "ctrl_median_d_col_ans": -0.0012371349334716797,
+        "mean_d_col_nll": 0.00045308795302850845,
+        "P1_ci_above_zero": false,
+        "P2_beats_controls": false,
+        "P3_collateral_ok": true,
+        "P4_loop_up_reported": true,
+        "passed": false
+      },
+      "C3": {
+        "null_family": "CTRL_PROJ",
+        "n_sink": 97,
+        "n_loop": 96,
+        "n_normal": 100,
+        "n_normal_nll": 100,
+        "mean_d_ans": 0.05589586434905062,
+        "ci95_d_ans": [
+          -0.014608647897071444,
+          0.12820721508301408
+        ],
+        "ctrl_mean_d_ans": {
+          "CTRL_PROJ_iso_1": -0.019905178817277103,
+          "CTRL_PROJ_iso_2": -0.044327647415633054,
+          "CTRL_PROJ_iso_3": 0.11169163222165451,
+          "CTRL_PROJ_iso_4": 0.059300403005069065,
+          "CTRL_PROJ_iso_5": 0.05455095743395619,
+          "CTRL_PROJ_man_1": -0.003754802585877094,
+          "CTRL_PROJ_man_2": 0.053860123624506685,
+          "CTRL_PROJ_man_3": -0.004816989308780001,
+          "CTRL_PROJ_man_4": 0.010883990022325023,
+          "CTRL_PROJ_man_5": 0.02139412004923083
+        },
+        "n_controls_exceeded": 8,
+        "n_controls_needed": 10,
+        "mean_d_loop": 0.002624207506727831,
+        "mean_d_col_ans": -0.001775074005126953,
+        "ctrl_min_d_col_ans": -0.003670616149902344,
+        "ctrl_median_d_col_ans": -0.0015201759338378906,
+        "mean_d_col_nll": 0.0006195433048497568,
+        "P1_ci_above_zero": false,
+        "P2_beats_controls": false,
+        "P3_collateral_ok": true,
+        "P4_loop_up_reported": true,
+        "passed": false
+      }
+    },
+    "pass_set": [],
+    "screen_miscalibrated": false,
+    "tie_ci_best_minus_candidate": {},
+    "step3": "3B",
+    "chosen": null,
+    "matched_control_for_3A": null,
+    "reason": "no new candidate (C1-C3) passed P1-P3"
+  },
+  "followup_step3": {
+    "state": "blocked_missing_artifacts",
+    "branch": "3B",
+    "required": [
+      "original_Qwen_section5.2_prefix_map",
+      "frozen_HSS_NB_parameters",
+      "Table2_threshold"
+    ],
+    "reason": "Original Qwen artifacts were not located; no substitute detector was trained or silently used.",
+    "decided_unix": 1790321650.8228164
+  },
+  "original_projection": {
+    "rows": [
+      {
+        "stage": "validation",
+        "method": "baseline",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.46875,
+          "ci95": [
+            0.34375,
+            0.59375
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 0.0,
+        "correct_to_wrong_expected": 0.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0,
+        "mean_length": 555.96875,
+        "intervention_coverage": 0.0
+      },
+      {
+        "stage": "validation",
+        "method": "c1_0.1",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.546875,
+          "ci95": [
+            0.421875,
+            0.671875
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.078125,
+          "ci95": [
+            0.0,
+            0.15625
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 6.0,
+        "correct_to_wrong_expected": 1.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0,
+        "mean_length": 527.84375,
+        "intervention_coverage": 1.0
+      },
+      {
+        "stage": "validation",
+        "method": "c1_0.3",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.46875,
+          "ci95": [
+            0.34375,
+            0.59375
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.0,
+          "ci95": [
+            -0.078125,
+            0.078125
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 3.0,
+        "correct_to_wrong_expected": 3.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.015625,
+        "mean_length": 557.859375,
+        "intervention_coverage": 1.0
+      },
+      {
+        "stage": "validation",
+        "method": "c1_1.0",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.578125,
+          "ci95": [
+            0.453125,
+            0.6878906249999979
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.109375,
+          "ci95": [
+            0.0,
+            0.21875
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 11.0,
+        "correct_to_wrong_expected": 4.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0,
+        "mean_length": 516.546875,
+        "intervention_coverage": 1.0
+      },
+      {
+        "stage": "validation",
+        "method": "c2_0.1",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.46875,
+          "ci95": [
+            0.34375,
+            0.59375
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 0.0,
+        "correct_to_wrong_expected": 0.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0,
+        "mean_length": 549.0,
+        "intervention_coverage": 0.203125
+      },
+      {
+        "stage": "validation",
+        "method": "c2_0.3",
+        "n": 64,
+        "accuracy": {
+          "estimate": 0.46875,
+          "ci95": [
+            0.34375,
+            0.59375
+          ],
+          "n": 64
+        },
+        "delta_accuracy": {
+          "estimate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 64
+        },
+        "wrong_to_correct_expected": 0.0,
+        "correct_to_wrong_expected": 0.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0,
+        "mean_length": 551.453125,
+        "intervention_coverage": 0.203125
+      },
+      {
+        "stage": "test",
+        "method": "baseline",
+        "n": 256,
+        "accuracy": {
+          "estimate": 0.50390625,
+          "ci95": [
+            0.4453125,
+            0.5625
+          ],
+          "n": 256
+        },
+        "delta_accuracy": {
+          "estimate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n": 256
+        },
+        "wrong_to_correct_expected": 0.0,
+        "correct_to_wrong_expected": 0.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.03125,
+        "mean_length": 520.2578125,
+        "intervention_coverage": 0.0
+      },
+      {
+        "stage": "test",
+        "method": "c1_1.0",
+        "n": 256,
+        "accuracy": {
+          "estimate": 0.5078125,
+          "ci95": [
+            0.4453125,
+            0.56640625
+          ],
+          "n": 256
+        },
+        "delta_accuracy": {
+          "estimate": 0.00390625,
+          "ci95": [
+            -0.0390625,
+            0.046875
+          ],
+          "n": 256
+        },
+        "wrong_to_correct_expected": 17.0,
+        "correct_to_wrong_expected": 16.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.0234375,
+        "mean_length": 517.140625,
+        "intervention_coverage": 1.0
+      },
+      {
+        "stage": "test",
+        "method": "shared8",
+        "n": 256,
+        "accuracy": {
+          "estimate": 0.49609375,
+          "ci95": [
+            0.43359375,
+            0.5546875
+          ],
+          "n": 256
+        },
+        "delta_accuracy": {
+          "estimate": -0.0078125,
+          "ci95": [
+            -0.0546875,
+            0.03515625
+          ],
+          "n": 256
+        },
+        "wrong_to_correct_expected": 17.0,
+        "correct_to_wrong_expected": 19.0,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.05078125,
+        "mean_length": 558.91015625,
+        "intervention_coverage": 1.0
+      },
+      {
+        "stage": "test",
+        "method": "random_seed_average",
+        "n": 256,
+        "accuracy": {
+          "estimate": 0.49348958333333326,
+          "ci95": [
+            0.43619791666666663,
+            0.5520833333333333
+          ],
+          "n": 256
+        },
+        "delta_accuracy": {
+          "estimate": -0.010416666666666673,
+          "ci95": [
+            -0.04166666666666667,
+            0.020833333333333322
+          ],
+          "n": 256
+        },
+        "wrong_to_correct_expected": 11.666666666666666,
+        "correct_to_wrong_expected": 14.333333333333336,
+        "parse_failure_rate": 0.0,
+        "truncation_rate": 0.028645833333333332,
+        "mean_length": 527.7734375,
+        "intervention_coverage": 1.0
+      }
+    ],
+    "paired_controls": [
+      {
+        "stage": "test",
+        "method": "c1_1.0",
+        "control": "shared8",
+        "accuracy_difference": {
+          "estimate": 0.01171875,
+          "ci95": [
+            -0.0390625,
+            0.0625
+          ],
+          "n": 256
+        }
+      },
+      {
+        "stage": "test",
+        "method": "c1_1.0",
+        "control": "random_seed_average",
+        "accuracy_difference": {
+          "estimate": 0.014322916666666675,
+          "ci95": [
+            -0.020833333333333325,
+            0.050781250000000014
+          ],
+          "n": 256
+        }
+      }
+    ],
+    "unit": "Question; random3seeds averaged within question; pointwise intervals, no multiple-comparison correction",
+    "limitation": "Historical MATH; policy held out only for this selection. Free generation, not teacher-forced fidelity."
+  },
+  "extension_comparisons": [
+    {
+      "group": "MATH_primary256_supplement",
+      "method": "local8",
+      "control": "baseline",
+      "n": 256,
+      "accuracy": 0.5078125,
+      "control_accuracy": 0.50390625,
+      "delta_accuracy": {
+        "estimate": 0.00390625,
+        "ci95": [
+          -0.04296875,
+          0.046875
+        ],
+        "n": 256
+      },
+      "wrong_to_correct": 17,
+      "correct_to_wrong": 16,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0234375,
+      "mean_length": 517.140625,
+      "mean_seconds": 11.971923000756306,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_original_validation64",
+      "method": "local8",
+      "control": "baseline",
+      "n": 64,
+      "accuracy": 0.578125,
+      "control_accuracy": 0.46875,
+      "delta_accuracy": {
+        "estimate": 0.109375,
+        "ci95": [
+          -0.015625,
+          0.21875
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 11,
+      "correct_to_wrong": 4,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 516.546875,
+      "mean_seconds": 12.179238894999799,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "GSM8K_frozen_transfer",
+      "method": "local8",
+      "control": "baseline",
+      "n": 64,
+      "accuracy": 0.953125,
+      "control_accuracy": 0.96875,
+      "delta_accuracy": {
+        "estimate": -0.015625,
+        "ci95": [
+          -0.0625,
+          0.03125
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 1,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.015625,
+      "mean_length": 253.4375,
+      "mean_seconds": 5.8137585824406415,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "GSM8K_frozen_transfer",
+      "method": "shared8",
+      "control": "baseline",
+      "n": 64,
+      "accuracy": 0.9375,
+      "control_accuracy": 0.96875,
+      "delta_accuracy": {
+        "estimate": -0.03125,
+        "ci95": [
+          -0.09375,
+          0.03125
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 1,
+      "correct_to_wrong": 3,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 233.421875,
+      "mean_seconds": 5.326406675188991,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "GSM8K_frozen_transfer",
+      "method": "wrong_local8",
+      "control": "baseline",
+      "n": 64,
+      "accuracy": 0.9375,
+      "control_accuracy": 0.96875,
+      "delta_accuracy": {
+        "estimate": -0.03125,
+        "ci95": [
+          -0.078125,
+          0.0
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 233.390625,
+      "mean_seconds": 5.324197642894433,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "GSM8K_frozen_transfer",
+      "method": "local8",
+      "control": "shared8",
+      "n": 64,
+      "accuracy": 0.953125,
+      "control_accuracy": 0.9375,
+      "delta_accuracy": {
+        "estimate": 0.015625,
+        "ci95": [
+          -0.03125,
+          0.078125
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 2,
+      "correct_to_wrong": 1,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.015625,
+      "mean_length": 253.4375,
+      "mean_seconds": 5.8137585824406415,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "GSM8K_frozen_transfer",
+      "method": "local8",
+      "control": "wrong_local8",
+      "n": 64,
+      "accuracy": 0.953125,
+      "control_accuracy": 0.9375,
+      "delta_accuracy": {
+        "estimate": 0.015625,
+        "ci95": [
+          -0.03125,
+          0.078125
+        ],
+        "n": 64
+      },
+      "wrong_to_correct": 2,
+      "correct_to_wrong": 1,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.015625,
+      "mean_length": 253.4375,
+      "mean_seconds": 5.8137585824406415,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D01",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.46875,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.0625,
+        "ci95": [
+          -0.09375,
+          0.21875
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 4,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.09375,
+      "mean_length": 631.28125,
+      "mean_seconds": 14.86929568872074,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D01",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.46875,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.15625,
+        "ci95": [
+          -0.28125,
+          -0.03125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 5,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.09375,
+      "mean_length": 631.28125,
+      "mean_seconds": 14.86929568872074,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D02",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.4375,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.03125,
+        "ci95": [
+          -0.15625,
+          0.21875
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 5,
+      "correct_to_wrong": 4,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0625,
+      "mean_length": 683.40625,
+      "mean_seconds": 16.13276357361974,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D02",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.4375,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.1875,
+        "ci95": [
+          -0.34375,
+          -0.03125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 1,
+      "correct_to_wrong": 7,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0625,
+      "mean_length": 683.40625,
+      "mean_seconds": 16.13276357361974,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D03",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.09375,
+        "ci95": [
+          -0.03125,
+          0.21875
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 4,
+      "correct_to_wrong": 1,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 603.90625,
+      "mean_seconds": 14.553288254406652,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D03",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.125,
+        "ci95": [
+          -0.25,
+          -0.03125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 4,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 603.90625,
+      "mean_seconds": 14.553288254406652,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D05",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.4375,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.03125,
+        "ci95": [
+          -0.125,
+          0.1875
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 4,
+      "correct_to_wrong": 3,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 599.1875,
+      "mean_seconds": 14.004417814063345,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D05",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.4375,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.1875,
+        "ci95": [
+          -0.3125,
+          -0.0625
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 6,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 599.1875,
+      "mean_seconds": 14.004417814063345,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D06",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.53125,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.125,
+        "ci95": [
+          -0.0625,
+          0.3125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 7,
+      "correct_to_wrong": 3,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 587.15625,
+      "mean_seconds": 13.996984258599696,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D06",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.53125,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.09375,
+        "ci95": [
+          -0.25,
+          0.0625
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 2,
+      "correct_to_wrong": 5,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 587.15625,
+      "mean_seconds": 13.996984258599696,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D04",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.53125,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.125,
+        "ci95": [
+          0.03125,
+          0.25
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 4,
+      "correct_to_wrong": 0,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 565.1875,
+      "mean_seconds": 13.348086681431596,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D04",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.53125,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.09375,
+        "ci95": [
+          -0.21875,
+          0.0
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 3,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 565.1875,
+      "mean_seconds": 13.348086681431596,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D04",
+      "control": "original_alpha_plus0.3",
+      "n": 32,
+      "accuracy": 0.53125,
+      "control_accuracy": 0.46875,
+      "delta_accuracy": {
+        "estimate": 0.0625,
+        "ci95": [
+          -0.09375,
+          0.25
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 5,
+      "correct_to_wrong": 3,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 565.1875,
+      "mean_seconds": 13.348086681431596,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D07",
+      "control": "baseline_same_trigger",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.5,
+      "delta_accuracy": {
+        "estimate": 0.0,
+        "ci95": [
+          -0.125,
+          0.125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 2,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 565.46875,
+      "mean_seconds": 13.334892464732548,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D07",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.125,
+        "ci95": [
+          -0.28125,
+          0.0
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 1,
+      "correct_to_wrong": 5,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 565.46875,
+      "mean_seconds": 13.334892464732548,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D08",
+      "control": "baseline_same_trigger",
+      "n": 32,
+      "accuracy": 0.5625,
+      "control_accuracy": 0.46875,
+      "delta_accuracy": {
+        "estimate": 0.09375,
+        "ci95": [
+          -0.03125,
+          0.21875
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 4,
+      "correct_to_wrong": 1,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 535.15625,
+      "mean_seconds": 12.04000077411547,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D08",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.5625,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.0625,
+        "ci95": [
+          -0.15625,
+          0.0
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 535.15625,
+      "mean_seconds": 12.04000077411547,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D09",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.09375,
+        "ci95": [
+          -0.0625,
+          0.25
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 5,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 574.5,
+      "mean_seconds": 13.826064119068178,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D09",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.5,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.125,
+        "ci95": [
+          -0.28125,
+          0.0
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 1,
+      "correct_to_wrong": 5,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.03125,
+      "mean_length": 574.5,
+      "mean_seconds": 13.826064119068178,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D10",
+      "control": "baseline",
+      "n": 32,
+      "accuracy": 0.5625,
+      "control_accuracy": 0.40625,
+      "delta_accuracy": {
+        "estimate": 0.15625,
+        "ci95": [
+          0.03125,
+          0.28125
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 5,
+      "correct_to_wrong": 0,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 542.375,
+      "mean_seconds": 12.938633446468884,
+      "intervention_coverage": 1.0
+    },
+    {
+      "group": "MATH_exploratory32",
+      "method": "D10",
+      "control": "original_local8_t16",
+      "n": 32,
+      "accuracy": 0.5625,
+      "control_accuracy": 0.625,
+      "delta_accuracy": {
+        "estimate": -0.0625,
+        "ci95": [
+          -0.15625,
+          0.0
+        ],
+        "n": 32
+      },
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 2,
+      "parse_failure_rate": 0.0,
+      "truncation_rate": 0.0,
+      "mean_length": 542.375,
+      "mean_seconds": 12.938633446468884,
+      "intervention_coverage": 1.0
+    }
+  ],
+  "partial_AI_review": {
+    "full_semantic_rescoring_complete": false,
+    "independent_human_review": false,
+    "records": 2336,
+    "AI_reviewed_records": 438,
+    "AI_reviewed_unique_answers": 359,
+    "unreviewed_records": 1898,
+    "limitations": [
+      "AI reading is fallible and was targeted by automatic label changes, not a representative audit sample.",
+      "Methods/labels were hidden in the new packet; earlier experiment aggregates were known. No independent human review.",
+      "Labels assess final mathematical answer, not proof validity or formatting compliance.",
+      "Uniform exact-text overrides applied to all conditions; no method-specific edits, new selection or raw-score replacement.",
+      "2000 paired question bootstrap draws, seed9242026; pointwise intervals conditional on labels, not scoring uncertainty.",
+      "Exploratory32 and originalvalidation64 are historical selection data; not new confirmation."
+    ],
+    "comparisons": [
+      {
+        "group": "MATH_primary256_supplement",
+        "method": "local8",
+        "control": "baseline",
+        "fully_AI_read_pairs": 49,
+        "original": {
+          "n": 256,
+          "method_accuracy": 0.5078125,
+          "control_accuracy": 0.50390625,
+          "delta": 0.00390625,
+          "ci95": [
+            -0.04296875,
+            0.046875
+          ],
+          "repair": 17,
+          "damage": 16
+        },
+        "v1": {
+          "n": 256,
+          "method_accuracy": 0.56640625,
+          "control_accuracy": 0.5703125,
+          "delta": -0.00390625,
+          "ci95": [
+            -0.05078125,
+            0.0390625
+          ],
+          "repair": 17,
+          "damage": 18
+        },
+        "v2": {
+          "n": 256,
+          "method_accuracy": 0.5859375,
+          "control_accuracy": 0.6015625,
+          "delta": -0.015625,
+          "ci95": [
+            -0.0625,
+            0.02734375
+          ],
+          "repair": 15,
+          "damage": 19
+        },
+        "partial_AI_review": {
+          "n": 256,
+          "method_accuracy": 0.58984375,
+          "control_accuracy": 0.6015625,
+          "delta": -0.01171875,
+          "ci95": [
+            -0.05859375,
+            0.03125
+          ],
+          "repair": 15,
+          "damage": 18
+        }
+      },
+      {
+        "group": "MATH_original_validation64",
+        "method": "local8",
+        "control": "baseline",
+        "fully_AI_read_pairs": 28,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.578125,
+          "control_accuracy": 0.46875,
+          "delta": 0.109375,
+          "ci95": [
+            -0.015625,
+            0.21875
+          ],
+          "repair": 11,
+          "damage": 4
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.640625,
+          "control_accuracy": 0.53125,
+          "delta": 0.109375,
+          "ci95": [
+            0.0,
+            0.21875
+          ],
+          "repair": 10,
+          "damage": 3
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.65625,
+          "control_accuracy": 0.53125,
+          "delta": 0.125,
+          "ci95": [
+            0.015625,
+            0.234375
+          ],
+          "repair": 11,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.671875,
+          "control_accuracy": 0.546875,
+          "delta": 0.125,
+          "ci95": [
+            0.03125,
+            0.234375
+          ],
+          "repair": 10,
+          "damage": 2
+        }
+      },
+      {
+        "group": "GSM8K_frozen_transfer",
+        "method": "local8",
+        "control": "baseline",
+        "fully_AI_read_pairs": 5,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.96875,
+          "delta": -0.015625,
+          "ci95": [
+            -0.0625,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 2
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.96875,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.96875,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.984375,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        }
+      },
+      {
+        "group": "GSM8K_frozen_transfer",
+        "method": "shared8",
+        "control": "baseline",
+        "fully_AI_read_pairs": 5,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.9375,
+          "control_accuracy": 0.96875,
+          "delta": -0.03125,
+          "ci95": [
+            -0.09375,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 3
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.96875,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.96875,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.984375,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        }
+      },
+      {
+        "group": "GSM8K_frozen_transfer",
+        "method": "wrong_local8",
+        "control": "baseline",
+        "fully_AI_read_pairs": 4,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.9375,
+          "control_accuracy": 0.96875,
+          "delta": -0.03125,
+          "ci95": [
+            -0.078125,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.9375,
+          "control_accuracy": 0.96875,
+          "delta": -0.03125,
+          "ci95": [
+            -0.078125,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.96875,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.984375,
+          "delta": -0.015625,
+          "ci95": [
+            -0.046875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        }
+      },
+      {
+        "group": "GSM8K_frozen_transfer",
+        "method": "local8",
+        "control": "shared8",
+        "fully_AI_read_pairs": 5,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.9375,
+          "delta": 0.015625,
+          "ci95": [
+            -0.03125,
+            0.078125
+          ],
+          "repair": 2,
+          "damage": 1
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.953125,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.96875,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.96875,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        }
+      },
+      {
+        "group": "GSM8K_frozen_transfer",
+        "method": "local8",
+        "control": "wrong_local8",
+        "fully_AI_read_pairs": 4,
+        "original": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.9375,
+          "delta": 0.015625,
+          "ci95": [
+            -0.03125,
+            0.078125
+          ],
+          "repair": 2,
+          "damage": 1
+        },
+        "v1": {
+          "n": 64,
+          "method_accuracy": 0.953125,
+          "control_accuracy": 0.9375,
+          "delta": 0.015625,
+          "ci95": [
+            -0.03125,
+            0.0625
+          ],
+          "repair": 2,
+          "damage": 1
+        },
+        "v2": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.953125,
+          "delta": 0.015625,
+          "ci95": [
+            -0.03125,
+            0.078125
+          ],
+          "repair": 2,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 64,
+          "method_accuracy": 0.96875,
+          "control_accuracy": 0.96875,
+          "delta": 0.0,
+          "ci95": [
+            -0.046875,
+            0.046875
+          ],
+          "repair": 1,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D01",
+        "control": "baseline",
+        "fully_AI_read_pairs": 10,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.40625,
+          "delta": 0.0625,
+          "ci95": [
+            -0.09375,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 2
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.46875,
+          "delta": 0.0625,
+          "ci95": [
+            -0.09375,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 2
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.4375,
+          "delta": 0.125,
+          "ci95": [
+            0.0,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.46875,
+          "delta": 0.125,
+          "ci95": [
+            -0.0007812499999999556,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D01",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 10,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.625,
+          "delta": -0.15625,
+          "ci95": [
+            -0.28125,
+            -0.03125
+          ],
+          "repair": 0,
+          "damage": 5
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.65625,
+          "delta": -0.125,
+          "ci95": [
+            -0.25,
+            -0.03125
+          ],
+          "repair": 0,
+          "damage": 4
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D02",
+        "control": "baseline",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.4375,
+          "control_accuracy": 0.40625,
+          "delta": 0.03125,
+          "ci95": [
+            -0.15625,
+            0.21875
+          ],
+          "repair": 5,
+          "damage": 4
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.46875,
+          "delta": 0.03125,
+          "ci95": [
+            -0.15625,
+            0.21875
+          ],
+          "repair": 5,
+          "damage": 4
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.4375,
+          "delta": 0.125,
+          "ci95": [
+            -0.03125,
+            0.28125
+          ],
+          "repair": 6,
+          "damage": 2
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            -0.0625,
+            0.25
+          ],
+          "repair": 5,
+          "damage": 2
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D02",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.4375,
+          "control_accuracy": 0.625,
+          "delta": -0.1875,
+          "ci95": [
+            -0.34375,
+            -0.03125
+          ],
+          "repair": 1,
+          "damage": 7
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.65625,
+          "delta": -0.15625,
+          "ci95": [
+            -0.3125,
+            0.0
+          ],
+          "repair": 1,
+          "damage": 6
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 4
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 4
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D03",
+        "control": "baseline",
+        "fully_AI_read_pairs": 11,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.40625,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.4375,
+          "delta": 0.125,
+          "ci95": [
+            0.0,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D03",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 11,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.625,
+          "delta": -0.125,
+          "ci95": [
+            -0.25,
+            -0.03125
+          ],
+          "repair": 0,
+          "damage": 4
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D05",
+        "control": "baseline",
+        "fully_AI_read_pairs": 12,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.4375,
+          "control_accuracy": 0.40625,
+          "delta": 0.03125,
+          "ci95": [
+            -0.125,
+            0.1875
+          ],
+          "repair": 4,
+          "damage": 3
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.46875,
+          "delta": 0.0,
+          "ci95": [
+            -0.15625,
+            0.15625
+          ],
+          "repair": 3,
+          "damage": 3
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.4375,
+          "delta": 0.03125,
+          "ci95": [
+            -0.125,
+            0.1875
+          ],
+          "repair": 4,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.46875,
+          "delta": 0.0,
+          "ci95": [
+            -0.15625,
+            0.15625
+          ],
+          "repair": 3,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D05",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 12,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.4375,
+          "control_accuracy": 0.625,
+          "delta": -0.1875,
+          "ci95": [
+            -0.3125,
+            -0.0625
+          ],
+          "repair": 0,
+          "damage": 6
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.65625,
+          "delta": -0.1875,
+          "ci95": [
+            -0.3125,
+            -0.0625
+          ],
+          "repair": 0,
+          "damage": 6
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.65625,
+          "delta": -0.1875,
+          "ci95": [
+            -0.3125,
+            -0.0625
+          ],
+          "repair": 0,
+          "damage": 6
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.46875,
+          "control_accuracy": 0.65625,
+          "delta": -0.1875,
+          "ci95": [
+            -0.3125,
+            -0.0625
+          ],
+          "repair": 0,
+          "damage": 6
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D06",
+        "control": "baseline",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.40625,
+          "delta": 0.125,
+          "ci95": [
+            -0.0625,
+            0.3125
+          ],
+          "repair": 7,
+          "damage": 3
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.46875,
+          "delta": 0.125,
+          "ci95": [
+            -0.0625,
+            0.3125
+          ],
+          "repair": 7,
+          "damage": 3
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.4375,
+          "delta": 0.15625,
+          "ci95": [
+            -0.03125,
+            0.34375
+          ],
+          "repair": 8,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.46875,
+          "delta": 0.15625,
+          "ci95": [
+            0.0,
+            0.34375
+          ],
+          "repair": 7,
+          "damage": 2
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D06",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.25,
+            0.0625
+          ],
+          "repair": 2,
+          "damage": 5
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.18828124999999996,
+            0.09375
+          ],
+          "repair": 2,
+          "damage": 4
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.18828124999999996,
+            0.09375
+          ],
+          "repair": 2,
+          "damage": 4
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.65625,
+          "delta": -0.03125,
+          "ci95": [
+            -0.15625,
+            0.125
+          ],
+          "repair": 2,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D04",
+        "control": "baseline",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.40625,
+          "delta": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ],
+          "repair": 4,
+          "damage": 0
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            0.0,
+            0.1875
+          ],
+          "repair": 3,
+          "damage": 0
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.4375,
+          "delta": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ],
+          "repair": 4,
+          "damage": 0
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            0.0,
+            0.1875
+          ],
+          "repair": 3,
+          "damage": 0
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D04",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 13,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D04",
+        "control": "original_alpha_plus0.3",
+        "fully_AI_read_pairs": 12,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.46875,
+          "delta": 0.0625,
+          "ci95": [
+            -0.09375,
+            0.25
+          ],
+          "repair": 5,
+          "damage": 3
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.53125,
+          "delta": 0.03125,
+          "ci95": [
+            -0.125,
+            0.1875
+          ],
+          "repair": 4,
+          "damage": 3
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.5,
+          "delta": 0.0625,
+          "ci95": [
+            -0.09375,
+            0.25
+          ],
+          "repair": 5,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.53125,
+          "delta": 0.03125,
+          "ci95": [
+            -0.125,
+            0.1875
+          ],
+          "repair": 4,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D07",
+        "control": "baseline_same_trigger",
+        "fully_AI_read_pairs": 6,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.5,
+          "delta": 0.0,
+          "ci95": [
+            -0.125,
+            0.125
+          ],
+          "repair": 2,
+          "damage": 2
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.53125,
+          "delta": 0.03125,
+          "ci95": [
+            -0.0625,
+            0.15625
+          ],
+          "repair": 2,
+          "damage": 1
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.53125,
+          "delta": 0.0,
+          "ci95": [
+            -0.125,
+            0.125
+          ],
+          "repair": 2,
+          "damage": 2
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.53125,
+          "delta": 0.03125,
+          "ci95": [
+            -0.0625,
+            0.15625
+          ],
+          "repair": 2,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D07",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 9,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.625,
+          "delta": -0.125,
+          "ci95": [
+            -0.28125,
+            0.0
+          ],
+          "repair": 1,
+          "damage": 5
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 4
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.53125,
+          "control_accuracy": 0.65625,
+          "delta": -0.125,
+          "ci95": [
+            -0.28125,
+            0.0
+          ],
+          "repair": 1,
+          "damage": 5
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 4
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D08",
+        "control": "baseline_same_trigger",
+        "fully_AI_read_pairs": 6,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.5,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.5,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.5,
+          "delta": 0.09375,
+          "ci95": [
+            -0.03125,
+            0.21875
+          ],
+          "repair": 4,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D08",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 9,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D09",
+        "control": "baseline",
+        "fully_AI_read_pairs": 12,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.40625,
+          "delta": 0.09375,
+          "ci95": [
+            -0.0625,
+            0.25
+          ],
+          "repair": 5,
+          "damage": 2
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.46875,
+          "delta": 0.09375,
+          "ci95": [
+            -0.0625,
+            0.25
+          ],
+          "repair": 5,
+          "damage": 2
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.4375,
+          "delta": 0.15625,
+          "ci95": [
+            0.0,
+            0.3125
+          ],
+          "repair": 6,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.46875,
+          "delta": 0.125,
+          "ci95": [
+            0.0,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D09",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 12,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5,
+          "control_accuracy": 0.625,
+          "delta": -0.125,
+          "ci95": [
+            -0.28125,
+            0.0
+          ],
+          "repair": 1,
+          "damage": 5
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.65625,
+          "delta": -0.09375,
+          "ci95": [
+            -0.21875,
+            0.03125
+          ],
+          "repair": 1,
+          "damage": 4
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.1875,
+            0.0625
+          ],
+          "repair": 1,
+          "damage": 3
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.59375,
+          "control_accuracy": 0.65625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.1875,
+            0.0625
+          ],
+          "repair": 1,
+          "damage": 3
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D10",
+        "control": "baseline",
+        "fully_AI_read_pairs": 11,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.40625,
+          "delta": 0.15625,
+          "ci95": [
+            0.03125,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 0
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.46875,
+          "delta": 0.15625,
+          "ci95": [
+            0.03125,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 0
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.4375,
+          "delta": 0.1875,
+          "ci95": [
+            0.0625,
+            0.34375
+          ],
+          "repair": 6,
+          "damage": 0
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.46875,
+          "delta": 0.15625,
+          "ci95": [
+            0.03125,
+            0.28125
+          ],
+          "repair": 5,
+          "damage": 0
+        }
+      },
+      {
+        "group": "MATH_exploratory32",
+        "method": "D10",
+        "control": "original_local8_t16",
+        "fully_AI_read_pairs": 11,
+        "original": {
+          "n": 32,
+          "method_accuracy": 0.5625,
+          "control_accuracy": 0.625,
+          "delta": -0.0625,
+          "ci95": [
+            -0.15625,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 2
+        },
+        "v1": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.65625,
+          "delta": -0.03125,
+          "ci95": [
+            -0.09375,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        },
+        "v2": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.65625,
+          "delta": -0.03125,
+          "ci95": [
+            -0.09375,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        },
+        "partial_AI_review": {
+          "n": 32,
+          "method_accuracy": 0.625,
+          "control_accuracy": 0.65625,
+          "delta": -0.03125,
+          "ci95": [
+            -0.09375,
+            0.0
+          ],
+          "repair": 0,
+          "damage": 1
+        }
+      },
+      {
+        "group": "MATH_primary256_supplement",
+        "method": "local8",
+        "control": "shared8",
+        "fully_AI_read_pairs": 15,
+        "original": {
+          "n": 256,
+          "method_accuracy": 0.5078125,
+          "control_accuracy": 0.49609375,
+          "delta": 0.01171875,
+          "ci95": [
+            -0.0390625,
+            0.0625
+          ],
+          "repair": 22,
+          "damage": 19
+        },
+        "v1": {
+          "n": 256,
+          "method_accuracy": 0.56640625,
+          "control_accuracy": 0.54296875,
+          "delta": 0.0234375,
+          "ci95": [
+            -0.0234375,
+            0.0703125
+          ],
+          "repair": 22,
+          "damage": 16
+        },
+        "v2": {
+          "n": 256,
+          "method_accuracy": 0.5859375,
+          "control_accuracy": 0.58203125,
+          "delta": 0.00390625,
+          "ci95": [
+            -0.046875,
+            0.0546875
+          ],
+          "repair": 23,
+          "damage": 22
+        },
+        "partial_AI_review": {
+          "n": 256,
+          "method_accuracy": 0.58984375,
+          "control_accuracy": 0.58203125,
+          "delta": 0.0078125,
+          "ci95": [
+            -0.04296875,
+            0.05859375
+          ],
+          "repair": 23,
+          "damage": 21
+        }
+      },
+      {
+        "group": "MATH_primary256_supplement",
+        "method": "local8",
+        "control": "random_mean3",
+        "fully_AI_read_pairs": 14,
+        "original": {
+          "n": 256,
+          "method_accuracy": 0.5078125,
+          "control_accuracy": 0.49348958333333326,
+          "delta": 0.014322916666666675,
+          "ci95": [
+            -0.020833333333333322,
+            0.04817708333333334
+          ]
+        },
+        "v1": {
+          "n": 256,
+          "method_accuracy": 0.56640625,
+          "control_accuracy": 0.5572916666666666,
+          "delta": 0.009114583333333339,
+          "ci95": [
+            -0.024739583333333325,
+            0.04427083333333334
+          ]
+        },
+        "v2": {
+          "n": 256,
+          "method_accuracy": 0.5859375,
+          "control_accuracy": 0.5911458333333334,
+          "delta": -0.0052083333333333304,
+          "ci95": [
+            -0.03906249999999999,
+            0.029947916666666675
+          ]
+        },
+        "partial_AI_review": {
+          "n": 256,
+          "method_accuracy": 0.58984375,
+          "control_accuracy": 0.5924479166666667,
+          "delta": -0.002604166666666659,
+          "ci95": [
+            -0.03645833333333332,
+            0.03125000000000001
+          ]
+        }
+      }
+    ]
+  },
+  "source_sha256": {
+    "sink-direction-20260925/summary.json": "dfc517abafb2dfcf1dab0f63669196b67339025d411e9267bf42696df67e8d0b",
+    "sink-followup-20260925/plan.json": "62739d48d57d9a35983e49014a596c06e5f047b7904328115f5d63ef9242e435",
+    "sink-followup-20260925/step2_screen_long.parquet": "e8c92f8b65abf09fc228851c5bfc0d230d3433518d4089bffe76b1c6a3c83db3",
+    "revision-completion-20260924/steering_summary.json": "c22e0fae0b5810b9281c25ab915996dba89d6a452aaea92cea853ee5039e81aa",
+    "projection-first-v2-20260924/summary.json": "b3f46f4bd02031f40ce0a3963b66dfd0daaf8fc231030249c869a3c7458637e2",
+    "projection-first-v2-20260924/scoring_reviewed_sensitivity_v2/summary.json": "43464782a738d8e7fb21cc271aea73c8bd4b0d4865e9e0e25afedfe9dc0e1837",
+    "sink-followup-20260925/step2_decision.json": "cd8e598b0459e50fbea9c8dfd620c359c719eabdb31fa0c110f4a08cda1d4f2b",
+    "sink-followup-20260925/step1_summary.json": "69ad628f9ed42d386db7090c6fc981e818ce62bb0e726908bb7be4c26bafe235",
+    "sink-followup-20260925/step3_status.json": "4e24574b77bb97278181b999767a029419f62a5cec3adb095d1f52aac3a4d0ab"
+  }
+}
