@@ -1,3 +1,13 @@
+# 2026-09-25 sink follow-up execution handoff
+
+- Predecessor `/lambda/nfs/dami/hss/sink-direction-20260925` completed **529/529**; CPU hash/statistics audit passed. Final boxed sink counts zero/HSS/random=26/26/29; automatic correct=7/4/6. No preregistered success. See `sink-direction-final-20260925.zh-CN.md`.
+- User explicitly authorized review and execution of the two supplied follow-up files **after** predecessor completion. Originals and reviewed amendments are under `docs/sink-followup-20260925/`.
+- New namespace: `/lambda/nfs/dami/hss/sink-followup-20260925`. Preparation freezes hashes, source and parameters before Steps1–3. `scripts/run_hss_followup.py --stage all` executes GPU preflight, full Step1, A-only new direction/threshold preparation, full35-condition Step2, CPU D6 decision and conditional full3A under time gate.
+- 3B requires the original Qwen prefix map, NB parameters and threshold. Only Llama prefix monitors located so far. Do not substitute or claim 3B ran; report `blocked_missing_artifacts` if D6 selects it. User asked why; explanation: it is the alarm for choosing a sentence to rewind, not another LLM.
+- GPU code is not yet declared validated here. Read the remote preflight receipt and status before making any execution claim. Preserve original pilot sources and records. Source flow local tests → GitHub push → remote fetch/ff-only. No agents, no environment upgrades, no duplicate model processes.
+
+---
+
 # Revision experiment execution state
 
 ## 2026-09-25 — newly authorized response-mean sink-direction pilot
