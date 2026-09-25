@@ -79,3 +79,26 @@ def test_future_tokens_do_not_change_prefix_hidden_states():
         a=model(torch.tensor([[1,2,3,4,5]]),output_hidden_states=True,use_cache=False)
         b=model(torch.tensor([[1,2,3,9,8]]),output_hidden_states=True,use_cache=False)
     for x,y in zip(a.hidden_states,b.hidden_states):torch.testing.assert_close(x[:,:3],y[:,:3],rtol=0,atol=0)
+
+
+def test_end_to_end_risk_and_independent_audit(tmp_path,monkeypatch):
+    pytest.importorskip('sklearn');pytest.importorskip('pandas')
+    import pandas as pd
+    import evaluate_delta_online_pilot as evaluate
+    import audit_report_delta_online_pilot as audit
+    from revision_common import write_json,write_npz,sha
+    rng=np.random.default_rng(82);n=5000;p=4
+    rows=pd.DataFrame({'sample_id':[f'q{i}' for i in range(n)],'split':['train']*3000+['validation']*1000+['test']*1000,
+                       'label':rng.integers(0,2,n),'n_prompt_tokens':rng.integers(10,80,n)})
+    rows.to_parquet(tmp_path/'rows.parquet');state=rng.integers(0,2,(n,p,5));delta=rng.integers(0,2,(n,p,5));kinds=rng.integers(0,6,(n,p))
+    write_npz(tmp_path/'prefix_sequences.npz',state=state,delta=delta,kinds=kinds,lengths=np.full(n,p+1))
+    plan={'cards':{'state':[2]*5,'delta':[2]*5}};write_json(tmp_path/'plan.json',plan)
+    monkeypatch.setattr(evaluate,'verify',lambda root:plan);monkeypatch.setattr(audit,'verify',lambda root:plan)
+    folder=tmp_path/'confidence';folder.mkdir();values=rng.uniform(.1,2,(n,p+1,4)).astype(np.float32)
+    write_npz(folder/'shard_fixture.npz',sample_ids=rows.sample_id.to_numpy(str),values=values)
+    write_json(folder/'shard_fixture.json',{'arrays_sha256':sha(folder/'shard_fixture.npz'),'plan_sha256':sha(tmp_path/'plan.json')})
+    write_json(folder/'_SUCCESS.json',{'files':{f:sha(folder/f) for f in ['shard_fixture.npz','shard_fixture.json']}})
+    cfg={'output':str(tmp_path),'prefixes':[p],'threads':2,'seed':13,'alpha':1,'logistic_c':[.1],'bootstrap':40,'far':.1}
+    evaluate.run(cfg);audit.audit_risk(cfg)
+    import json
+    assert json.loads((tmp_path/'risk/audit.json').read_text())['complete']

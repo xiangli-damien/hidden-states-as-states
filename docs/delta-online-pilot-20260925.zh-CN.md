@@ -35,6 +35,6 @@ GMM完全冻结；共享和局部rank8残差SVD只用原训练token池，每个�
 
 配置 configs/delta_online_pilot_20260925.json；根目录 /lambda/nfs/dami/hss/delta-online-pilot-20260925。本地测试→GitHub→Lambda fetch/ff-only。单GPU；CPU BLAS最多4线程；不升级环境、不改旧实验。
 
-自动队列：准备与冻结 → 补齐前缀confidence → 风险拟合 → 风险独立审计 → 真模型功能冒烟 → 冒烟审计 → 固定功能批次 → raw审计 →统计与报告。源文件冻结后不原地修改，失败保留日志，另开恢复命名空间。报告生成之后还要实际查看PNG/浏览器和检查链接，delivery.json才代表交付完成。
+自动队列：准备与冻结 → 真模型功能冒烟 → 冒烟审计 → 补齐前缀confidence → 风险拟合 → 风险独立审计 → 固定功能批次 → raw审计 →统计与报告。源文件冻结后不原地修改，失败保留日志，另开恢复命名空间。报告生成之后还要实际查看PNG/浏览器和检查链接，delivery.json才代表交付完成。
 
 预估从实施到首轮交付3–5小时；不根据部分测试正负结果改变范围或追加搜索。自由生成Δh steering尚无冻结策略，本轮不自动启动。

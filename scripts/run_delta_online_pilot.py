@@ -198,10 +198,10 @@ def functional(cfg,smoke=False):
 def queue(cfg,path):
     r=Path(cfg['output']);r.mkdir(parents=True,exist_ok=True);lock=(r/'queue.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     cpu=Path(__file__).resolve().parents[1]/'.venv/bin/python';gpu=Path('/lambda/nfs/dami/openact/.venv/bin/python')
-    jobs=[('prepare',cpu,'run_delta_online_pilot.py',['--stage','prepare']),('confidence',gpu,'run_delta_online_pilot.py',['--stage','confidence']),
+    jobs=[('prepare',cpu,'run_delta_online_pilot.py',['--stage','prepare']),('smoke',gpu,'run_delta_online_pilot.py',['--stage','smoke']),
+          ('smoke_audit',gpu,'audit_report_delta_online_pilot.py',['--stage','smoke']),('confidence',gpu,'run_delta_online_pilot.py',['--stage','confidence']),
           ('risk',cpu,'evaluate_delta_online_pilot.py',[]),('risk_audit',cpu,'audit_report_delta_online_pilot.py',['--stage','risk']),
-          ('smoke',gpu,'run_delta_online_pilot.py',['--stage','smoke']),
-          ('smoke_audit',gpu,'audit_report_delta_online_pilot.py',['--stage','smoke']),('functional',gpu,'run_delta_online_pilot.py',['--stage','functional']),
+          ('functional',gpu,'run_delta_online_pilot.py',['--stage','functional']),
           ('audit',gpu,'audit_report_delta_online_pilot.py',['--stage','audit']),('report',cpu,'audit_report_delta_online_pilot.py',['--stage','report'])]
     env=os.environ.copy()
     for k in ['OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS']:env[k]=str(cfg['threads'])
