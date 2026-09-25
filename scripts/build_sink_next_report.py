@@ -94,6 +94,8 @@ def run():
         lines += ['\n## 3. 四个其他高占用状态','\n已按训练集占用人数预选，队列运行中；完整审核结果尚未同步，不报告部分效应。每个状态的 in-B 最多100条，out-B最多100条，不重复采样补足。']
     for ax in axs:ax.spines[['top','right']].set_visible(False)
     fig.savefig(ASSETS/'effects.png',dpi=170);fig.savefig(ASSETS/'effects.svg');plt.close(fig)
+    svg=ASSETS/'effects.svg'
+    svg.write_text('\n'.join(line.rstrip() for line in svg.read_text().splitlines())+'\n')
     lines += ['\n![固定人群与预选层/状态的效应](sink-next-20260925/effects.png)']
     if 4 in summaries:
         s=summaries[4];sink=s['groups']['sink'];normal=s['groups']['normal']
