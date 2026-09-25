@@ -1,5 +1,9 @@
 # Revision experiment execution state
 
+## 2026-09-25 — newly authorized prompt-last map at subsequent tokens
+
+Read **docs/promptlast-tokenwise-20260925.zh-CN.md**. User requests the same frozen prompt-last map at later generated-token positions. New isolated root **/lambda/nfs/dami/hss/promptlast-tokenwise-20260925**, config **configs/promptlast_tokenwise_20260925.json**. First three pre-existing MATH and first three GSM8K cases, all1873stored prediction positions, centroid/shared8/local8 × independent-current-position/cumulative-from-prompt-last plus identity. Same clean observed reference prefixes, not new free generation. No decoder refit. All full-vocabulary distributions saved and independently audited; six-case descriptive results only. Tests and real smoke precede complete run; consult queue_status.json for actual launch/completion. Prior experiments remain frozen and complete. This new authorization supersedes the previous no-pending-experiment note; preserve daily Git policy.
+
 ## 2026-09-24 — prompt-last replacement complete
 
 Read **docs/promptlast-replacement-results-20260924.zh-CN.md**. Root **/lambda/nfs/dami/hss/promptlast-replacement-20260924**, queue471570 complete768/768 with independent raw audit and132statistical checks; real functional155.06s,totalqueue300.40s. Frozen source480415c,planSHA9f0d3728ed6ee32b4e10ccb8c95078db7ffae9a98b8dd931c0d158d77ae601db. Report **http://127.0.0.1:8790/report/index.html**. No pending GPU experiment; original tokenmean/primary/v2 remaincomplete.

@@ -1,0 +1,13 @@
+{
+  "output": "/lambda/nfs/dami/hss/promptlast-tokenwise-20260925",
+  "source": "/lambda/nfs/dami/hss/promptlast-replacement-20260924",
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+  "layer": 14,
+  "threads": 4,
+  "chunk": 32,
+  "per_dataset": 3,
+  "smoke_positions": 4,
+  "methods": ["centroid", "shared8", "local8"],
+  "scope": "First three MATH and first three GSM8K cases in the previously frozen cases.json, selected without new outcomes. Complete stored response trajectories, including EOS if present, no new sampling. Same frozen prompt-last K32 decoder, nearest raw Euclidean routing and frozen bases. Independent one-position and cumulative all-positions-from-prompt-last replacement compared to clean teacher-forced prefixes. Only block14 output is patched. No future tokens used for routing; no accuracy or general population claim."
+}
