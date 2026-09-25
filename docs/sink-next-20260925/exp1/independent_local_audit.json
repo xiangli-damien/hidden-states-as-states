@@ -1,0 +1,10 @@
+{
+  "n": 96,
+  "mean": 0.08706013159559887,
+  "ci95": [
+    0.07663547858560228,
+    0.09775597993527738
+  ],
+  "replicates": 20000,
+  "kind": "Independent numerical cross-check, not independent sample"
+}

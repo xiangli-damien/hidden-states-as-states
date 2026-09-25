@@ -1,0 +1,139 @@
+{
+  "experiment": 1,
+  "plan_sha256": "80aedd973ac71826f216e74648cb20ba21ccb0c00ff939b3b9bca078e2a0e798",
+  "completed_utc": "2026-09-25T16:38:28.371280+00:00",
+  "submission_eligible": true,
+  "records": 384,
+  "summaries": {
+    "matched": {
+      "layer": 14,
+      "groups": {
+        "matched": {
+          "n": 96,
+          "ci_level": 0.95,
+          "c1_vs_none": {
+            "mean": 0.004592775826185837,
+            "ci": [
+              0.0022462524523989232,
+              0.007436356129514811
+            ]
+          },
+          "contrast": {
+            "mean": 0.004592775826185837,
+            "ci": [
+              0.0022462524523989232,
+              0.007436356129514811
+            ]
+          },
+          "individual_deltas": {
+            "NONE": {
+              "mean": 0.0,
+              "ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "C1": {
+              "mean": 0.004592775826185837,
+              "ci": [
+                0.0022462524523989232,
+                0.007436356129514811
+              ]
+            }
+          }
+        },
+        "sink": {
+          "n": 96,
+          "ci_level": 0.95,
+          "c1_vs_none": {
+            "mean": 0.09165290742178471,
+            "ci": [
+              0.08063145075165663,
+              0.10262894573115314
+            ]
+          },
+          "contrast": {
+            "mean": 0.09165290742178471,
+            "ci": [
+              0.08063145075165663,
+              0.10262894573115314
+            ]
+          },
+          "individual_deltas": {
+            "NONE": {
+              "mean": 0.0,
+              "ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "C1": {
+              "mean": 0.09165290742178471,
+              "ci": [
+                0.08063145075165663,
+                0.10262894573115314
+              ]
+            }
+          }
+        }
+      },
+      "primary_paired": {
+        "n": 96,
+        "mean": 0.08706013159559887,
+        "ci": [
+          0.07638351582901479,
+          0.09767768737402324
+        ],
+        "ci_level": 0.95
+      },
+      "exact_only": {
+        "n": 96,
+        "mean": 0.08706013159559887,
+        "ci": [
+          0.07638351582901479,
+          0.09767768737402324
+        ],
+        "ci_level": 0.95
+      },
+      "matching": {
+        "exact": 96,
+        "relaxed": 0,
+        "unmatched": []
+      }
+    }
+  },
+  "geometry": [
+    {
+      "spec": "matched",
+      "set": "matched",
+      "condition": "C1",
+      "n": 96,
+      "active_fraction": 0.34827951890450715,
+      "mean_norm": 1.1329764063514356,
+      "energy": 6093.13513263801,
+      "intended_cosine_weighted": 0.9996549663488258,
+      "sink_leakage_rms": 0.9996565059111681,
+      "exceedance_fraction": 0.34827951890450715,
+      "mean_positive_excess": 1.1324649796200295
+    },
+    {
+      "spec": "matched",
+      "set": "sink",
+      "condition": "C1",
+      "n": 96,
+      "active_fraction": 0.6655967031477995,
+      "mean_norm": 4.583094792188358,
+      "energy": 53774.57687057625,
+      "intended_cosine_weighted": 0.9999548364504255,
+      "sink_leakage_rms": 0.9999548866168291,
+      "exceedance_fraction": 0.6655967031477995,
+      "mean_positive_excess": 4.582566541930039
+    }
+  ],
+  "audit": {
+    "passed": true,
+    "max_relative_energy_error": 0.0,
+    "max_token_tolerance_fraction": 0.0
+  },
+  "notes": "Exploratory on reused questions. Matched metadata does not rule out all confounding; depth effects are not dose-normalized; selected common states do not represent every state."
+}

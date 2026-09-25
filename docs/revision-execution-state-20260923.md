@@ -1,3 +1,15 @@
+# 2026-09-25 16:45 UTC — authorized generalization experiments 1–4
+
+The latest user specification supersedes the older no-new-experiments notes below. Read `docs/sink-next-protocol-20260925.zh-CN.md`. Root `/lambda/nfs/dami/hss/sink-next-20260925`; each experiment has a separate frozen `plan.json`, source/input hashes and UTC. Scripts `run_sink_next.py` / `report_sink_next.py` (experiments 1–3), `run_sink_next_generation.py` / `report_sink_next_generation.py` (experiment 4). Code caebcac / 4f04865. Existing queue PID493893 runs 1→2→3; dependency waiter PID494551 starts experiment4 only after exp3 audit success. Check actual live processes before resuming; do not duplicate. GPU uses pinned OpenAct .venv, CPU audit HSS .venv. Logs `queue.log` and `generation_queue.log` at root.
+
+**Experiment1 complete and audited:** 96 exact type/level pairs, no relaxed/unmatched cases, 192 distinct question groups,384forwards. Both groups use half_sentence. Sink C1−NONE .0916529; matched .00459278; paired difference .0870601,95%CI[.0763835,.0976777]. Sink/matched affected token fractions .66560/.34828; actual norms4.58309/1.13298. Local independent20k index bootstrap reproduces mean and CI. Plan SHA80aedd973ac71826f216e74648cb20ba21ccb0c00ff939b3b9bca078e2a0e798. This excludes type/level alone, not all confounding or differences in realized intervention dose.
+
+Experiment2: same96sink/100normal at six new layers4/8/12/16/20/24,12conditions each,14112records;14 references v3. Experiment3: four most-occupied non-sink states, each up to100in/100out,12conditions; no result-driven state selection. Experiment4:152sink+50normal,3arms=606records, starts with10exact-zero replays before reusing105zero records. If replay differs regenerate all baselines. Online matching is within each arm current activation; diverged arms do not have equal total energy. Complete-boxed and length<2048 primary; two-sided exact McNemar and Holm2. Report every control, state/layer, failures and normal side effects. Experiment5 explicitly deferred; no old MMLU/Table2/collection restart.
+
+Frozen result deadline is user-specified2026-09-26 01:59UTC; late-completing/audited results are discussion-period only. Half-hour heartbeat `hss-token` updated to these finite tasks and preserves daily Git policy. All authors/committers Xiang Li <121291188+xiangli-damien@users.noreply.github.com>. GitHub→Lambda ff-only, no source scp. Do not modify frozen code in place; separate versions for amendments.
+
+---
+
 # 2026-09-25 — energy-matched sink experiment completed and audited
 
 Read `docs/sink-energy-matched-results-20260925.zh-CN.md`, four-sentence English main paragraph included. **v3 completed2352/2352forwards in399.65s; raw CPU audit passes.** Root`/lambda/nfs/dami/hss/sink-energy-matched-20260925-v3`; sourceplanSHAe6160a759f354a05b6461823d792fa8fe3bead7c143920d73d6179a6f8ca44b3; summarySHA22a58cdb78ff9e689979612e8bea055097e4f6c2dda197605738e46ad701b4ad. Local light outputs under same basename inresults; full rawNPZ/JSON stayDami.
