@@ -1,5 +1,7 @@
 # Steering 完整报告
 
+**后续补充：** [逐token能量匹配实验已通过预定检验](sink-energy-matched-results-20260925.zh-CN.md)。C1比十个匹配对照的平均sink后缀NLL增量高0.05614，98.75%区间[0.04643,0.06580]；十项单独校正比较均为正。这是新增的方向敏感功能证据。下文保留此前自由生成与初轮筛选的结果，原有“尚无稳定净纠错／显著逃离”结论仍成立。
+
 **更新：2026-09-25。模型：Qwen2-7B-Instruct。** 本报告以最近的 sink 方向干预及其后续筛选为主，并汇总此前局部投影、目标区域迁移和十项消融。只整理已保存结果，没有新增生成、重选参数或覆盖原评分。
 
 ## 结论先读
@@ -307,7 +309,7 @@ D10 是值得保留的探索性正信号：核验版5修复/0损伤。但它相�
 
 原始完整生成、逐token向量、每步扰动和大模型文件主要留Dami。本次报告只打包结论、轻量指标和图，避免下载全部activation。
 
-机器可读汇总：[metrics.json](steering-report-20260925/metrics.json)。它保留各评分版本、全部消融汇总、筛选规则与来源哈希。再生成命令：`.venv/bin/python scripts/build_steering_summary_bundle.py`；需要已有本地轻量来源结果。报告与三张图的便携包为 `results/steering-complete-20260925.zip`，约 240 KB。
+机器可读汇总：[metrics.json](steering-report-20260925/metrics.json)。它保留各评分版本、全部消融汇总、筛选规则与来源哈希。再生成命令：`.venv/bin/python scripts/build_steering_summary_bundle.py`；需要已有本地轻量来源结果。便携包为 `results/steering-complete-20260925.zip`，已加入能量匹配补充报告、结果与图，约340 KB。
 
 关键已审核来源 SHA256：
 

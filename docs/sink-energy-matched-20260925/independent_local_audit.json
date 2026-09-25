@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "summary_sha256": "22a58cdb78ff9e689979612e8bea055097e4f6c2dda197605738e46ad701b4ad",
+  "independent_bootstrap_B": 20000,
+  "mean_contrast": 0.056140279940140585,
+  "independent_ci9875": [
+    0.04649811609633988,
+    0.06583414969182941
+  ],
+  "minimum_individual_ci995_lower": 0.026549196495894045,
+  "source_table_sha256": "52e8b92342777e3cc52cca69fdcc4562a1daf7e48caf23cefbbfcb5a2b3fb840",
+  "all_recorded_energy_gates_passed": true
+}

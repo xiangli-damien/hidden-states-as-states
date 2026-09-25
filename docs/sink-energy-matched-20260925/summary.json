@@ -1,0 +1,763 @@
+{
+  "config": {
+    "name": "sink-energy-matched-20260925-v3",
+    "source": "/lambda/nfs/dami/hss/sink-followup-20260925",
+    "output": "/lambda/nfs/dami/hss/sink-energy-matched-20260925-v3",
+    "model": "Qwen/Qwen2-7B-Instruct",
+    "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+    "layer": 14,
+    "seed": 20260925,
+    "expected_sink": 96,
+    "expected_normal": 100,
+    "source_table_sha256": "e8c92f8b65abf09fc228851c5bfc0d230d3433518d4089bffe76b1c6a3c83db3",
+    "conditions": [
+      "NONE",
+      "C1",
+      "ORTH_ISO_1",
+      "ORTH_ISO_2",
+      "ORTH_ISO_3",
+      "ORTH_ISO_4",
+      "ORTH_ISO_5",
+      "ORTH_MAN_1",
+      "ORTH_MAN_2",
+      "ORTH_MAN_3",
+      "ORTH_MAN_4",
+      "ORTH_MAN_5"
+    ],
+    "controls": "Reuse the original five isotropic and five non-sink centroid-difference directions; project each orthogonally to the frozen sink axis and normalize without new random draws or selection.",
+    "intervention": "Keep the frozen C1 axis and tau unchanged. At every generated position compute C1 from its original block14 activation. For controls replace its removal direction by the specified orthogonal direction. Match the norm of the actual BF16 C1 update token by token with deterministic scalar bisection; use the identical active-token mask. Prompt remains untouched.",
+    "bisection_steps": 32,
+    "bracket_expansions": 12,
+    "norm_match_relative_tolerance": 0.01,
+    "norm_match_absolute_tolerance": 0.0001,
+    "relative_total_energy_tolerance": 0.002,
+    "baseline_replay_nll_tolerance": 1e-05,
+    "axis_orthogonality_tolerance": 1e-06,
+    "bootstrap_replicates": 100000,
+    "primary_ci_level": 0.9875,
+    "individual_control_ci_level": 0.995,
+    "success_rule": "Energy audit passes, C1 minus mean of all10 controls on sink suffix NLL has positive lower98.75%CI, and C1's point mean exceeds each of all10 control means. Additionally report all10 paired99.5%CIs (Bonferroni10); do not conflate point ranks with significance against every control.",
+    "normal_endpoint": "Whole-response mean NLL on the same100 reference responses selected for automatic correctness and complete boxed answers. Report C1-control mean CI and all individual controls; no invented noninferiority margin.",
+    "data": "Same96 finite-m_loop sink B questions and same100 normal M_B questions; preserve saved token IDs, original cuts and terminal EOS; no generation, refitting or relabeling. Recompute NONE and C1 to audit exact protocol replay.",
+    "scope": "New controls and decision rule frozen before their outcomes, following the prior post-hoc C1 signal. This reuses previously inspected questions and is not fresh-sample confirmation. Correct prior prose: Step2 normal M_B was selected on automated correctness; the earlier free-generation normal cohort was not.",
+    "failure_rule": "Save all records and stop on failed per-token matching, total-energy, missing-input, duplicate, or replay checks; never silently drop cases or substitute approximate controls. Any preflight-only amendment must be separately recorded before outcome comparisons.",
+    "rounding_repair_steps": 32,
+    "numerical_amendment": "Version1 halted after31records because BF16 scalar ray quantization skipped a target norm. No new-control outcome contrasts were inspected. V2 preserves axes, data, hypotheses and all tolerances; only failed token matches receive deterministic outward coordinate-rounding increments, greedily prioritized by squared distance cost to the same ideal control vector per added energy, without exceeding the target energy. Record repaired tokens and actual direction cosines. This is a numerical amendment, not an exactly collinear real-valued update. V2 stopped after307records: individual token errors passed but aggregate energy error0.003398 exceeded0.002. V3 tightens only the internal numerical search target to0.05% norm plus1e-7; outer acceptance criteria and statistical protocol unchanged. All failed attempts retained, no outcome contrasts inspected.",
+    "internal_relative_norm_target": 0.0005,
+    "internal_absolute_norm_target": 1e-07
+  },
+  "plan_sha256": "e6160a759f354a05b6461823d792fa8fe3bead7c143920d73d6179a6f8ca44b3",
+  "record_count": 2352,
+  "primary_ci_level": 0.9875,
+  "individual_ci_level": 0.995,
+  "unit": "question; mean NLL in nats/token; source suffix for sink versus source full response for normal",
+  "groups": {
+    "sink": {
+      "n": 96,
+      "deltas_vs_NONE": {
+        "NONE": {
+          "mean": 0.0,
+          "ci": [
+            0.0,
+            0.0
+          ]
+        },
+        "C1": {
+          "mean": 0.08671072941870994,
+          "ci": [
+            0.07291528848162598,
+            0.10044517543385621
+          ]
+        },
+        "ORTH_ISO_1": {
+          "mean": 0.024298918530307162,
+          "ci": [
+            0.01991449830390309,
+            0.02902902831467208
+          ]
+        },
+        "ORTH_ISO_2": {
+          "mean": 0.01912496087272758,
+          "ci": [
+            0.015450410137003281,
+            0.023015910801336185
+          ]
+        },
+        "ORTH_ISO_3": {
+          "mean": 0.015154174504261759,
+          "ci": [
+            0.011687741318115018,
+            0.018834407805513806
+          ]
+        },
+        "ORTH_ISO_4": {
+          "mean": 0.012387517471421966,
+          "ci": [
+            0.009405773294759999,
+            0.015615486340116943
+          ]
+        },
+        "ORTH_ISO_5": {
+          "mean": 0.02361226728587047,
+          "ci": [
+            0.019043443471058224,
+            0.028481540526927036
+          ]
+        },
+        "ORTH_MAN_1": {
+          "mean": 0.04331486311885165,
+          "ci": [
+            0.03616823178411433,
+            0.05076664674316887
+          ]
+        },
+        "ORTH_MAN_2": {
+          "mean": 0.05111340650487223,
+          "ci": [
+            0.04338739990598146,
+            0.059001197933273734
+          ]
+        },
+        "ORTH_MAN_3": {
+          "mean": 0.04515001153994406,
+          "ci": [
+            0.03842250547819044,
+            0.05198229771947443
+          ]
+        },
+        "ORTH_MAN_4": {
+          "mean": 0.0404939808651748,
+          "ci": [
+            0.034108488716767395,
+            0.04709482041641876
+          ]
+        },
+        "ORTH_MAN_5": {
+          "mean": 0.03105439409226199,
+          "ci": [
+            0.026133755011089298,
+            0.03598250247269518
+          ]
+        }
+      },
+      "control_mean_vs_NONE": {
+        "mean": 0.030570449478569364,
+        "ci": [
+          0.025785476090889554,
+          0.03549137016369469
+        ]
+      },
+      "c1_minus_control_mean": {
+        "mean": 0.056140279940140585,
+        "ci": [
+          0.046426874492153714,
+          0.06579956931077574
+        ]
+      },
+      "c1_minus_each_control": {
+        "ORTH_ISO_1": {
+          "mean": 0.06241181088840278,
+          "ci": [
+            0.050431200500475046,
+            0.07429226628861366
+          ]
+        },
+        "ORTH_ISO_2": {
+          "mean": 0.06758576854598236,
+          "ci": [
+            0.05465565392325729,
+            0.08044746220274221
+          ]
+        },
+        "ORTH_ISO_3": {
+          "mean": 0.07155655491444819,
+          "ci": [
+            0.05838665298996459,
+            0.08459811001502911
+          ]
+        },
+        "ORTH_ISO_4": {
+          "mean": 0.07432321194728798,
+          "ci": [
+            0.06093685514118331,
+            0.08757461884650142
+          ]
+        },
+        "ORTH_ISO_5": {
+          "mean": 0.06309846213283948,
+          "ci": [
+            0.051680414339144574,
+            0.07429254886159602
+          ]
+        },
+        "ORTH_MAN_1": {
+          "mean": 0.04339586629985829,
+          "ci": [
+            0.034062720400242406,
+            0.05284600448489864
+          ]
+        },
+        "ORTH_MAN_2": {
+          "mean": 0.03559732291383772,
+          "ci": [
+            0.026508494339110036,
+            0.04483612405846451
+          ]
+        },
+        "ORTH_MAN_3": {
+          "mean": 0.04156071787876589,
+          "ci": [
+            0.031669026007249274,
+            0.051477420168586724
+          ]
+        },
+        "ORTH_MAN_4": {
+          "mean": 0.04621674855353516,
+          "ci": [
+            0.03678722886175722,
+            0.05566777076873275
+          ]
+        },
+        "ORTH_MAN_5": {
+          "mean": 0.05565633532644796,
+          "ci": [
+            0.0440356896081439,
+            0.06723727610702666
+          ]
+        }
+      },
+      "individual_point_means_exceeded": 10,
+      "individual_adjusted_intervals_positive": 10
+    },
+    "normal": {
+      "n": 100,
+      "deltas_vs_NONE": {
+        "NONE": {
+          "mean": 0.0,
+          "ci": [
+            0.0,
+            0.0
+          ]
+        },
+        "C1": {
+          "mean": -0.00035438922077871084,
+          "ci": [
+            -0.000771688356586079,
+            5.451696952089642e-05
+          ]
+        },
+        "ORTH_ISO_1": {
+          "mean": 0.0003527996425135202,
+          "ci": [
+            6.306266493835565e-05,
+            0.0006669485282070263
+          ]
+        },
+        "ORTH_ISO_2": {
+          "mean": 2.7458365173180025e-05,
+          "ci": [
+            -0.00026706876076682744,
+            0.000317845491440349
+          ]
+        },
+        "ORTH_ISO_3": {
+          "mean": -0.00023069128376385244,
+          "ci": [
+            -0.0005589130684628055,
+            7.58569383969611e-05
+          ]
+        },
+        "ORTH_ISO_4": {
+          "mean": -6.408475808501581e-05,
+          "ci": [
+            -0.00034891837919506135,
+            0.000229470182331741
+          ]
+        },
+        "ORTH_ISO_5": {
+          "mean": -0.00016831262827676893,
+          "ci": [
+            -0.0004712168100039555,
+            0.00012457310321447543
+          ]
+        },
+        "ORTH_MAN_1": {
+          "mean": 0.0007539548882763676,
+          "ci": [
+            0.0003803517480895703,
+            0.001206554525335324
+          ]
+        },
+        "ORTH_MAN_2": {
+          "mean": 0.0003991473481471183,
+          "ci": [
+            3.352215032143038e-05,
+            0.000812059981424967
+          ]
+        },
+        "ORTH_MAN_3": {
+          "mean": 0.0008405462888503737,
+          "ci": [
+            0.00039199916982766514,
+            0.0013652882509257928
+          ]
+        },
+        "ORTH_MAN_4": {
+          "mean": 0.0004174655859105671,
+          "ci": [
+            1.8967768475640134e-05,
+            0.0008650615655726503
+          ]
+        },
+        "ORTH_MAN_5": {
+          "mean": 0.0003570482298580672,
+          "ci": [
+            3.858909449449146e-05,
+            0.0006791649767983984
+          ]
+        }
+      },
+      "control_mean_vs_NONE": {
+        "mean": 0.0002685331678603557,
+        "ci": [
+          2.967780354195983e-05,
+          0.000542974207223333
+        ]
+      },
+      "c1_minus_control_mean": {
+        "mean": -0.0006229223886390665,
+        "ci": [
+          -0.0009973395180506352,
+          -0.0002737099921262786
+        ]
+      },
+      "c1_minus_each_control": {
+        "ORTH_ISO_1": {
+          "mean": -0.000707188863292231,
+          "ci": [
+            -0.0012860798034793777,
+            -0.000203826174031796
+          ]
+        },
+        "ORTH_ISO_2": {
+          "mean": -0.00038184758595189084,
+          "ci": [
+            -0.0008592665732119309,
+            4.9161186507218705e-05
+          ]
+        },
+        "ORTH_ISO_3": {
+          "mean": -0.0001236979370148584,
+          "ci": [
+            -0.0005550937931105442,
+            0.00032641327209188375
+          ]
+        },
+        "ORTH_ISO_4": {
+          "mean": -0.000290304462693695,
+          "ci": [
+            -0.0007592273563251568,
+            0.00015856205251914838
+          ]
+        },
+        "ORTH_ISO_5": {
+          "mean": -0.0001860765925019419,
+          "ci": [
+            -0.0006148871641615667,
+            0.0002300814050542576
+          ]
+        },
+        "ORTH_MAN_1": {
+          "mean": -0.0011083441090550784,
+          "ci": [
+            -0.0016037275038130905,
+            -0.0006430954828531833
+          ]
+        },
+        "ORTH_MAN_2": {
+          "mean": -0.0007535365689258292,
+          "ci": [
+            -0.0012942837176975579,
+            -0.0002635198520973601
+          ]
+        },
+        "ORTH_MAN_3": {
+          "mean": -0.0011949355096290844,
+          "ci": [
+            -0.0018267075189245562,
+            -0.0006186658934846126
+          ]
+        },
+        "ORTH_MAN_4": {
+          "mean": -0.0007718548066892779,
+          "ci": [
+            -0.0012815471104057924,
+            -0.00028263550174991955
+          ]
+        },
+        "ORTH_MAN_5": {
+          "mean": -0.0007114374506367781,
+          "ci": [
+            -0.0012502937187052286,
+            -0.00020036796500738716
+          ]
+        }
+      },
+      "individual_point_means_exceeded": 0,
+      "individual_adjusted_intervals_positive": 0
+    }
+  },
+  "geometry": [
+    {
+      "set": "normal",
+      "condition": "C1",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 0,
+      "mean_actual_norm": 0.45100669587466247,
+      "question_mean_actual_norm": 0.3722385282639143,
+      "intended_cosine_energy_weighted": 0.9996616582220206,
+      "sink_cosine_energy_weighted_rms": 0.9996628378313434,
+      "max_absolute_cosine_sink": 0.999984860420227,
+      "max_tolerance_fraction": 0.0,
+      "max_relative_total_energy_error": 0.0
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_ISO_1",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 82,
+      "mean_actual_norm": 0.4510066620232505,
+      "question_mean_actual_norm": 0.37223848192667974,
+      "intended_cosine_energy_weighted": 0.9997258147742139,
+      "sink_cosine_energy_weighted_rms": 0.0013916687240692325,
+      "max_absolute_cosine_sink": 0.029885338619351387,
+      "max_tolerance_fraction": 0.04682999867718155,
+      "max_relative_total_energy_error": 8.725309097215257e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_ISO_2",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 110,
+      "mean_actual_norm": 0.4510065538542593,
+      "question_mean_actual_norm": 0.3722383969583237,
+      "intended_cosine_energy_weighted": 0.9996906150675348,
+      "sink_cosine_energy_weighted_rms": 0.0014659460483609657,
+      "max_absolute_cosine_sink": 0.026141148060560226,
+      "max_tolerance_fraction": 0.04698585173237308,
+      "max_relative_total_energy_error": 3.9947708258737956e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_ISO_3",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 93,
+      "mean_actual_norm": 0.45100658008513933,
+      "question_mean_actual_norm": 0.3722384416805255,
+      "intended_cosine_energy_weighted": 0.9996648220123492,
+      "sink_cosine_energy_weighted_rms": 0.0018548997851126924,
+      "max_absolute_cosine_sink": 0.03284144774079323,
+      "max_tolerance_fraction": 0.04509919634858117,
+      "max_relative_total_energy_error": 8.789312217214589e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_ISO_4",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 93,
+      "mean_actual_norm": 0.45100676033910886,
+      "question_mean_actual_norm": 0.37223856879870787,
+      "intended_cosine_energy_weighted": 0.9997064819414666,
+      "sink_cosine_energy_weighted_rms": 0.0012053137481370106,
+      "max_absolute_cosine_sink": 0.042352817952632904,
+      "max_tolerance_fraction": 0.047125559239426094,
+      "max_relative_total_energy_error": 7.258453367523644e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_ISO_5",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 90,
+      "mean_actual_norm": 0.4510066101035933,
+      "question_mean_actual_norm": 0.3722384772528616,
+      "intended_cosine_energy_weighted": 0.9996674184037287,
+      "sink_cosine_energy_weighted_rms": 0.0015686107989132418,
+      "max_absolute_cosine_sink": 0.03701893240213394,
+      "max_tolerance_fraction": 0.04599533000722025,
+      "max_relative_total_energy_error": 6.438043775197951e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_MAN_1",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 1031,
+      "mean_actual_norm": 0.4510052213112734,
+      "question_mean_actual_norm": 0.3722372985646693,
+      "intended_cosine_energy_weighted": 0.9996566628582432,
+      "sink_cosine_energy_weighted_rms": 0.0017808048940386497,
+      "max_absolute_cosine_sink": 0.1203327551484108,
+      "max_tolerance_fraction": 0.04937430755951028,
+      "max_relative_total_energy_error": 0.00020811077891373992
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_MAN_2",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 297,
+      "mean_actual_norm": 0.45100642617810766,
+      "question_mean_actual_norm": 0.37223847312879577,
+      "intended_cosine_energy_weighted": 0.9996497424874052,
+      "sink_cosine_energy_weighted_rms": 0.0018045002051042486,
+      "max_absolute_cosine_sink": 0.05205453932285309,
+      "max_tolerance_fraction": 0.049690962563651894,
+      "max_relative_total_energy_error": 9.92259164034034e-05
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_MAN_3",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 231,
+      "mean_actual_norm": 0.4510065669755642,
+      "question_mean_actual_norm": 0.3722384770774259,
+      "intended_cosine_energy_weighted": 0.9996609984064652,
+      "sink_cosine_energy_weighted_rms": 0.00172060418182701,
+      "max_absolute_cosine_sink": 0.06898565590381622,
+      "max_tolerance_fraction": 0.04884324422710816,
+      "max_relative_total_energy_error": 0.0001910736169293691
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_MAN_4",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 312,
+      "mean_actual_norm": 0.4510060994788203,
+      "question_mean_actual_norm": 0.3722380392349741,
+      "intended_cosine_energy_weighted": 0.9996577963056535,
+      "sink_cosine_energy_weighted_rms": 0.0016975749537227673,
+      "max_absolute_cosine_sink": 0.08955302834510803,
+      "max_tolerance_fraction": 0.04951437256541029,
+      "max_relative_total_energy_error": 0.00021627558883661937
+    },
+    {
+      "set": "normal",
+      "condition": "ORTH_MAN_5",
+      "n_questions": 100,
+      "tokens": 37229,
+      "active": 7883,
+      "rounding_repaired": 190,
+      "mean_actual_norm": 0.4510068578695165,
+      "question_mean_actual_norm": 0.37223865826380587,
+      "intended_cosine_energy_weighted": 0.9997037987531837,
+      "sink_cosine_energy_weighted_rms": 0.001345775250765711,
+      "max_absolute_cosine_sink": 0.06476860493421555,
+      "max_tolerance_fraction": 0.04733933408669757,
+      "max_relative_total_energy_error": 0.0001625110061401035
+    },
+    {
+      "set": "sink",
+      "condition": "C1",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 0,
+      "mean_actual_norm": 4.644530237775869,
+      "question_mean_actual_norm": 4.583094792188358,
+      "intended_cosine_energy_weighted": 0.9999655887586489,
+      "sink_cosine_energy_weighted_rms": 0.9999656195717425,
+      "max_absolute_cosine_sink": 0.9999946355819702,
+      "max_tolerance_fraction": 0.0,
+      "max_relative_total_energy_error": 0.0
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_ISO_1",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 191,
+      "mean_actual_norm": 4.644530201600854,
+      "question_mean_actual_norm": 4.583094767032549,
+      "intended_cosine_energy_weighted": 0.9999623846547925,
+      "sink_cosine_energy_weighted_rms": 0.0005893159252877911,
+      "max_absolute_cosine_sink": 0.029387446120381355,
+      "max_tolerance_fraction": 0.04673970942288243,
+      "max_relative_total_energy_error": 1.450629588648591e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_ISO_2",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 206,
+      "mean_actual_norm": 4.644530199663563,
+      "question_mean_actual_norm": 4.5830947156169275,
+      "intended_cosine_energy_weighted": 0.9999629030482531,
+      "sink_cosine_energy_weighted_rms": 0.0005465914862407887,
+      "max_absolute_cosine_sink": 0.031533628702163696,
+      "max_tolerance_fraction": 0.048897741385373984,
+      "max_relative_total_energy_error": 1.9323607490900694e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_ISO_3",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 198,
+      "mean_actual_norm": 4.6445302366801915,
+      "question_mean_actual_norm": 4.58309478909618,
+      "intended_cosine_energy_weighted": 0.9999619526531154,
+      "sink_cosine_energy_weighted_rms": 0.0006045990538340084,
+      "max_absolute_cosine_sink": 0.031357649713754654,
+      "max_tolerance_fraction": 0.049355557586768906,
+      "max_relative_total_energy_error": 1.0617335509496837e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_ISO_4",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 194,
+      "mean_actual_norm": 4.644530147849468,
+      "question_mean_actual_norm": 4.583094701523693,
+      "intended_cosine_energy_weighted": 0.999961988058064,
+      "sink_cosine_energy_weighted_rms": 0.0005744626771129299,
+      "max_absolute_cosine_sink": 0.03896704316139221,
+      "max_tolerance_fraction": 0.047996799824151934,
+      "max_relative_total_energy_error": 1.5749351087109315e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_ISO_5",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 210,
+      "mean_actual_norm": 4.644530193211269,
+      "question_mean_actual_norm": 4.583094764254553,
+      "intended_cosine_energy_weighted": 0.9999622257498609,
+      "sink_cosine_energy_weighted_rms": 0.0005612859964137099,
+      "max_absolute_cosine_sink": 0.030616989359259605,
+      "max_tolerance_fraction": 0.047620529689348816,
+      "max_relative_total_energy_error": 1.5961080283458848e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_MAN_1",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 5343,
+      "mean_actual_norm": 4.644525365423479,
+      "question_mean_actual_norm": 4.583090359725051,
+      "intended_cosine_energy_weighted": 0.9999647669159542,
+      "sink_cosine_energy_weighted_rms": 0.000555179131293736,
+      "max_absolute_cosine_sink": 0.13597749173641205,
+      "max_tolerance_fraction": 0.049907702557642174,
+      "max_relative_total_energy_error": 2.1175464702924104e-05
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_MAN_2",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 684,
+      "mean_actual_norm": 4.644530404487951,
+      "question_mean_actual_norm": 4.583095017240601,
+      "intended_cosine_energy_weighted": 0.9999613593955611,
+      "sink_cosine_energy_weighted_rms": 0.0006083890901888107,
+      "max_absolute_cosine_sink": 0.07121968269348145,
+      "max_tolerance_fraction": 0.04954986601807662,
+      "max_relative_total_energy_error": 5.630393318905671e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_MAN_3",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 554,
+      "mean_actual_norm": 4.644530462953554,
+      "question_mean_actual_norm": 4.583094863592904,
+      "intended_cosine_energy_weighted": 0.9999631032046987,
+      "sink_cosine_energy_weighted_rms": 0.0005787269323997527,
+      "max_absolute_cosine_sink": 0.12838652729988098,
+      "max_tolerance_fraction": 0.049168216459262136,
+      "max_relative_total_energy_error": 7.897962954503457e-06
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_MAN_4",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 816,
+      "mean_actual_norm": 4.644529428791395,
+      "question_mean_actual_norm": 4.583093896662132,
+      "intended_cosine_energy_weighted": 0.99996299585561,
+      "sink_cosine_energy_weighted_rms": 0.0005798786555387843,
+      "max_absolute_cosine_sink": 0.12573601305484772,
+      "max_tolerance_fraction": 0.04983484646693087,
+      "max_relative_total_energy_error": 1.110241478427397e-05
+    },
+    {
+      "set": "sink",
+      "condition": "ORTH_MAN_5",
+      "n_questions": 96,
+      "tokens": 114160,
+      "active": 76069,
+      "rounding_repaired": 428,
+      "mean_actual_norm": 4.644529771302902,
+      "question_mean_actual_norm": 4.583094372613902,
+      "intended_cosine_energy_weighted": 0.9999617775109858,
+      "sink_cosine_energy_weighted_rms": 0.0005773043110260516,
+      "max_absolute_cosine_sink": 0.07166868448257446,
+      "max_tolerance_fraction": 0.049406830435126135,
+      "max_relative_total_energy_error": 4.058916886678686e-06
+    }
+  ],
+  "decision": {
+    "energy_audit_passed": true,
+    "P1_mean_control_CI_positive": true,
+    "P2_all10_point_means_exceeded": true,
+    "all10_individual_adjusted_CIs_positive": true,
+    "frozen_rule_passed": true
+  },
+  "audit": {
+    "max_NONE_C1_replay_error": 0.0,
+    "max_norm_tolerance_fraction": 0.049907702557642174,
+    "max_relative_response_energy_error": 0.00021627558883661937,
+    "all_record_hashes_checked": true,
+    "all_token_masks_and_recorded_norms_checked": true,
+    "no_original_full_activation_tensors_retained": true
+  },
+  "limitations": [
+    "Same previously inspected questions, not fresh-sample confirmation.",
+    "BF16 updates approximate the intended direction; report energy-weighted actual cosines and repaired-token counts.",
+    "A likelihood effect does not establish free-generation escape or recovery.",
+    "Normal references were selected automated-correct and boxed, not independently human-verified."
+  ]
+}

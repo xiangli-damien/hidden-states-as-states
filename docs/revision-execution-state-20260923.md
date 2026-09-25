@@ -1,3 +1,13 @@
+# 2026-09-25 — energy-matched sink experiment completed and audited
+
+Read `docs/sink-energy-matched-results-20260925.zh-CN.md`, four-sentence English main paragraph included. **v3 completed2352/2352forwards in399.65s; raw CPU audit passes.** Root`/lambda/nfs/dami/hss/sink-energy-matched-20260925-v3`; sourceplanSHAe6160a759f354a05b6461823d792fa8fe3bead7c143920d73d6179a6f8ca44b3; summarySHA22a58cdb78ff9e689979612e8bea055097e4f6c2dda197605738e46ad701b4ad. Local light outputs under same basename inresults; full rawNPZ/JSON stayDami.
+
+**Frozen rule passed; positive functional result:** C1sinkNLL+.0867107 versusenergy-matched10controlmean+.0305704; difference+.0561403,98.75%CI[.0464269,.0657996]. Each10individual99.5%BonferroniCIpositive (minimumlower.0265085). NormalC1−NONE−.0003544CI[−.0007717,.0000545]; C1−controlmean−.0006229CI[−.0009973,−.0002737]. Sameactivepositions,allper-tokennormgatespassed,maxresponseenergyerror.02163%,NONE/C1exactNLLreplayerror0. Sinkcontrolenergyweightedintendedcos>.99996. Independentlocal20kbootstrapconfirms. Fresh controls onpreviouslyinspected96/100questions; nofreegeneration. Do not claimescape/recoveryimproved. v1/v2failednumericalattemptsretained andexcluded, not rerun.
+
+**All currently authorized bounded experiments are complete. Do not launch further experiments, retry v1/v2, or refit Table2/MMLU.** Preserve quiet half-hour monitoring and dailyGitpolicy; GPUneednotshutdown.
+
+---
+
 # 2026-09-25 — authorized C1 per-token energy-matched controls
 
 **CURRENT v3 supersedes v2 below:** root `/lambda/nfs/dami/hss/sink-energy-matched-20260925-v3`, sourcee4beb5a, runner/config`*_v3`. v2worker491638 stopped at307records: pertokengatepassed but totalenergyerror.003398>.002. V3 tightens internal numerical repair target to0.05%norm+1e-7; outer tolerances/statisticalrules unchanged. No new-control contrasts inspected. Preserve v1/v2 failures; do not restart. CPU auditor `scripts/report_sink_energy_matched.py` runs only after v3 GPU_COMPLETE, verifies all rawhashes/masks/norms/replay and computes frozen rules. Then deliver light results/Englishparagraph; no further science authorized.

@@ -134,6 +134,15 @@ def main():
 
     shutil.copy2(REPORT, OUT / "steering-complete-report.zh-CN.md")
     shutil.copytree(ASSETS, OUT / ASSETS.name, dirs_exist_ok=True)
+    # Include the later energy-matched follow-up and all its relative links.
+    for name in ["sink-energy-matched-results-20260925.zh-CN.md", "sink-energy-matched-protocol-20260925.zh-CN.md"]:
+        if (ROOT / "docs" / name).exists():
+            shutil.copy2(ROOT / "docs" / name, OUT / name)
+    extra = ROOT / "docs/sink-energy-matched-20260925"
+    if extra.exists():
+        extra_audit = json.loads((extra / "audit_SUCCESS.json").read_text())
+        assert extra_audit["passed"] and extra_audit["summary_sha256"] == digest(extra / "summary.json")
+        shutil.copytree(extra, OUT / extra.name, dirs_exist_ok=True)
     manifest = {p.relative_to(OUT).as_posix(): digest(p) for p in sorted(OUT.rglob("*")) if p.is_file() and p.name != "manifest.json"}
     (OUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     bundle = OUT.parent / "steering-complete-20260925.zip"
