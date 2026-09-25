@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "conditional_exact_p_independent": 0.19692727195953746,
+  "table_means_all_candidates_and_controls_verified": true,
+  "C1_all10_separately_resampled_CI_positive": true,
+  "independent_bootstrap_B": 20000,
+  "minimum_lower_bound": 0.06818570187761307,
+  "summary_sha256": "21559ae34582e4f904e893669689ebdae89668a7babc19053b6e91f2093e4234"
+}

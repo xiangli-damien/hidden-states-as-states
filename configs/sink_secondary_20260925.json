@@ -1,0 +1,42 @@
+{
+  "analysis": "Post-hoc sink behavior association and suffix-NLL specificity",
+  "frozen_utc": "2026-09-25 14:41:44 UTC",
+  "status": "Secondary analysis after inspecting primary outcomes; not a new confirmatory trial",
+  "seed": 20260925,
+  "bootstrap_replicates": 100000,
+  "source_root": "results/sink-followup-20260925",
+  "output_root": "results/sink-secondary-20260925",
+  "source_sha256": {
+    "step1_reencode.parquet": "e0564067de87bfb4dd9633739809cf720a1a6e50186d8ddfe22c502edfc292cb",
+    "step2_screen_long.parquet": "e8c92f8b65abf09fc228851c5bfc0d230d3433518d4089bffe76b1c6a3c83db3"
+  },
+  "behavior": {
+    "arms": ["zero", "hss", "random"],
+    "exclude_historical": true,
+    "sink_global_id": 24,
+    "hidden_state_index": 14,
+    "degenerate": "not complete nonempty boxed OR n_tokens >= 2048",
+    "cohorts": {"sink_test": 55, "normal_test": 100},
+    "primary_population": "all 155 questions, all three arms",
+    "primary_test": "Exact conditional within-question permutation: fix each question's sink and degeneration margins, permute degeneration labels across its 3 arms; statistic sum_q [3*n11_q - n_sink_q*n_degenerate_q]; two-sided doubled smaller inclusive tail. Independent units are questions, not response pairs.",
+    "concordance": "Among sink-discordant pairs, count concordant degeneration, opposite degeneration and unchanged degeneration separately; report raw pair counts, unique contributing questions and stratified question-bootstrap 95% intervals.",
+    "pair_specific_tests": "Exact two-sided sign tests among jointly discordant pairs separately for zero-hss, zero-random, hss-random; Bonferroni across these 3 tests in pooled155. Cohort subsets descriptive.",
+    "movement": "For both zero-hss and zero-random count exits AND entries in each cohort and pooled; two-sided exact McNemar; descriptive paired95% intervals.",
+    "exit_recovery": "Within exits, report newly boxed versus already boxed, degeneration recovery, automatic-correct changes. Do not call exit alone a behavioral improvement."
+  },
+  "likelihood": {
+    "candidates": ["C0", "C1", "C2", "C3"],
+    "control_families": {"C0": "CTRL_ADD", "C1": "CTRL_CLAMP", "C2": "CTRL_ADD", "C3": "CTRL_PROJ"},
+    "sink_metric": "m_loop is mean per-token NLL of the saved historical suffix, including saved EOS. Positive change reduces suffix likelihood. It is not automatically a repetitive loop.",
+    "normal_metric": "m_col_nll is mean per-token NLL of the full saved normal response; positive change is collateral degradation. Normal cohort is not restricted to mathematically correct responses.",
+    "primary_rows": "All sink questions with finite m_loop in every condition; all100 normal questions. Paired deltas versus NONE and paired candidate-minus-mean-matched-control effects.",
+    "ci_level": 0.9875,
+    "multiplicity": "98.75% intervals apply Bonferroni over 4 candidates within each explicitly named endpoint/comparison family; not a global correction over every analysis. For claims of beating all10 controls, also show candidate-minus-each-control99.875% intervals (Bonferroni over40 pairs).",
+    "bootstrap": "Same question weights across conditions; stratified independent resampling of sink and normal cohorts for between-cohort specificity contrasts.",
+    "rank": "Count strictly exceeded control point means; ranking alone is not significance. Report all10 controls and pairwise intervals.",
+    "repeat_subset": "Prespecified descriptive sensitivity using cut_rule == first_repeat only; report sample size even if zero, do not call general suffix effects loop-specific.",
+    "collateral_claim": "No equivalence margin invented. Report mean and CI; a non-significant harm estimate is not proof of no harm. Strict no-worse-than-controls claim requires upper bound of candidate-minus-control-mean NLL <= 0.",
+    "specificity": "Compute (candidate-control-mean suffix NLL change on sink) minus (candidate-control-mean full-response NLL change on normal); diagnostic given different suffix/full windows and no perturbation-energy matching for clamps."
+  },
+  "scope": "CPU-only using sealed exports; no new GPU generation, no changes to original primary decisions or labels; write all candidates including negative results"
+}

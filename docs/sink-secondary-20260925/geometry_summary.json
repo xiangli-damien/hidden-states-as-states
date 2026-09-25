@@ -1,0 +1,182 @@
+{
+  "source_sha256": "b6649ca389d14a1d8e74b289333e168ddc9a13e6a4114152544a5c87c233f6e2",
+  "scope": "Post-result perturbation-size audit; measured over each full reference response, not suffix-only; descriptive, not used to reselect candidates",
+  "rows": [
+    {
+      "cohort": "normal",
+      "condition": "C1",
+      "n_questions": 100,
+      "mean_delta_norm": 0.3722385276874025,
+      "mean_ratio_of_response_mean_norms": 0.00839924609156084,
+      "changed_token_fraction": 0.21174353326707673
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_iso_1",
+      "n_questions": 100,
+      "mean_delta_norm": 0.0786405949348851,
+      "mean_ratio_of_response_mean_norms": 0.0017629423158639238,
+      "changed_token_fraction": 0.2340917027048806
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_iso_2",
+      "n_questions": 100,
+      "mean_delta_norm": 0.08164551384779824,
+      "mean_ratio_of_response_mean_norms": 0.0018287156805842477,
+      "changed_token_fraction": 0.23323215772650352
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_iso_3",
+      "n_questions": 100,
+      "mean_delta_norm": 0.0912853173836086,
+      "mean_ratio_of_response_mean_norms": 0.002042716839688997,
+      "changed_token_fraction": 0.25544602326143595
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_iso_4",
+      "n_questions": 100,
+      "mean_delta_norm": 0.08474852828971934,
+      "mean_ratio_of_response_mean_norms": 0.0018976867392394854,
+      "changed_token_fraction": 0.23000886405758952
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_iso_5",
+      "n_questions": 100,
+      "mean_delta_norm": 0.0774789803905626,
+      "mean_ratio_of_response_mean_norms": 0.001734845465526538,
+      "changed_token_fraction": 0.22383088452550431
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_man_1",
+      "n_questions": 100,
+      "mean_delta_norm": 0.6297928637318813,
+      "mean_ratio_of_response_mean_norms": 0.013995544567538208,
+      "changed_token_fraction": 0.2526256413011362
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_man_2",
+      "n_questions": 100,
+      "mean_delta_norm": 0.48113505416647506,
+      "mean_ratio_of_response_mean_norms": 0.010782537361952206,
+      "changed_token_fraction": 0.2254962529211099
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_man_3",
+      "n_questions": 100,
+      "mean_delta_norm": 0.32604111485374637,
+      "mean_ratio_of_response_mean_norms": 0.007354301573296072,
+      "changed_token_fraction": 0.23841628837734025
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_man_4",
+      "n_questions": 100,
+      "mean_delta_norm": 0.41049337260186136,
+      "mean_ratio_of_response_mean_norms": 0.009250946359097997,
+      "changed_token_fraction": 0.24086061940960005
+    },
+    {
+      "cohort": "normal",
+      "condition": "CTRL_CLAMP_man_5",
+      "n_questions": 100,
+      "mean_delta_norm": 0.4343561418168271,
+      "mean_ratio_of_response_mean_norms": 0.00963877749054114,
+      "changed_token_fraction": 0.27814338284670553
+    },
+    {
+      "cohort": "sink",
+      "condition": "C1",
+      "n_questions": 96,
+      "mean_delta_norm": 4.583094767995745,
+      "mean_ratio_of_response_mean_norms": 0.10603776155484862,
+      "changed_token_fraction": 0.6663367203924316
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_iso_1",
+      "n_questions": 96,
+      "mean_delta_norm": 0.08273167555391697,
+      "mean_ratio_of_response_mean_norms": 0.0019171467566161066,
+      "changed_token_fraction": 0.2539856341976174
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_iso_2",
+      "n_questions": 96,
+      "mean_delta_norm": 0.10464588892536743,
+      "mean_ratio_of_response_mean_norms": 0.0024219137585828527,
+      "changed_token_fraction": 0.24277330063069377
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_iso_3",
+      "n_questions": 96,
+      "mean_delta_norm": 0.08047379323873095,
+      "mean_ratio_of_response_mean_norms": 0.0018635596658917706,
+      "changed_token_fraction": 0.24747722494744218
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_iso_4",
+      "n_questions": 96,
+      "mean_delta_norm": 0.11391248563697365,
+      "mean_ratio_of_response_mean_norms": 0.0026358167968901654,
+      "changed_token_fraction": 0.2669761737911703
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_iso_5",
+      "n_questions": 96,
+      "mean_delta_norm": 0.11458724467091153,
+      "mean_ratio_of_response_mean_norms": 0.002650113027980834,
+      "changed_token_fraction": 0.3082778556412053
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_man_1",
+      "n_questions": 96,
+      "mean_delta_norm": 0.02415169639457958,
+      "mean_ratio_of_response_mean_norms": 0.0005557446433961001,
+      "changed_token_fraction": 0.020655220742817098
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_man_2",
+      "n_questions": 96,
+      "mean_delta_norm": 0.28754746908304374,
+      "mean_ratio_of_response_mean_norms": 0.006640800633220479,
+      "changed_token_fraction": 0.16347231955150665
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_man_3",
+      "n_questions": 96,
+      "mean_delta_norm": 0.12260836364800864,
+      "mean_ratio_of_response_mean_norms": 0.0028309942597200834,
+      "changed_token_fraction": 0.13629117028731605
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_man_4",
+      "n_questions": 96,
+      "mean_delta_norm": 0.159739356027481,
+      "mean_ratio_of_response_mean_norms": 0.003704427784615291,
+      "changed_token_fraction": 0.14496320953048353
+    },
+    {
+      "cohort": "sink",
+      "condition": "CTRL_CLAMP_man_5",
+      "n_questions": 96,
+      "mean_delta_norm": 0.18963901711463485,
+      "mean_ratio_of_response_mean_norms": 0.004372507407836193,
+      "changed_token_fraction": 0.2786965662228451
+    }
+  ]
+}
