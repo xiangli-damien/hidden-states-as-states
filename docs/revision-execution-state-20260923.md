@@ -1,3 +1,11 @@
+# 2026-09-25 09:22 UTC — Qwen MMLU complete and independently audited; Llama running
+
+Read `docs/mmlu-diagonal-qwen-results-20260925.zh-CN.md`. Qwen all14,042 raw token means, post0–28 plus pre_final28 finished in4965.79s (~82.8min), **2379/2379 candidates with a converged solution**. Of7137 restarts,7122 converged;15 excluded but preserved. All150 ICL selections independently recomputed,10 HSS exports full-hash validated,30 primary selected arrays checked; CPU audit passed44.32s. No upper-bound warning; actual K search adaptive, not exhaustive. 2% postK=[7,15,21,22,27,23,29,32,27,43,46,36,43,34,38,31,38,38,37,38,56,49,49,38,37,33,28,25,29]; pre_finalK24. L20 0%=59,2–5%=56 is descriptive, not proof of distinct computational modes.
+
+Light tables,plot,COMPLETE,protocol local under `results/mmlu-diagonal-gmm-20260925`; plot viewed. Independent auditor `scripts/audit_mmlu_diagonal_results.py` added at10185a8, does not alter frozen fitting files. Qwen completionSHA a7b70ffb35f97b655435e56c11d1796fc9ffba875de0124734777f9024bfc83a. At09:21UTC same queue483670 was fitting Llama32 post11, previous layers complete. Finish Llama normally; run the same CPU audit with --model llama32 after its COMPLETE, sync light outputs, view plot, report full layer K/timing. Do not restart Qwen, no new methods/scientific runs. Daily Git check not due before21:00EDT.
+
+---
+
 # 2026-09-25 08:14 UTC — follow-up screening concluded; MMLU fitting active
 
 Read `docs/sink-followup-results-20260925.zh-CN.md`. Follow-up Step1 620/620, Step2 6895/6895 (35 conditions) complete; no C1/C2/C3 passed D6. **3A not run. 3B unavailable**, original alarm artifacts not saved; do not train a substitute or restart steering. Worker ended 07:34 UTC. Independent exported-table/40,000-bootstrap/count audit passed; local light artifacts under `results/sink-followup-20260925`.
