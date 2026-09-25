@@ -47,6 +47,12 @@
 - 本地不含torch，CPU测试通过后，GPU环境需补跑hook测试；真实模型检查zero与无hook逐token完全相同、首token不变、每个后续位置都被修改。
 - 每30分钟检查现有heartbeat；健康无变化时不重复提醒。完成后独立复算计数、配对统计、检查改变原文，再交付结果。
 
+### 实际启动记录
+
+源码 `7329ba2` 已本地测试后推GitHub，Lambda已fetch/ff-only。GPU环境4项测试全部通过。真实Qwen两题各32token冒烟完成，zero与无hook生成完全相同；两个非零方向均覆盖31个已前向的生成token，首token不变。alpha0.3的理想扰动范数1.9707，实际HSS约1.973–1.976、random约1.973；显存峰值14.214GiB。
+
+正式进程 **480617** 已启动。冻结plan SHA `ef04d559b77a1c014de33dfc061c59230e470b3057c684c1126a66da5cef857f`。前8次完整生成共6592token，耗时164秒，约40token/s；这仅用于时间估计，不据此报告效果。独立复算脚本 `scripts/audit_sink_direction.py` 将在完整结果后运行，随后还需逐题检查变化内容。请以远端status为最新进度。
+
 代码仍按本地→GitHub→Lambda fetch/ff-only部署，作者Xiang Li；不传源码覆盖远端、不改旧冻结文件。
 
 ## 时间与截稿
