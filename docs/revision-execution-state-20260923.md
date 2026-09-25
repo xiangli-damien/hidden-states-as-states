@@ -1,3 +1,13 @@
+# 2026-09-25 08:14 UTC — follow-up screening concluded; MMLU fitting active
+
+Read `docs/sink-followup-results-20260925.zh-CN.md`. Follow-up Step1 620/620, Step2 6895/6895 (35 conditions) complete; no C1/C2/C3 passed D6. **3A not run. 3B unavailable**, original alarm artifacts not saved; do not train a substitute or restart steering. Worker ended 07:34 UTC. Independent exported-table/40,000-bootstrap/count audit passed; local light artifacts under `results/sink-followup-20260925`.
+
+C1 gold-answer suffix logprob change +.05724 nats CI[-.08064,.19134], beats 10/10 control means but fails positive-CI gate. C3 +.05590 CI[-.01461,.12821], also fails. No confirmed benefit. Historical/zero exact text reproduction **0%** in both cohorts: cached Qwen default repetition_penalty1.05 inherited by collection versus explicitly1.0 in pilot/follow-up. No same-parameter replay yet; do not claim this alone proves the cause or conflate activation replay with generation replay. Current arms share configuration, historical cohort selection remains a limitation.
+
+MMLU process **483670**, source **0ff1863**, running after predecessor exit; no GPU overlap. GPU preflight passed probability/LL/moments against CPU (max ~2.1e-12). At08:14UTC Qwen post0–11 completed and post12 fitting,993 candidate artifacts completed,1.8GiB GPU memory. Llama32 waits until all Qwen views and exports finish. Respect frozen protocol; inspect live `queue_status.json` rather than treating this snapshot as current. Monitor convergence/boundary flags and final `Result.validate(full=True)` exports; no MFA or normalization.
+
+---
+
 # 2026-09-25 queued MMLU diagonal-GMM work
 
 User confirmed Llama is **Llama-3.2-1B-Instruct**. After the existing sink follow-up finishes, run **Qwen2 MMLU then Llama-3.2 MMLU**, all14,042 rows each, raw token means, diagonal GMM only. See `docs/mmlu-diagonal-gmm-20260925.zh-CN.md` and `configs/mmlu_diagonal_gmm_20260925.json`. New root `/lambda/nfs/dami/hss/mmlu-diagonal-gmm-20260925`. CPU cache preparation may proceed; GPU fitting waits for predecessor terminal receipt AND no GPU process. Do not stop current Step2/3A. User confirms no original3B detector was saved; if D6 selects3B, leave it unavailable and proceed to MMLU after worker exit. No replacement detector training.
