@@ -100,6 +100,7 @@ def run(root):
         geometry.append(dict(set=group,condition=cond,n_questions=len(d),tokens=int(d.tokens.sum()),
             active=int(d.active.sum()),rounding_repaired=int(d.repaired.sum()),
             mean_actual_norm=float(d.actual_norm_sum.sum()/d.tokens.sum()),
+            question_mean_actual_norm=float((d.actual_norm_sum/d.tokens).mean()),
             intended_cosine_energy_weighted=float(d.intended_cosine_energy_sum.sum()/d.update_energy.sum()),
             sink_cosine_energy_weighted_rms=float(np.sqrt(d.sink_cosine_sq_energy_sum.sum()/d.update_energy.sum())),
             max_absolute_cosine_sink=float(d.max_absolute_cosine_sink.max()),
