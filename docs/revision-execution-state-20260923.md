@@ -1,4 +1,14 @@
-# Latest checkpoint — complete research archive authorized
+# Latest checkpoint — reliability complete; full archive uploading
+
+2026-09-26 12:48:38UTC: reliability finished, final audit passed5278selection records/377fixed-K records/1334matching pairs/5000responses. COMPLETE matches protocolSHA5ae65259df5b6125ceed1275271ecc65dfc5e8a35b8ef4aec03994239c74f606 and auditSHA5fb05cd7b7ab3ea517fff8508eccd9a08c7323e6b23dd5cd1cbca82eabfbc496. PID517444 exited; do not restart. Independent final metadata review verifies29783candidate receipts/89349starts/ICL identities, zero failed or nonconverged starts, zero rawK80boundary hits. Model-array hashes were checked by the original full audit, not rehashed in this independent metadata review.
+
+Final report `docs/qwen-math-reliability-final-20260926.zh-CN.md` pushed/deployed9fba462. 439light files/22694802bytes synced locally with exact remoteSHA. Five-seed K MAD0%=3.9669 vs2%=1.1034; center distance seeds.0087529/subsamples.0136912, ARI.57417/.48915; uniform real-sample assignment baseline.0217994. InterKL>intraKL29/29. K is strongly sample-size-sensitive (index14,2%:20/50/90/100% data→K5/17/29/33); no invariantL10peak. Report limitations faithfully.
+
+Local-only snapshot59852files/8959756939bytes passed every SHA at12:55:16UTC; _READY valid. ArchivePID520664 started production upload13:03:54UTC after freezingmanifest13:03:53. Plan185archives,1164373files,774348166982sourcebytes, plus references to old2.21TB MATH/MMLU archive. Read `/lambda/nfs/dami/research-archive-20260926/status.json` and failure/receipts/_SUCCESS; no duplicate uploader. All original source data retained. Full delivery remains incomplete until all185objects and total cloud_success pass; keep half-hour automation. Final reliability report/review/download receipt additionally saved underR2 `delivery/`; this supplement is not the global archive success marker. Healthy upload quiet; only final overall delivery or actionable failure needs notification.
+
+---
+
+# Historical checkpoint — complete research archive authorized
 
 Update12:28UTC: all29,783candidate completion markers exist; finalcentercomparison/audit stillpending. Currentarchive waiterPID520664/sourcebcf04b0 after waiting-only PAXmetadata correction,7tests passed; oldintentionalinterrupt retained. Local-onlysnapshot transfer and verifierPID520567 continue; gate still requires_READY. No productionR2archive complete yet.
 
