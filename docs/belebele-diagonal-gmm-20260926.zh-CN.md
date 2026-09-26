@@ -1,5 +1,7 @@
 # BELEBELE 两模型对角 GMM
 
+**完成：2026-09-26 06:13:02 UTC。** 两模型48个层／视图、1557个K候选全部完成并通过独立审核，总耗时19分13秒。详见[最终结果与逐层簇数](belebele-diagonal-final-results-20260926.zh-CN.md)。以下保留冻结方案与历史启动记录。
+
 2026-09-26 用户明确取消 Qwen MATH reliability，优先拟合刚完成采集的 BELEBELE。Reliability PID505843 已于05:45UTC收到SIGINT并退出，状态为 `cancelled_by_user`；原协议、部分候选和取消前状态均保留，不再启动。此任务不做reliability、MFA、预测器或steering。
 
 ## 输入与拟合口径
