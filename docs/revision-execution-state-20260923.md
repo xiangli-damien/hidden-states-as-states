@@ -1,4 +1,12 @@
-# Latest checkpoint — Qwen MATH reliability resumed by explicit user request
+# Latest checkpoint — Qwen MATH reliability five-seed K selection complete
+
+2026-09-26 10:02:38 UTC: all five seeds42–46 completed29 layers×K2…80,11,455 candidate fits. Independent CPU stage audit verifies all candidate metadata SHA/three-start counts/ICL identities, independently recomputes0/2%cap80 selections and verifies290 selected-model hashes. Zero failed candidates/nonconverged starts, zero raw-bestK80 hits. Mean absolute deviation from each layer's five-seed meanK:0%=3.9669,2%=1.1034; maximum layerK range22/9. Raw0% peaks atindex10–11;2%peaks at11/21/22 depending onseed. Do not claim invariantL10peak. Report `docs/qwen-math-reliability-five-seed-stage-20260926.zh-CN.md`; lightweight snapshot `results/qwen-math-reliability-20260925/five-seed-stage`.
+
+PID517444 remains healthy and continues eight subsample fractions (fraction_20,L3 at10:02UTC). No finalcenter_comparisons/audit/COMPLETE yet. Continue existing half-hour monitoring; phase completion does not end automation. Data/config/protocol unchanged; no other task launched. Existing completion estimate13:30–15:30UTC remains provisional until subset speeds and terminalaudit are observed.
+
+---
+
+# Historical checkpoint — Qwen MATH reliability resumed by explicit user request
 
 2026-09-26 08:26:55 UTC: user said “不，继续跑”, superseding the earlier reliability cancellation. Resumed existing runner PID517444 from2,377/29,783 completed candidate markers (seed42 all29 layers; seed43 layer0 complete and layer1 partial). Actual PID is in `/lambda/nfs/dami/hss/qwen-math-reliability-20260925/launch.json`; do not duplicate launch. Original source files, configuration and package versions exactly match the frozen protocol; current deployment32521cf arrived via GitHub fetch/ff-only. Runner verifies data hashes and all reused candidate receipts before further fitting. The already-completed candidates are reused, not refitted. A partially interrupted candidate without its completion receipt reruns its three starts.
 
