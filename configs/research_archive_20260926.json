@@ -1,0 +1,31 @@
+{
+  "state_root": "/lambda/nfs/dami/research-archive-20260926",
+  "bucket": "autoact-data",
+  "prefix": "hss/research-archive-20260926",
+  "credentials_file": "/home/ubuntu/.config/openact/r2-upload.conf",
+  "upload_helper": "/lambda/nfs/dami/openact/scripts/upload_r2_collection.py",
+  "upload_helper_sha256": "f5132e5be74e8e99de2c919512fc47b247b875122d187120ee099737f5235a07",
+  "reliability_root": "/lambda/nfs/dami/hss/qwen-math-reliability-20260925",
+  "reliability_protocol_sha256": "5ae65259df5b6125ceed1275271ecc65dfc5e8a35b8ef4aec03994239c74f606",
+  "roots": [
+    {"path": "/lambda/nfs/dami/hss", "name": "hss", "exclude_top": []},
+    {"path": "/lambda/nfs/dami/openact/runs", "name": "openact-runs", "exclude_top": ["math_full_20260916", "mmlu_full_20260916", "r2_math_mmlu_20260922"]},
+    {"path": "/home/ubuntu/hss-cache/data", "name": "hss-input-cache", "exclude_top": []}
+  ],
+  "repositories": [
+    {"name": "hss", "path": "/lambda/nfs/dami/hidden-states-as-states"},
+    {"name": "openact", "path": "/lambda/nfs/dami/openact"}
+  ],
+  "existing_archive": {
+    "bucket": "autoact-data",
+    "prefix": "openact/math-mmlu-full-20260916",
+    "plan_sha256": "e08f76322991b3109828f47c4dc75c101fa846941a3d41b1c3ee789cb1512463",
+    "verified_samples": 57126,
+    "verified_shards": 573
+  },
+  "chunk_bytes": 4294967296,
+  "workers": 4,
+  "part_workers": 4,
+  "part_mib": 64,
+  "retries": 5
+}
