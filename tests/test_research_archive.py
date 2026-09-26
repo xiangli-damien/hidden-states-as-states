@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 from scripts.archive_research_r2 import collect_entries, chunks, stream, gate
+from scripts.archive_research_r2 import read
 
 
 class HashReader:
@@ -75,3 +76,16 @@ def test_gate_requires_valid_complete_audit(tmp_path):
     assert gate(cfg)
     put('audit.json',{'passed':False})
     with pytest.raises(ValueError):gate(cfg)
+
+
+def test_nfs_status_read_retries_stale_handle(tmp_path,monkeypatch):
+    import errno
+    p=tmp_path/'status.json';p.write_text('{"status":"running"}')
+    original=Path.read_text;calls=[]
+    def flaky(self,*args,**kwargs):
+        calls.append(1)
+        if len(calls)==1:raise OSError(errno.ESTALE,'stale')
+        return original(self,*args,**kwargs)
+    monkeypatch.setattr(Path,'read_text',flaky)
+    assert read(p)['status']=='running'
+    assert len(calls)==2

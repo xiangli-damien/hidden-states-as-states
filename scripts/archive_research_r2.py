@@ -5,6 +5,7 @@ multipart transport without altering it. No credentials, environments, model
 download caches, deletion, public ACL, or scientific configuration changes.
 """
 import argparse
+import errno
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import importlib.util
@@ -26,7 +27,14 @@ def sha(path):
 
 
 def read(path):
-    return json.loads(Path(path).read_text())
+    # NFS atomic status replacement can invalidate an already opened handle.
+    for attempt in range(10):
+        try:
+            return json.loads(Path(path).read_text())
+        except OSError as exc:
+            if exc.errno not in (errno.ESTALE, errno.ENOENT) or attempt==9:
+                raise
+            time.sleep(.1*(attempt+1))
 
 
 def digest(value):
@@ -63,7 +71,12 @@ def gate(cfg):
     if audit['selections'] != 5278 or audit['fixed_refits'] != 377 or audit['data_rows'] != 5000:
         raise ValueError('Reliability coverage is incomplete')
     pid = status.get('pid')
-    return not pid or not Path(f'/proc/{pid}').exists()
+    if pid and Path(f'/proc/{pid}').exists():
+        return False
+    ready=cfg.get('local_snapshot_ready')
+    if ready and not Path(ready).exists():
+        return False
+    return True
 
 
 def stat_entry(path, name):

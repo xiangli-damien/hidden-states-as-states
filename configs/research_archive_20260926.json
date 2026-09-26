@@ -7,10 +7,12 @@
   "upload_helper_sha256": "f5132e5be74e8e99de2c919512fc47b247b875122d187120ee099737f5235a07",
   "reliability_root": "/lambda/nfs/dami/hss/qwen-math-reliability-20260925",
   "reliability_protocol_sha256": "5ae65259df5b6125ceed1275271ecc65dfc5e8a35b8ef4aec03994239c74f606",
+  "local_snapshot_ready": "/lambda/nfs/dami/research-local-snapshot-20260926/_READY.json",
   "roots": [
     {"path": "/lambda/nfs/dami/hss", "name": "hss", "exclude_top": []},
     {"path": "/lambda/nfs/dami/openact/runs", "name": "openact-runs", "exclude_top": ["math_full_20260916", "mmlu_full_20260916", "r2_math_mmlu_20260922"]},
-    {"path": "/home/ubuntu/hss-cache/data", "name": "hss-input-cache", "exclude_top": []}
+    {"path": "/home/ubuntu/hss-cache/data", "name": "hss-input-cache", "exclude_top": []},
+    {"path": "/lambda/nfs/dami/research-local-snapshot-20260926", "name": "local-reports", "exclude_top": []}
   ],
   "repositories": [
     {"name": "hss", "path": "/lambda/nfs/dami/hidden-states-as-states"},
