@@ -1,4 +1,14 @@
-# Latest checkpoint — reliability complete; full archive uploading
+# Latest checkpoint — research archive and reliability complete
+
+2026-09-26 15:01:22 UTC: Cloudflare published the full archive _SUCCESS; uploader PID520664 exited. Independent review at15:31UTC verified all185 object HEADs and cloud receipts, byte-identical cloud/local manifest and success, coverage1164373 files, source774348166982bytes, archive776007567360bytes, no errors. ManifestSHA9c13f7e2a5c4110cf4778c3dfa42f88f37088662d93e28c0dc8b000735ed050b. Success record `at` retains verification start14:40:47, not publication time. No need to restart uploader or rehash source trees.
+
+Read docs/research-archive-complete-20260926.zh-CN.md for results, R2 locations and restore steps. Newprefix s3://autoact-data/hss/research-archive-20260926/, old2.21TB MATH/MMLU retained at its existingprefix; all originals preserved. Independent review and receipt summary underarchive delivery/, light receipts mirrored locally. Final docs supplement frozen Git snapshots through GitHub and R2 delivery. Reliability already audited complete; BELEBELE/MATH/MMLU/GSM8K/steering also terminal. No new jobs or Chapter5 fits authorized. Oldsteering independent AI semantic review remains43/202, useraggregates are separate.
+
+Return hss-token to daily21:00 America/New_York Git checks after final GitHub/delivery verification. Retain XiangLi author/committer and daily ledger; preserve unrelateduntracked scripts/plot_math_mmlu_gmm_counts.py. Never manufacture empty commits, merge automatically, forcepush, delete sources, upgrade environments or stop the instance.
+
+---
+
+# Historical checkpoint — reliability complete; full archive uploading
 
 2026-09-26 12:48:38UTC: reliability finished, final audit passed5278selection records/377fixed-K records/1334matching pairs/5000responses. COMPLETE matches protocolSHA5ae65259df5b6125ceed1275271ecc65dfc5e8a35b8ef4aec03994239c74f606 and auditSHA5fb05cd7b7ab3ea517fff8508eccd9a08c7323e6b23dd5cd1cbca82eabfbc496. PID517444 exited; do not restart. Independent final metadata review verifies29783candidate receipts/89349starts/ICL identities, zero failed or nonconverged starts, zero rawK80boundary hits. Model-array hashes were checked by the original full audit, not rehashed in this independent metadata review.
 
