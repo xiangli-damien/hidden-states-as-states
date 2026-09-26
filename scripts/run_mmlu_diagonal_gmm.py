@@ -57,13 +57,17 @@ def needs_extension(rows,cfg):
     return select(rows,0)['k']>=max(cfg['initial_k'])-cfg['boundary_margin']
 
 
+def model_source_paths(cfg,model):
+    return model.get('source_paths',[str(Path(cfg['source_root'])/model['key'])])
+
+
 def freeze_protocol(root,cfg):
     source=Path(__file__).resolve();repo=source.parents[1]
     files=[source,repo/'src/hss/cluster/gmm_resident.py',repo/'src/hss/cluster/gmm.py',
         repo/'src/hss/data/openact.py',repo/'src/hss/data/spec.py',repo/'src/hss/align.py',
         repo/'configs/base.toml',source.with_name('revision_common.py')]
     identity=dict(config=cfg,source_sha256={str(p):sha(p) for p in files},
-        method='diagonal Gaussian mixture',precision='float64',fit_scope='all14042 descriptive unlabeled fitting',
+        method='diagonal Gaussian mixture',precision='float64',fit_scope=f"all{cfg['samples']} descriptive unlabeled fitting",
         selection='ICL=BIC+2*posterior entropy; only converged fits; smallest K in relative tolerance',
         search='shared coarse grid plus dense integer neighbors of three ICL leaders and all tolerance choices, two rounds; optional upper extension',
         search_limit='Adaptive evaluated-grid selection; not an exhaustive global optimum guarantee',
@@ -79,7 +83,7 @@ def prepare_model(root,cfg,model):
     out=root/model['key'];out.mkdir(parents=True,exist_ok=True)
     snapshots={}
     for view in ['post','pre_final'] if cfg['include_pre_final'] else ['post']:
-        spec=DataSpec(paths=[str(Path(cfg['source_root'])/model['key'])],dataset_id='mmlu',
+        spec=DataSpec(paths=model_source_paths(cfg,model),dataset_id=cfg.get('dataset_id','mmlu'),
             expected_samples=cfg['samples'],expected_model=model['identifier'],representation='mean',
             final_norm='post' if view=='post' else 'pre',layers=None if view=='post' else [model['last_layer']],
             require_copy_receipt=True,min_free_gib=cfg['min_disk_free_gib'])
@@ -236,8 +240,8 @@ def export(root,cfg,model,view,data,selection,records,tolerance):
     write_json(out/'selection.json',scans);write_json(out/'diagnostics.json',[])
     idx=np.arange(data.n_items());write_npz(out/'split.npz',train=idx,map_fit=idx,validation=np.array([],int),test=np.array([],int))
     config=load_experiment(Path(__file__).parents[1]/'configs/base.toml').to_dict()
-    config['name']=f"{model['key']}_mmlu_diag_{view}_icl{tolerance:g}"
-    config['data'].update(dataset_id='mmlu',paths=[str(Path(cfg['source_root'])/model['key'])],expected_model=model['identifier'],
+    config['name']=f"{model['key']}_{cfg.get('dataset_id','mmlu')}_diag_{view}_icl{tolerance:g}"
+    config['data'].update(dataset_id=cfg.get('dataset_id','mmlu'),paths=model_source_paths(cfg,model),expected_model=model['identifier'],
         expected_samples=cfg['samples'],final_norm='pre' if view=='pre_final' else 'post',layers=data.layers())
     config['cluster'].update(method='gmm',covariance_type='diag',assignment='posterior',n_init=cfg['n_init'],
         max_iter=cfg['max_iter'],tol=cfg['tol'],k_min=1,k_max=max(r['k'] for r in records),parsimony_tolerance=tolerance,
@@ -289,7 +293,7 @@ def run_model(root,cfg,model,snapshots):
     table=pd.DataFrame(selection);fig,ax=plt.subplots(figsize=(11,4))
     for tol,part in table[table['view']=='post'].groupby('tolerance'):
         part=part.sort_values('layer');ax.plot(part.layer,part.k,'o-',label=f'ICL {tol:.0%}')
-    ax.set(xlabel='Stored layer index',ylabel='Selected GMM components',title=model['identifier']+' / MMLU raw token means');ax.legend()
+    ax.set(xlabel='Stored layer index',ylabel='Selected GMM components',title=model['identifier']+' / '+cfg.get('dataset_id','mmlu').upper()+' raw token means');ax.legend()
     fig.tight_layout();fig.savefig(out/'k_by_layer.png',dpi=160);plt.close(fig)
     write_json(out/'COMPLETE.json',dict(model=model['identifier'],n_samples=cfg['samples'],n_candidates=len(records),
         converged_candidates=sum(r['converged'] for r in records),seconds=time.time()-start,exports=exports))

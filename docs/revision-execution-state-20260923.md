@@ -1,4 +1,14 @@
-# Latest checkpoint — Qwen MATH reliability newly authorized
+# Latest checkpoint — reliability cancelled; BELEBELE diagonal GMM authorized
+
+2026-09-26 latest user explicitly says skip reliability and fit BELEBELE for both models. This supersedes ALL reliability monitoring/restart instructions below. PID505843 received SIGINT and exited05:45UTC; root `/lambda/nfs/dami/hss/qwen-math-reliability-20260925` is `cancelled_by_user`, original protocol/partial results and before/after cancellation records preserved. Do not resume it.
+
+BELEBELE collection finished05:20:51UTC,5400/5400 across six900-rowcells, both workers exit0 and root_SUCCESS verified.174shards,1,118,216generatedtokens,111,129,167,476bytes. Allmetadata/labels and source hashes audited; publisher all-file receipts preserved; latestshard ofeachmodel independently rehashed and first/last full activation views rechecked. OpenAct `reports/belebele_complete_20260926.json` records completion. No more collection.
+
+New plan: `docs/belebele-diagonal-gmm-20260926.zh-CN.md`, config `configs/belebele_diagonal_gmm_20260926.json`, runner `scripts/run_belebele_diagonal_gmm.py`, resultroot `/lambda/nfs/dami/hss/belebele-diagonal-gmm-20260926`. Joint English/German/Chinese raw full-response mean,2700permodel; Qwen0–28+finalpre and Llama0–16+finalpre, diagonalGMMonly, threeinitializations, no normalization, adaptiveK1–80/160withintegerrefinement,0/2%ICLexports. Language preference question pending; default joint unless user changes scope. Local16pass3torchskip; validate remote beforelaunch. Actuallaunchreceipt andqueue_status.json takeprecedence; do not duplicate. FinalrootCOMPLETE onlyafterbothindependentaudits. Keep30minmonitor forBELEBELEGMM, then daily21:00NewYorkGit. Oldexperimentsremainfinished; unrelateduntrackedplot script preserved.
+
+---
+
+# Historical checkpoint — Qwen MATH reliability formerly authorized (now cancelled)
 
 Launch verified01:42UTC: source9fb0b7e, server17/17 targeted tests pass. PID505843, frozen protocol01:41:48UTC, CPU historical preview29/29 complete, now waiting_for_collection with only BELEBELE workers onGPU. See `docs/qwen-math-reliability-initial-results-20260925.zh-CN.md`. Historical KLinter>KLwithin in29/29; correct uniform sample-assignment random baseline mean.02039, not paper.65. New refits have not started, so do not claim seed/center stability. Local light preview http://127.0.0.1:8795/report/index.html (snapshot, refresh from Lambda). Half-hour automation updated for BOTH tasks; onBELEBELEcompletion do not cancel pending reliability. Full launch/status/protocol in resultroot.
 
