@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 from scripts.archive_research_r2 import collect_entries, chunks, stream, gate
 from scripts.archive_research_r2 import read
+from scripts.archive_research_r2 import PaxMultipartClient
 
 
 class HashReader:
@@ -89,3 +90,9 @@ def test_nfs_status_read_retries_stale_handle(tmp_path,monkeypatch):
     monkeypatch.setattr(Path,'read_text',flaky)
     assert read(p)['status']=='running'
     assert len(calls)==2
+
+
+def test_multipart_declares_actual_pax_format():
+    client=SimpleNamespace(create_multipart_upload=lambda **kw:kw)
+    result=PaxMultipartClient(client).create_multipart_upload(Bucket='fixture',Metadata={'archive-format':'ustar-v1','source':'hash'})
+    assert result['Metadata']=={'archive-format':'pax-v1','source':'hash'}

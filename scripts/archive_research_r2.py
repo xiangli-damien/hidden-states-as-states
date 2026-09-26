@@ -41,6 +41,17 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+class PaxMultipartClient:
+    """Correct format metadata while reusing the pinned OpenAct transport."""
+    def __init__(self, client):
+        self.client=client
+    def __getattr__(self, name):
+        return getattr(self.client,name)
+    def create_multipart_upload(self, **kwargs):
+        kwargs['Metadata']={**kwargs.get('Metadata',{}),'archive-format':'pax-v1'}
+        return self.client.create_multipart_upload(**kwargs)
+
+
 def load_transport(cfg):
     p = cfg['upload_helper']
     if sha(p) != cfg['upload_helper_sha256']:
@@ -260,7 +271,7 @@ def upload_one(rec, cfg, u, s3):
         archive = dict(bytes=part['archive_bytes'], sha256=part['archive_sha256'], etag=part['expected_etag'], parts=part['parts_total'])
         index=read(ip)
     else:
-        sink = u.MultipartSink(s3, cfg, key, pp, rec['inventory_sha256'])
+        sink = u.MultipartSink(PaxMultipartClient(s3), cfg, key, pp, rec['inventory_sha256'])
         try:
             index = stream(read(inventory), sink, u)
             u.save_json(ip, index); archive = sink.finish()
