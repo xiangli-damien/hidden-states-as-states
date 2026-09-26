@@ -1,4 +1,14 @@
-# Latest checkpoint — BELEBELE GMM complete and independently audited
+# Latest checkpoint — Qwen MATH reliability resumed by explicit user request
+
+2026-09-26 08:26:55 UTC: user said “不，继续跑”, superseding the earlier reliability cancellation. Resumed existing runner PID517444 from2,377/29,783 completed candidate markers (seed42 all29 layers; seed43 layer0 complete and layer1 partial). Actual PID is in `/lambda/nfs/dami/hss/qwen-math-reliability-20260925/launch.json`; do not duplicate launch. Original source files, configuration and package versions exactly match the frozen protocol; current deployment32521cf arrived via GitHub fetch/ff-only. Runner verifies data hashes and all reused candidate receipts before further fitting. The already-completed candidates are reused, not refitted. A partially interrupted candidate without its completion receipt reruns its three starts.
+
+Old cancellation/launch/status and selection/refit snapshots are preserved in `resume_history/20260926T082655Z`; explicit authorization recorded there. Original protocolSHA5ae65259df5b6125ceed1275271ecc65dfc5e8a35b8ef4aec03994239c74f606 unchanged. No scientific settings changed: Qwen2×MATH5000 raw response mean,29 layers,diagGMMfloat64,5seeds+8subsample fractions,K2…80,three starts,0/2%ICL,independent fixed-K centers/ARI and within/betweenKL. Completion requires audit.json and COMPLETE.json, not just process exit. Restore half-hour monitoring plus existing daily21:00 NewYork Git check. Healthy progress quiet; notify meaningful stages, completion or errors. No new chapter5 protocol experiment is authorized by this resume.
+
+BELEBELE collection/GMM and older steering/MATH/MMLU/GSM8K/upload jobs remain completed; do not restart. The older text below saying never resume reliability is historical and is superseded only for this renewed reliability authorization. Read `docs/qwen-math-reliability-20260925.zh-CN.md` for the unchanged scientific protocol. Estimate remaining time from resumed progress, not the short BELEBELE single-map run.
+
+---
+
+# Historical checkpoint — BELEBELE GMM complete and independently audited
 
 2026-09-26 06:13:02 UTC: both models finished; root `/lambda/nfs/dami/hss/belebele-diagonal-gmm-20260926/COMPLETE.json` confirms both independent audits passed. Queue PID513889 exited, GPU idle at06:21UTC. Do not restart collection, fitting, or cancelled reliability. Total19min13s from05:53:49UTC launch. Qwen30 views/975 candidates/2925 starts; Llama18 views/582 candidates/1746 starts. All candidates and starts converged, no upper-bound warnings; all8 portable exports pass full checksums. Audit scope checks all candidate metadata and primary selected arrays, not every nonselected restart array.
 
